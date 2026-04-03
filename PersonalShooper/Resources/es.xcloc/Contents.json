@@ -1,0 +1,16 @@
+{
+  "sourceLanguage" : "es",
+  "languages" : [ "es" ],
+  "strings" : {
+    "app_name" : "Personal Shooper",
+    "continue_button" : "Continuar",
+    "cancel_button" : "Cancelar",
+    "save_button" : "Guardar",
+    "done_button" : "Hecho",
+    "tab_home" : "Inicio",
+    "tab_tryon" : "Probarselo",
+    "tab_ar" : "Vista AR",
+    "tab_closet" : "Armario",
+    "tab_profile" : "Perfil"
+  }
+}
