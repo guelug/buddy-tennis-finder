@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Virtual Try-On**: Google Gemini (Nano Banana) for clothing visualization
 - **AR Features**: ARKit for augmented reality experiences
 - **Payments**: Apple Pay subscriptions via StoreKit
+- **On-Device ML**: Apple Foundation Models (iOS 26+), Vision framework for photo analysis
 
 ### Design Language
 - Premium, clean aesthetic inspired by Apple/Claude Code
@@ -55,7 +56,9 @@ PersonalShooper/
 │   │   ├── Views/                         # Chat UI
 │   │   ├── ViewModels/                    # Chat state management
 │   │   └── Services/
-│   │       └── AppleIntelligenceService.swift  # Apple Foundation integration
+│   │       ├── AppleIntelligenceService.swift   # Enhanced fallback
+│   │       ├── FoundationModelsService.swift    # iOS 26+ native AI
+│   │       └── AIRecommendationService.swift    # Fashion recommendations
 │   ├── TryOn/
 │   │   ├── Views/                         # Camera/AR views
 │   │   ├── ViewModels/
@@ -66,9 +69,15 @@ PersonalShooper/
 │   │   ├── ViewModels/
 │   │   └── Services/
 │   │       ├── PhotoAnalysisService.swift  # Skin tone, features extraction
-│   │       └── StorageService.swift        # Local photo storage
+│   │       ├── SkinToneExtractor.swift     # Color analysis
+│   │       └── ProfileStorageService.swift # Local photo storage
+│   ├── Closet/
+│   │   └── Views/ClosetView.swift         # Virtual wardrobe
+│   ├── AR/
+│   │   ├── Views/ARWardrobeView.swift
+│   │   └── ViewModels/ARViewModel.swift
 │   └── Subscription/
-│       └── StoreKitManager.swift           # Apple Pay subscriptions
+│       └── StoreKitManager.swift          # Apple Pay subscriptions
 ├── Core/
 │   ├── Design/
 │   │   ├── Theme.swift                    # Colors, typography, spacing
@@ -82,12 +91,57 @@ PersonalShooper/
 
 ### AI Integration Strategy
 
-| Feature | Provider | Privacy |
-|---------|----------|---------|
-| Chat Assistant | Apple Intelligence (Foundation Models) | Full local processing |
-| Virtual Try-On | Google Gemini (Nano Banana) | API calls, no local storage |
-| Skin Tone Analysis | Local (CoreML/Vision) | Photos never leave device |
-| Color Recommendations | Apple Intelligence | Full local processing |
+| Feature | Provider | Privacy | Status |
+|---------|----------|---------|--------|
+| Chat Assistant | Apple Intelligence (Foundation Models) | Full local processing | ✅ iOS 26+ |
+| Chat Fallback | Enhanced Local AI | Local keyword analysis | ✅ iOS 17.2+ |
+| Virtual Try-On | Google Gemini (Nano Banana) | API calls, no local storage | ✅ All versions |
+| Skin Tone Analysis | Local (CoreML/Vision) | Photos never leave device | ✅ All versions |
+| Color Recommendations | Apple Intelligence | Full local processing | ✅ iOS 26+ |
+| Outfit Recommendations | Apple Intelligence | Full local processing | ✅ iOS 26+ |
+
+### Foundation Models Integration
+
+**New in iOS 26+:**
+
+```swift
+import FoundationModels
+
+// Create a session
+let session = LanguageModelSession()
+
+// Simple prompt
+let response = try await session.respond(to: "What colors suit me?")
+
+// Streaming
+let stream = session.streamResponse(to: "Suggest an outfit")
+for try await text in stream {
+    updateUI(text)
+}
+
+// Guided generation (structured output)
+let outfit = try await session.respond(to: "Create an outfit", 
+                                        generating: OutfitRecommendation.self)
+```
+
+**Tools Integration:**
+
+```swift
+struct ClosetTool: Tool {
+    var name: String { "closet_search" }
+    var description: String { "Search user's wardrobe" }
+    
+    @Generable
+    struct Arguments {
+        let category: String?
+        let color: String?
+    }
+    
+    func call(arguments: Arguments) async throws -> ToolOutput {
+        // Implementation
+    }
+}
+```
 
 ### Profile Photo System
 
@@ -104,11 +158,19 @@ Photos are stored locally with explicit user consent. A privacy notice explains 
 ## Features
 
 ### 1. AI Chat Assistant
-- Powered by Apple Foundation Models for privacy
-- Context-aware responses using user's profile data
-- Color and style recommendations based on extracted skin tone
-- Bilingual support (English/Spanish)
-- Conversation history stored locally
+
+**Foundation Models (iOS 26+):**
+- Powered by on-device Apple Foundation Models
+- Zero data leaving the device
+- Streaming responses for better UX
+- Custom tools for closet integration
+- Context-aware using user's profile data
+
+**Fallback (older iOS):**
+- Enhanced keyword-based responses
+- Sentiment analysis
+- Multi-language support (EN/ES)
+- Response caching
 
 ### 2. Virtual Try-On
 - Uses Google Gemini (Nano Banana) image generation
@@ -142,33 +204,27 @@ Photos are stored locally with explicit user consent. A privacy notice explains 
 - ARKit (for augmented reality features)
 - In-App Purchase (for subscriptions)
 - Sign in with Apple (for user accounts)
+- **Apple Intelligence** (for on-device AI, iOS 26+)
 
 ### Info.plist Keys
 ```xml
 NSCameraUsageDescription - "Take photos to try on clothes virtually"
 NSPhotoLibraryUsageDescription - "Save and access your try-on photos"
 NSPhotoLibraryAddUsageDescription - "Save your favorite looks"
+NSAppleIntelligenceUsageDescription - "Process fashion advice on your device"
+```
+
+### Entitlements
+```xml
+com.apple.developer.on-device-ml - Required for Foundation Models
+com.apple.developer.icloud-container-identifiers - For data sync
+com.apple.developer.in-app-purchase - For subscriptions
 ```
 
 ### Environment Variables
 Create `PersonalShooper/Config.xcconfig`:
 ```
 GEMINI_API_KEY = your_gemini_api_key
-APPLE_INTELLIGENCE_ENABLED = true
-```
-
----
-
-## Localization
-
-The app supports English and Spanish. Use `.xcloc` files for translations.
-
-```
-Resources/
-├── en.xcloc/
-│   └── Contents.json
-└── es.xcloc/
-    └── Contents.json
 ```
 
 ---
@@ -180,17 +236,28 @@ Resources/
 - MVVM architecture with `@Observable` (iOS 17+)
 - Dependency injection for services
 - Protocol-oriented design for testability
+- Swift 6 strict concurrency
 
-### Apple Intelligence Integration
-- Use `APrompt` or `MSG prompt` components from Apple frameworks
-- Respect privacy: Never send user photos to external AI
-- Fallback to local processing if Apple Intelligence unavailable
+### Foundation Models Integration
+- Use `@Generable` macro for structured output
+- Use `LanguageModelSession` for conversation state
+- Implement `Tool` protocol for app integrations
+- Always check availability with `SystemLanguageModel.default.availability`
+- Pre-warm model when user likely to engage: `await session.prewarm()`
+
+### Privacy Requirements
+- Never send user photos to external AI
+- Use on-device processing for all personal data
+- Anonymize any analytics data
+- Clear privacy notices for all data collection
 
 ### Color Extraction Pipeline
-1. User photo → Vision framework → Face/Body detection
-2. CoreML model → Skin tone classification (warm/cool/neutral)
-3. Undertone analysis → Personal color palette generation
-4. Palette stored locally, passed as context to AI assistant
+1. User photo → Vision framework → Face detection with landmarks
+2. Skin region extraction using face contour and cheeks
+3. Grid-based color sampling with skin tone filtering
+4. CoreML classification → Undertone analysis (warm/cool/neutral)
+5. Seasonal palette generation based on undertone + brightness
+6. Palette stored locally, passed as context to AI assistant
 
 ### Testing
 ```bash
@@ -200,3 +267,37 @@ xcodebuild test -project PersonalShooper.xcodeproj -scheme PersonalShooperTests
 # Run UI tests
 xcodebuild test -project PersonalShooper.xcodeproj -scheme PersonalShooperUITests
 ```
+
+---
+
+## Localization
+
+The app supports English and Spanish with automatic language detection.
+
+```
+Resources/
+├── en.xcloc/
+│   └── Contents.json
+└── es.xcloc/
+    └── Contents.json
+```
+
+---
+
+## Migration Notes
+
+### From older versions to Foundation Models:
+
+1. Replace direct `AppleIntelligenceService` calls with `AIChatServiceFactory.createService()`
+2. Use streaming API for better UX: `viewModel.sendMessage(useStreaming: true)`
+3. Add Tools to `LanguageModelSession` for app integrations
+4. Update deployment target to iOS 26.0 for full features
+
+---
+
+## Resources
+
+- [Apple Intelligence Documentation](https://developer.apple.com/apple-intelligence/)
+- [Foundation Models Framework Guide](https://developer.apple.com/documentation/foundationmodels)
+- [Vision Framework](https://developer.apple.com/documentation/vision)
+- [SwiftData](https://developer.apple.com/documentation/swiftdata)

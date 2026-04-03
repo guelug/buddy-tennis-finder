@@ -29,7 +29,7 @@ struct ProfileView: View {
                 }
                 .padding(Theme.Spacing.screenPadding)
             }
-            .background(Color.purple.opacity(0.15).ignoresSafeArea())
+            .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle("Profile")
             .sheet(isPresented: $showingPhotoUpload) {
                 PhotoUploadView(startStep: editingPhotoStep)
@@ -398,44 +398,6 @@ struct PhotoThumbnail: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title) photo\(isUploaded ? ", uploaded" : ", not uploaded")")
-    }
-}
-
-struct SettingsRow<Destination: View>: View {
-    let icon: String
-    let title: String
-    let value: String
-    @ViewBuilder let destination: () -> Destination
-
-    var body: some View {
-        if value.isEmpty {
-            // When value is empty, use NavigationLink
-            NavigationLink {
-                destination()
-            } label: {
-                rowContent
-            }
-        } else {
-            // When value has content, use Menu for language or Button for other
-            rowContent
-        }
-    }
-
-    private var rowContent: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundStyle(.blue)
-                .frame(width: 28)
-
-            Text(title)
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            Text(value)
-                .foregroundStyle(.secondary)
-        }
-        .padding(Theme.Spacing.md)
     }
 }
 

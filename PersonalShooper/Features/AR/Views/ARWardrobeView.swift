@@ -10,7 +10,7 @@ struct ARWardrobeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.green.opacity(0.2).ignoresSafeArea()
+                Theme.Colors.groupedBackground.ignoresSafeArea()
 
                 if viewModel.isARSupported {
                     ARViewContainer(viewModel: viewModel)

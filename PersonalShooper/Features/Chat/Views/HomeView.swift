@@ -26,7 +26,7 @@ struct HomeView: View {
                 }
                 .padding(Theme.Spacing.screenPadding)
             }
-            .background(Color.red.opacity(0.15).ignoresSafeArea())
+            .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle("Home")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

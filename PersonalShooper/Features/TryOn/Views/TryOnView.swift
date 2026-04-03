@@ -26,7 +26,7 @@ struct TryOnView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.blue.opacity(0.15).ignoresSafeArea())
+            .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle("Virtual Try-On")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

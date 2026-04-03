@@ -22,20 +22,59 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    
+    <!-- Apple Intelligence / Foundation Models -->
+    <key>NSAppleIntelligenceUsageDescription</key>
+    <string>Personal Shooper uses Apple Intelligence to provide personalized fashion advice directly on your device. Your messages are processed locally and never leave your device.</string>
+    
+    <!-- Camera -->
+    <key>NSCameraUsageDescription</key>
+    <string>Take photos to try on clothes virtually and capture your profile photos for personalized style recommendations. Photos are stored locally on your device.</string>
+    
+    <!-- Photo Library -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Access your photos to save try-on results and import clothing images for your virtual closet.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Save your favorite try-on looks and outfit inspirations to your photo library.</string>
+    
+    <!-- Speech Recognition (for future voice features) -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Enable voice commands to chat with your AI stylist hands-free.</string>
+    
+    <!-- Microphone -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Record voice messages for your AI stylist when you prefer speaking over typing.</string>
+    
+    <!-- Face ID / Biometrics (for secure access) -->
+    <key>NSFaceIDUsageDescription</key>
+    <string>Secure access to your personal style profile and wardrobe data.</string>
+    
+    <!-- User Tracking (App Transparency) -->
+    <key>NSUserTrackingUsageDescription</key>
+    <string>Personal Shooper does not track you. This permission is only requested for analytics to improve the app experience. Your fashion data stays private.</string>
+    
+    <!-- Scene Configuration -->
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
         <false/>
     </dict>
+    
+    <!-- Launch Screen -->
     <key>UILaunchScreen</key>
     <dict>
         <key>UIColorName</key>
         <string>LaunchBackground</string>
     </dict>
+    
+    <!-- Device Capabilities -->
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arm64</string>
+        <string>metal</string>
     </array>
+    
+    <!-- Supported Orientations -->
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
@@ -47,15 +86,36 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>NSCameraUsageDescription</key>
-    <string>Take photos to try on clothes virtually and capture your profile photos for personalized style recommendations.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>Access your photos to save try-on results and import clothing images.</string>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>Save your favorite try-on looks to your photo library.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Record voice messages for your AI stylist.</string>
+    
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>generativelanguage.googleapis.com</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.2</string>
+            </dict>
+        </dict>
+    </dict>
+    
+    <!-- Encryption Export Compliance -->
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
+    
+    <!-- Background Modes -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>processing</string>
+    </array>
+    
+    <!-- Siri Intent (for future Siri integration) -->
+    <key>NSSiriUsageDescription</key>
+    <string>Use Siri to ask your AI stylist for outfit recommendations.</string>
 </dict>
 </plist>

@@ -47,7 +47,7 @@ struct ClosetView: View {
                     .padding(.horizontal)
                     .padding(.vertical, Theme.Spacing.sm)
                 }
-                .background(Color.blue.opacity(0.05))
+                .background(Theme.Colors.cardBackground)
 
                 if filteredItems.isEmpty {
                     VStack(spacing: Theme.Spacing.md) {
@@ -67,7 +67,7 @@ struct ClosetView: View {
                         .buttonStyle(.borderedProminent)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.orange.opacity(0.1))
+                    .background(Theme.Colors.groupedBackground)
                 } else {
                     ScrollView {
                         LazyVGrid(columns: [
@@ -88,10 +88,10 @@ struct ClosetView: View {
                         }
                         .padding()
                     }
-                    .background(Color.purple.opacity(0.05))
+                    .background(Theme.Colors.groupedBackground)
                 }
             }
-            .background(Color.green.opacity(0.1).ignoresSafeArea())
+            .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle("My Closet")
             .searchable(text: $searchText, prompt: "Search closet")
             .toolbar {
@@ -169,7 +169,7 @@ struct ClosetItemCard: View {
                 .foregroundStyle(.secondary)
         }
         .padding(Theme.Spacing.xs)
-        .background(Color.white)
+        .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
         .shadow(color: .black.opacity(0.05), radius: 2)
     }

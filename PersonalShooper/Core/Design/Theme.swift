@@ -11,7 +11,7 @@ enum Theme {
         static let groupedBackground = Color(.systemGroupedBackground)
 
         // Premium neutrals
-        static let cardBackground = Color(.systemBackground)
+        static let cardBackground = Color(.secondarySystemGroupedBackground)
         static let cardBorder = Color(.separator)
         static let premiumGold = Color(red: 0.78, green: 0.64, blue: 0.28)
         static let primaryGradient = LinearGradient(
@@ -85,7 +85,7 @@ extension View {
             .padding(Theme.Spacing.cardPadding)
             .background(Theme.Colors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
-            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+            .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
     }
 
     func premiumButtonStyle() -> some View {

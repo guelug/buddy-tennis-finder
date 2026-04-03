@@ -1,32 +1,7 @@
+#if canImport(FoundationModels)
 import Foundation
+import FoundationModels
 import SwiftData
-
-// MARK: - Foundation Models Availability Check
-/// Checks if the device supports Apple Foundation Models
-@available(iOS 26.0, *)
-enum FoundationModelsAvailability {
-    static var isAvailable: Bool {
-        // Check if FoundationModels framework is available
-        // This is determined by OS version and device capability
-        return true // Runtime check happens when initializing LanguageModelSession
-    }
-}
-
-// MARK: - Foundation Models Service Protocol
-protocol FoundationModelsServiceProtocol: AIChatServiceProtocol {
-    var isStreaming: Bool { get }
-    func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error>
-    func prewarm() async
-}
-
-// MARK: - Clothing Tool Arguments
-/// Arguments for the clothing recommendation tool
-struct ClothingToolArguments: Codable {
-    let category: String?
-    let occasion: String?
-    let colorPreference: String?
-    let stylePreference: String?
-}
 
 // MARK: - Foundation Models Service Implementation
 /// Service that uses Apple's native Foundation Models framework for on-device AI
@@ -251,24 +226,6 @@ struct ClothingRecommendationTool: Tool {
     }
 }
 
-// MARK: - Clothing Data Service Protocol
-protocol ClothingDataServiceProtocol: Sendable {
-    func searchItems(
-        category: String?,
-        occasion: String?,
-        colorPreference: String?,
-        stylePreference: String?
-    ) async -> [ClothingItemSummary]
-}
-
-struct ClothingItemSummary: Codable {
-    let id: UUID
-    let name: String
-    let category: ClothingCategory
-    let colorTags: [String]
-    let styleTags: [String]
-}
-
 // MARK: - Outfit Recommendation (Structured Output)
 @Generable
 struct OutfitRecommendation {
@@ -303,20 +260,15 @@ struct OutfitItem {
     let reasoning: String
 }
 
-// MARK: - Updated AI Service Factory
-enum AIChatServiceFactory {
-    static func createService(
+// MARK: - Foundation Models Factory Helpers
+extension AIChatServiceFactory {
+    @available(iOS 26.0, *)
+    static func createFoundationModelsService(
         clothingService: ClothingDataServiceProtocol? = nil
     ) -> AIChatServiceProtocol {
-        if #available(iOS 26.0, *) {
-            // Check if Foundation Models is actually available on this device
-            let service = FoundationModelsService(clothingService: clothingService)
-            return service
-        } else {
-            return EnhancedAppleIntelligenceService()
-        }
+        return FoundationModelsService(clothingService: clothingService)
     }
-    
+
     @available(iOS 26.0, *)
     static func createStreamingService(
         clothingService: ClothingDataServiceProtocol? = nil
@@ -324,3 +276,5 @@ enum AIChatServiceFactory {
         return FoundationModelsService(clothingService: clothingService)
     }
 }
+
+#endif

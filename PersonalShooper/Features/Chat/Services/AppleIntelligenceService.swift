@@ -8,7 +8,8 @@ enum AIError: LocalizedError {
     case responseFailed(String)
     case contentFiltered
     case timeout
-
+    case modelNotAvailable
+    
     var errorDescription: String? {
         switch self {
         case .notSupported:
@@ -21,6 +22,8 @@ enum AIError: LocalizedError {
             return "Your request was filtered for safety. Please try a different message."
         case .timeout:
             return "The request timed out. Please try again."
+        case .modelNotAvailable:
+            return "The AI model is not available at the moment."
         }
     }
 }
@@ -36,17 +39,53 @@ protocol AIChatServiceProtocol {
     func sendMessage(_ message: String, context: ChatContext) async throws -> String
 }
 
-// MARK: - Apple Intelligence Service
-@available(iOS 17.2, *)
-final class AppleIntelligenceService: AIChatServiceProtocol {
+// MARK: - Streaming Service Protocol
+protocol FoundationModelsServiceProtocol: AIChatServiceProtocol {
+    var isStreaming: Bool { get }
+    func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error>
+    func prewarm() async
+}
 
+// MARK: - Clothing Data Service Protocol
+protocol ClothingDataServiceProtocol: Sendable {
+    func searchItems(
+        category: String?,
+        occasion: String?,
+        colorPreference: String?,
+        stylePreference: String?
+    ) async -> [ClothingItemSummary]
+}
+
+struct ClothingItemSummary: Codable {
+    let id: UUID
+    let name: String
+    let category: ClothingCategory
+    let colorTags: [String]
+    let styleTags: [String]
+}
+
+// MARK: - Service Factory
+enum AIChatServiceFactory {
+    static func createService() -> AIChatServiceProtocol {
+        return EnhancedAppleIntelligenceService()
+    }
+
+    static func createFallbackService() -> AIChatServiceProtocol {
+        return BasicFallbackService()
+    }
+}
+
+// MARK: - Enhanced Apple Intelligence Service (Fallback for older iOS)
+/// Enhanced fallback service using keyword analysis and NaturalLanguage framework
+final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
+    
     private let fashionSystemPrompt = """
     You are Personal Shooper, a professional AI fashion stylist assistant. Your role is to help users with:
     - Color recommendations based on their personal color palette
     - Outfit suggestions for various occasions
     - Style advice matching their preferences
     - Fashion tips and trends
-
+    
     Important guidelines:
     - Always be helpful, friendly, and professional
     - Respect user privacy - never ask for personal information beyond fashion preferences
@@ -54,179 +93,424 @@ final class AppleIntelligenceService: AIChatServiceProtocol {
     - Consider the user's personal color palette and style preferences when giving recommendations
     - If unsure about something, suggest consulting a human stylist
     """
-
+    
+    private let responseCache = NSCache<NSString, NSString>()
+    private let sentimentAnalyzer = NLTagger(tagSchemes: [.sentimentScore])
+    
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
-        let prompt = buildPrompt(message: message, context: context)
-
-        do {
-            let response = try await generateResponseWithAppleIntelligence(prompt)
-            return response
-        } catch {
-            // Fall back to keyword-based responses
-            return generateContextualFallback(prompt: prompt, context: context)
+        // Check cache first
+        let cacheKey = "\(message)_\(context.language.rawValue)" as NSString
+        if let cached = responseCache.object(forKey: cacheKey) {
+            return cached as String
+        }
+        
+        let response = generateContextualResponse(message: message, context: context)
+        
+        // Cache the response
+        responseCache.setObject(response as NSString, forKey: cacheKey)
+        
+        return response
+    }
+    
+    // MARK: - Response Generation
+    private func generateContextualResponse(message: String, context: ChatContext) -> String {
+        let lowercasedMessage = message.lowercased()
+        let language = detectLanguage(message: message, context: context)
+        
+        // Analyze sentiment to adjust tone
+        let sentiment = analyzeSentiment(message)
+        
+        // Detect intent using more sophisticated pattern matching
+        let intent = detectIntent(message: lowercasedMessage)
+        
+        switch intent {
+        case .colorAdvice:
+            return generateColorAdvice(language: language, palette: context.userPalette, message: message)
+        case .outfitRecommendation:
+            return generateOutfitRecommendation(language: language, context: context, message: message)
+        case .colorMatching:
+            return generateColorMatchingAdvice(language: language, message: message)
+        case .styleAdvice:
+            return generateStyleAdvice(language: language, context: context)
+        case .trends:
+            return generateTrendsAdvice(language: language)
+        case .wardrobeHelp:
+            return generateWardrobeAdvice(language: language, context: context)
+        case .occasionHelp:
+            return generateOccasionAdvice(language: language, message: message, context: context)
+        case .general, .unknown:
+            return generateGeneralResponse(language: language, sentiment: sentiment, context: context)
         }
     }
-
-    private func buildPrompt(message: String, context: ChatContext) -> String {
-        var promptParts: [String] = []
-
-        // System instruction
-        promptParts.append(fashionSystemPrompt)
-
-        // Language preference
-        let languageInstruction = context.language == .spanish
-            ? "Respond in Spanish only."
-            : "Respond in English only."
-        promptParts.append(languageInstruction)
-
-        // User's personal palette context
-        if let palette = context.userPalette {
-            promptParts.append("User's personal color analysis:")
-            promptParts.append("- Undertone: \(palette.undertone.displayName)")
-            promptParts.append("- Seasonal type: \(palette.seasonalType.displayName)")
-
-            let colorNames = palette.recommendedColors.prefix(5).map { colorName(for: $0) }.joined(separator: ", ")
-            if !colorNames.isEmpty {
-                promptParts.append("- Recommended colors: \(colorNames)")
-            }
+    
+    // MARK: - Intent Detection
+    private func detectIntent(message: String) -> UserIntent {
+        let colorKeywords = ["color", "colores", "tono", "tones", "palette", "paleta", "matches", "combinan"]
+        let outfitKeywords = ["outfit", "vestir", "traje", "ropa", "wear", "wearing", "look", "conjunto"]
+        let matchingKeywords = ["match", "combinar", "combina", "go with", "pair", "coordinates"]
+        let styleKeywords = ["style", "estilo", "fashion", "moda", "elegant", "casual", "formal"]
+        let trendKeywords = ["trend", "tendencia", "popular", "in style", "fashionable"]
+        let wardrobeKeywords = ["closet", "armario", "wardrobe", "clothes", "tengo", "have"]
+        let occasionKeywords = ["occasion", "ocasion", "event", "evento", "wedding", "boda", "party", "fiesta", "work", "trabajo"]
+        
+        var scores: [UserIntent: Int] = [:]
+        
+        for keyword in colorKeywords {
+            if message.contains(keyword) { scores[.colorAdvice, default: 0] += 1 }
         }
-
-        // Style preferences
-        if !context.userStylePreferences.isEmpty {
-            let styles = context.userStylePreferences.joined(separator: ", ")
-            promptParts.append("User's style preferences: \(styles)")
+        for keyword in outfitKeywords {
+            if message.contains(keyword) { scores[.outfitRecommendation, default: 0] += 1 }
         }
-
-        // Recent conversation context
-        if !context.recentConversations.isEmpty {
-            promptParts.append("Recent conversation context:")
-            for conv in context.recentConversations.prefix(1) {
-                for msg in conv.messages.suffix(3) {
-                    let role = msg.role == .user ? "User" : "Assistant"
-                    promptParts.append("\(role): \(msg.content)")
+        for keyword in matchingKeywords {
+            if message.contains(keyword) { scores[.colorMatching, default: 0] += 1 }
+        }
+        for keyword in styleKeywords {
+            if message.contains(keyword) { scores[.styleAdvice, default: 0] += 1 }
+        }
+        for keyword in trendKeywords {
+            if message.contains(keyword) { scores[.trends, default: 0] += 1 }
+        }
+        for keyword in wardrobeKeywords {
+            if message.contains(keyword) { scores[.wardrobeHelp, default: 0] += 1 }
+        }
+        for keyword in occasionKeywords {
+            if message.contains(keyword) { scores[.occasionHelp, default: 0] += 1 }
+        }
+        
+        return scores.max(by: { $0.value < $1.value })?.key ?? .general
+    }
+    
+    // MARK: - Language Detection
+    private func detectLanguage(message: String, context: ChatContext) -> Language {
+        // Prioritize context language setting
+        if context.language == .spanish {
+            return .spanish
+        }
+        
+        let lowercased = message.lowercased()
+        let spanishIndicators = ["como", "que", "cual", "cuando", "donde", "por que", "me", "mi", "te", "tu", 
+                                "el", "la", "los", "las", "un", "una", "es", "son", "tengo", "quiero"]
+        
+        let spanishCount = spanishIndicators.filter { lowercased.contains($0) }.count
+        return spanishCount >= 2 ? .spanish : .english
+    }
+    
+    // MARK: - Sentiment Analysis
+    private func analyzeSentiment(_ message: String) -> Double {
+        sentimentAnalyzer.string = message
+        let (sentiment, _) = sentimentAnalyzer.tag(at: message.startIndex, unit: .paragraph, scheme: .sentimentScore)
+        return Double(sentiment?.rawValue ?? "0") ?? 0
+    }
+    
+    // MARK: - Response Generators
+    private func generateColorAdvice(language: Language, palette: PersonalPalette?, message: String) -> String {
+        let isSpanish = language == .spanish
+        
+        // Extract specific color mentions
+        let colors = extractColors(from: message)
+        
+        if isSpanish {
+            var response = ""
+            if let palette = palette {
+                response = "Basándome en tu paleta de \(palette.seasonalType.displayName) con tono \(palette.undertone.displayName.lowercased()), "
+                
+                if !colors.isEmpty {
+                    response += "los colores \(colors.joined(separator: ", ")) pueden funcionar bien para ti. "
                 }
-            }
-        }
-
-        // Current message
-        promptParts.append("\nUser's current message: \(message)")
-        promptParts.append("\nProvide a helpful, concise response as Personal Shooper:")
-
-        return promptParts.joined(separator: "\n\n")
-    }
-
-    private func generateResponseWithAppleIntelligence(_ prompt: String) async throws -> String {
-        // Apple Intelligence with Foundation Models API is not yet publicly available
-        // For iOS 18+, use the built-in fallback system
-        // The real Apple Intelligence integration will come when Apple releases the public API
-        throw AIError.notSupported
-    }
-
-    private func generateContextualFallback(prompt: String, context: ChatContext) -> String {
-        // Fallback response generator using keyword analysis
-        // This is used when Apple Intelligence is unavailable
-        let lowercasedPrompt = prompt.lowercased()
-
-        // Detect language
-        let isSpanish = context.language == .spanish ||
-            lowercasedPrompt.contains("como") ||
-            lowercasedPrompt.contains("que") ||
-            lowercasedPrompt.contains("colores")
-
-        // Detect intent based on keywords
-        if lowercasedPrompt.contains("color") || lowercasedPrompt.contains("colores") || lowercasedPrompt.contains("tono") {
-            return colorAdvice(isSpanish: isSpanish, palette: context.userPalette)
-        } else if lowercasedPrompt.contains("outfit") || lowercasedPrompt.contains("vestir") || lowercasedPrompt.contains("traje") || lowercasedPrompt.contains("ropa") {
-            return outfitAdvice(isSpanish: isSpanish)
-        } else if lowercasedPrompt.contains("match") || lowercasedPrompt.contains("combinar") || lowercasedPrompt.contains("combina") || lowercasedPrompt.contains("combinar") {
-            return matchingAdvice(isSpanish: isSpanish)
-        } else if lowercasedPrompt.contains("recommend") || lowercasedPrompt.contains("sugerir") || lowercasedPrompt.contains("sugerencia") {
-            return recommendationAdvice(isSpanish: isSpanish, palette: context.userPalette)
-        } else if lowercasedPrompt.contains("trends") || lowercasedPrompt.contains("tendencia") || lowercasedPrompt.contains("moda") {
-            return trendsAdvice(isSpanish: isSpanish)
-        } else {
-            return generalAdvice(isSpanish: isSpanish)
-        }
-    }
-
-    // MARK: - Fallback Response Generators
-
-    private func colorAdvice(isSpanish: Bool, palette: PersonalPalette?) -> String {
-        if isSpanish {
-            var response = "Para consejos de color basados en tu paleta personal"
-            if let palette = palette {
-                response += ", te recomiendo colores que complementen tu tono \(palette.undertone.displayName.lowercased()). "
-                response += "Los colores más favorecedores para ti incluyen tonos que realzan tu luminosidad natural."
+                
+                response += "Te favorecen los tonos que realzan tu luminosidad natural. "
+                response += "Los colores recomendados para tu tipo incluyen: "
+                response += palette.recommendedColors.prefix(3).map { colorNameInSpanish(for: $0) }.joined(separator: ", ")
+                response += "."
             } else {
-                response = "Para darte mejores consejos de color, te recomiendo completar tu perfil con una foto para analizar tu paleta personal."
+                response = "Para darte mejores consejos de color personalizados, te recomiendo completar tu perfil con una foto para analizar tu paleta personal. "
+                response += "Mientras tanto, los tonos neutros como el beige, gris y marino suelen ser versátiles para la mayoría de personas."
             }
             return response
         }
-
-        var response = "For color advice based on your personal palette"
+        
+        var response = ""
         if let palette = palette {
-            response += ", I recommend colors that complement your \(palette.undertone.displayName.lowercased()) undertone. "
-            response += "The most flattering colors for you include tones that enhance your natural glow."
+            response = "Based on your \(palette.seasonalType.displayName) palette with \(palette.undertone.displayName.lowercased()) undertones, "
+            
+            if !colors.isEmpty {
+                response += "colors like \(colors.joined(separator: ", ")) can work well for you. "
+            }
+            
+            response += "You look best in tones that enhance your natural glow. "
+            response += "Colors recommended for your type include: "
+            response += palette.recommendedColors.prefix(3).map { colorName(for: $0) }.joined(separator: ", ")
+            response += "."
         } else {
-            response = "To give you better color advice, I recommend completing your profile with a photo to analyze your personal palette."
+            response = "To give you personalized color advice, I recommend completing your profile with a photo to analyze your personal palette. "
+            response += "In the meantime, neutral tones like beige, gray, and navy are versatile choices for most people."
         }
         return response
     }
-
-    private func outfitAdvice(isSpanish: Bool) -> String {
+    
+    private func generateOutfitRecommendation(language: Language, context: ChatContext, message: String) -> String {
+        let isSpanish = language == .spanish
+        
+        // Extract occasion
+        let occasions = extractOccasions(from: message)
+        
         if isSpanish {
-            return "¡Me encantaría ayudarte con un outfit! Para darte los mejores consejos, ¿podrías decirme la ocasión y tu estilo preferido? Por ejemplo: casual, formal, elegante, etc."
-        }
-        return "I'd love to help you put together an outfit! To give you the best advice, could you tell me the occasion and your preferred style? For example: casual, formal, business, evening, etc."
-    }
-
-    private func matchingAdvice(isSpanish: Bool) -> String {
-        if isSpanish {
-            return "¡Gran pregunta sobre combinación de colores! Para un look cohesivo, intenta usar colores de la misma familia o complementarios. ¿Hay colores específicos que te gustaría combinar?"
-        }
-        return "Great question about color matching! For a cohesive look, try using colors from the same family or complementary opposites. Which specific colors would you like to match?"
-    }
-
-    private func recommendationAdvice(isSpanish: Bool, palette: PersonalPalette?) -> String {
-        if isSpanish {
-            var response = "Aquí están mis sugerencias basadas en tus preferencias"
-            if let palette = palette {
-                response += " y tu paleta personal de \(palette.seasonalType.displayName.lowercased())"
+            var response = "¡Me encantaría ayudarte con un outfit"
+            if !occasions.isEmpty {
+                response += " para \(occasions.joined(separator: ", "))"
             }
-            response += ". ¿Hay algo específico que te gustaría explorar más?"
+            response += "! "
+            
+            if let palette = context.userPalette {
+                response += "Con tu paleta \(palette.seasonalType.displayName.lowercased()), considera usar "
+                response += "prendas en tonos \(palette.recommendedColors.prefix(2).map { colorNameInSpanish(for: $0) }.joined(separator: " o ")) "
+                response += "como piezas principales. "
+            }
+            
+            response += "Para un look completo, necesitaría saber más sobre tu estilo preferido y la ocasión específica. "
+            response += "¿Prefieres algo casual, formal, o elegante?"
             return response
         }
-
-        var response = "Here are my suggestions based on your preferences"
-        if let palette = palette {
-            response += " and your \(palette.seasonalType.displayName.lowercased()) personal palette"
+        
+        var response = "I'd love to help you put together an outfit"
+        if !occasions.isEmpty {
+            response += " for \(occasions.joined(separator: ", "))"
         }
-        response += ". Is there something specific you'd like to explore further?"
+        response += "! "
+        
+        if let palette = context.userPalette {
+            response += "With your \(palette.seasonalType.displayName.lowercased()) palette, consider wearing "
+            response += "pieces in \(palette.recommendedColors.prefix(2).map { colorName(for: $0) }.joined(separator: " or ")) "
+            response += "as your main items. "
+        }
+        
+        response += "For a complete look, I'd need to know more about your preferred style and the specific occasion. "
+        response += "Do you prefer something casual, formal, or chic?"
         return response
     }
-
-    private func trendsAdvice(isSpanish: Bool) -> String {
+    
+    private func generateColorMatchingAdvice(language: Language, message: String) -> String {
+        let isSpanish = language == .spanish
+        let colors = extractColors(from: message)
+        
         if isSpanish {
-            return "Las tendencias actuales de moda incluyen tonos neutrosversátiles, texturas táctiles como terciopelo y sarga, y siluetas oversize cómodas. ¿Te gustaría consejos específicos sobre alguna tendencia?"
+            var response = "¡Gran pregunta sobre combinación de colores! "
+            
+            if colors.count >= 2 {
+                response += "Para combinar \(colors[0]) con \(colors[1]): "
+                response += "usa el 60-30-10 rule - 60% color dominante, 30% secundario, 10% acento. "
+            } else {
+                response += "Para un look cohesivo, intenta usar la regla de colores análogos (vecinos en el círculo cromático) "
+                response += "o colores complementarios (opuestos) para contraste. "
+            }
+            
+            response += "¿Hay colores específicos que te gustaría combinar? Puedo darte consejos más detallados."
+            return response
         }
-        return "Current fashion trends include versatile neutral tones, tactile textures like velvet and twill, and comfortable oversized silhouettes. Would you like specific advice on any trend?"
+        
+        var response = "Great question about color matching! "
+        
+        if colors.count >= 2 {
+            response += "To match \(colors[0]) with \(colors[1]): "
+            response += "use the 60-30-10 rule - 60% dominant color, 30% secondary, 10% accent. "
+        } else {
+            response += "For a cohesive look, try using analogous colors (neighbors on the color wheel) "
+            response += "or complementary colors (opposites) for contrast. "
+        }
+        
+        response += "Which specific colors would you like to match? I can give you more detailed advice."
+        return response
     }
-
-    private func generalAdvice(isSpanish: Bool) -> String {
+    
+    private func generateStyleAdvice(language: Language, context: ChatContext) -> String {
+        let isSpanish = language == .spanish
+        
         if isSpanish {
-            return "Como tu estilista personal, estoy aquí para ayudarte con consejos de moda, recomendaciones de color y tips de estilo. ¿Qué te gustaría explorar hoy?"
+            var response = "El estilo personal es una forma de expresión única. "
+            
+            if !context.userStylePreferences.isEmpty {
+                response += "Veo que te gustan los estilos: \(context.userStylePreferences.joined(separator: ", ")). "
+            }
+            
+            response += "Para definir mejor tu estilo, considera: ¿qué te hace sentir más cómodo y seguro? "
+            response += "¿Prefieres piezas atemporales o sigues las últimas tendencias? "
+            response += "Un buen armario tiene un equilibrio de ambos."
+            return response
         }
-        return "As your personal stylist, I'm here to help with fashion advice, color recommendations, and style tips. What would you like to explore today?"
+        
+        var response = "Personal style is a unique form of expression. "
+        
+        if !context.userStylePreferences.isEmpty {
+            response += "I see you like these styles: \(context.userStylePreferences.joined(separator: ", ")). "
+        }
+        
+        response += "To define your style better, consider: what makes you feel most comfortable and confident? "
+        response += "Do you prefer timeless pieces or following the latest trends? "
+        response += "A great wardrobe has a balance of both."
+        return response
     }
-
+    
+    private func generateTrendsAdvice(language: Language) -> String {
+        let isSpanish = language == .spanish
+        
+        if isSpanish {
+            return """
+            Las tendencias actuales de moda incluyen:
+            • Siluetas oversize cómodas y relajadas
+            • Texturas táctiles como terciopelo, sarga y punto
+            • Tonos neutros versátiles con toques de color terracota
+            • Accesorios statement que elevan cualquier outfit
+            • Moda sostenible y piezas atemporales
+            
+            Recuerda: las tendencias son guías, no reglas. Adapta lo que resuene contigo.
+            ¿Te gustaría consejos específicos sobre alguna tendencia?
+            """
+        }
+        
+        return """
+        Current fashion trends include:
+        • Comfortable, relaxed oversized silhouettes
+        • Tactile textures like velvet, twill, and knit
+        • Versatile neutral tones with touches of terracotta
+        • Statement accessories that elevate any outfit
+        • Sustainable fashion and timeless pieces
+        
+        Remember: trends are guides, not rules. Adapt what resonates with you.
+        Would you like specific advice on any trend?
+        """
+    }
+    
+    private func generateWardrobeAdvice(language: Language, context: ChatContext) -> String {
+        let isSpanish = language == .spanish
+        
+        if isSpanish {
+            var response = "Organizar tu armario es clave para aprovecharlo al máximo. "
+            
+            if let palette = context.userPalette {
+                response += "Con tu paleta \(palette.seasonalType.displayName.lowercased()), enfócate en piezas versátiles en tus colores favorables. "
+            }
+            
+            response += "Te sugiero: una base de neutros de calidad, algunas piezas statement en tus mejores colores, "
+            response += "y prendas que se combinen entre sí. ¿Quieres ayuda organizando categorías específicas?"
+            return response
+        }
+        
+        var response = "Organizing your wardrobe is key to maximizing it. "
+        
+        if let palette = context.userPalette {
+            response += "With your \(palette.seasonalType.displayName.lowercased()) palette, focus on versatile pieces in your favorable colors. "
+        }
+        
+        response += "I suggest: quality neutral basics, some statement pieces in your best colors, "
+        response += "and items that mix and match well. Want help organizing specific categories?"
+        return response
+    }
+    
+    private func generateOccasionAdvice(language: Language, message: String, context: ChatContext) -> String {
+        let isSpanish = language == .spanish
+        let occasions = extractOccasions(from: message)
+        
+        if isSpanish {
+            var response = ""
+            if !occasions.isEmpty {
+                response = "Para \(occasions.joined(separator: ", ")), considera el dress code y tu comodidad. "
+            } else {
+                response = "Para cualquier ocasión, considera el dress code y tu comodidad. "
+            }
+            
+            if let palette = context.userPalette {
+                response += "Con tu tono \(palette.undertone.displayName.lowercased()), los colores \(palette.recommendedColors.prefix(2).map { colorNameInSpanish(for: $0) }.joined(separator: " y ")) te favorecerán especialmente. "
+            }
+            
+            response += "Cuéntame más sobre el evento específico para darte recomendaciones más precisas."
+            return response
+        }
+        
+        var response = ""
+        if !occasions.isEmpty {
+            response = "For \(occasions.joined(separator: ", ")), consider the dress code and your comfort. "
+        } else {
+            response = "For any occasion, consider the dress code and your comfort. "
+        }
+        
+        if let palette = context.userPalette {
+            response += "With your \(palette.undertone.displayName.lowercased()) undertones, colors like \(palette.recommendedColors.prefix(2).map { colorName(for: $0) }.joined(separator: " and ")) will be especially flattering. "
+        }
+        
+        response += "Tell me more about the specific event for more precise recommendations."
+        return response
+    }
+    
+    private func generateGeneralResponse(language: Language, sentiment: Double, context: ChatContext) -> String {
+        let isSpanish = language == .spanish
+        let isPositive = sentiment > 0
+        
+        if isSpanish {
+            var response = isPositive 
+                ? "¡Me alegra que estés interesado en mejorar tu estilo! "
+                : "Entiendo que encontrar tu estilo puede ser desafiante. "
+            
+            response += "Como tu estilista personal, estoy aquí para ayudarte con consejos de moda, recomendaciones de color y tips de estilo. "
+            
+            if context.userPalette == nil {
+                response += "Para empezar con recomendaciones personalizadas, completa tu perfil con fotos para analizar tu paleta de colores. "
+            }
+            
+            response += "¿Qué te gustaría explorar hoy? Puedo ayudarte con outfits, combinaciones de colores, o tendencias."
+            return response
+        }
+        
+        var response = isPositive
+            ? "I'm glad you're interested in elevating your style! "
+            : "I understand that finding your style can be challenging. "
+        
+        response += "As your personal stylist, I'm here to help with fashion advice, color recommendations, and style tips. "
+        
+        if context.userPalette == nil {
+            response += "To start with personalized recommendations, complete your profile with photos to analyze your color palette. "
+        }
+        
+        response += "What would you like to explore today? I can help with outfits, color combinations, or trends."
+        return response
+    }
+    
     // MARK: - Helper Methods
-
+    private func extractColors(from message: String) -> [String] {
+        let colorPatterns = [
+            "red", "blue", "green", "yellow", "orange", "purple", "pink", "black", "white",
+            "gray", "grey", "brown", "beige", "navy", "burgundy", "teal", "coral",
+            "rojo", "azul", "verde", "amarillo", "naranja", "morado", "rosa", "negro", "blanco",
+            "gris", "cafe", "marrón", "beige", "marino", "borgoña", "turquesa", "coral"
+        ]
+        
+        let lowercased = message.lowercased()
+        return colorPatterns.filter { lowercased.contains($0) }
+    }
+    
+    private func extractOccasions(from message: String) -> [String] {
+        let occasionPatterns = [
+            ("wedding", "boda"), ("party", "fiesta"), ("work", "trabajo"), ("interview", "entrevista"),
+            ("date", "cita"), ("casual", "casual"), ("formal", "formal"), ("gym", "gimnasio"),
+            ("vacation", "vacaciones"), ("beach", "playa"), ("dinner", "cena")
+        ]
+        
+        let lowercased = message.lowercased()
+        var found: [String] = []
+        
+        for (en, es) in occasionPatterns {
+            if lowercased.contains(en) || lowercased.contains(es) {
+                found.append(en)
+            }
+        }
+        
+        return found
+    }
+    
     private func colorName(for color: CodableColor) -> String {
         let r = color.red
         let g = color.green
         let b = color.blue
-
-        // Determine color name based on RGB values
+        
         if r > 0.7 && g < 0.4 && b < 0.4 { return "red" }
         if r > 0.7 && g > 0.4 && b < 0.4 { return "coral" }
         if r > 0.8 && g > 0.5 && b < 0.2 { return "orange" }
@@ -243,50 +527,45 @@ final class AppleIntelligenceService: AIChatServiceProtocol {
         if r < 0.4 && g > 0.5 && b > 0.5 { return "teal" }
         if r > 0.6 && g < 0.5 && b > 0.7 { return "lavender" }
         if r > 0.4 && g < 0.3 && b < 0.3 { return "burgundy" }
-
+        
         return "neutral"
     }
+    
+    private func colorNameInSpanish(for color: CodableColor) -> String {
+        let english = colorName(for: color)
+        let translations: [String: String] = [
+            "red": "rojo", "coral": "coral", "orange": "naranja", "yellow": "amarillo",
+            "green": "verde", "blue": "azul", "purple": "morado", "pink": "rosa",
+            "black": "negro", "white": "blanco", "gray": "gris", "brown": "marrón",
+            "beige": "beige", "teal": "turquesa", "lavender": "lavanda", "burgundy": "bordó",
+            "neutral": "neutral"
+        ]
+        return translations[english] ?? english
+    }
 }
 
-// MARK: - Service Factory
-enum AIChatServiceFactory {
-    @available(iOS 17.2, *)
-    static func createAppleIntelligenceService() -> AIChatServiceProtocol {
-        return AppleIntelligenceService()
-    }
-
-    static func createFallbackService() -> AIChatServiceProtocol {
-        // Return a basic fallback service for older iOS versions
-        return FallbackAIChatService()
-    }
+// MARK: - User Intent Enum
+enum UserIntent {
+    case colorAdvice
+    case outfitRecommendation
+    case colorMatching
+    case styleAdvice
+    case trends
+    case wardrobeHelp
+    case occasionHelp
+    case general
+    case unknown
 }
 
-// MARK: - Fallback Service for older iOS
-final class FallbackAIChatService: AIChatServiceProtocol {
+// MARK: - Legacy Fallback (for very old iOS versions)
+final class BasicFallbackService: AIChatServiceProtocol {
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
-        // Use NaturalLanguage framework for basic keyword extraction
-        let tagger = NLTagger(tagSchemes: [.lexicalClass])
-        tagger.string = message
-
         let isSpanish = context.language == .spanish ||
             message.lowercased().contains("como") ||
             message.lowercased().contains("que")
-
-        // Simple keyword detection
-        let lowercased = message.lowercased()
-
-        if lowercased.contains("color") || lowercased.contains("colores") {
-            return isSpanish
-                ? "Para consejos de color precisos, te recomiendo usar un dispositivo con Apple Intelligence."
-                : "For accurate color advice, I recommend using a device with Apple Intelligence."
-        } else if lowercased.contains("outfit") || lowercased.contains("vestir") {
-            return isSpanish
-                ? "Para suggestions de outfits, te recomiendo usar un dispositivo con Apple Intelligence."
-                : "For outfit suggestions, I recommend using a device with Apple Intelligence."
-        }
-
+        
         return isSpanish
-            ? "Lo siento, necesito Apple Intelligence para responder mejor. ¿Hay algo más en lo que pueda ayudarte?"
-            : "Sorry, I need Apple Intelligence to provide better responses. Is there anything else I can help with?"
+            ? "Necesitas iOS 17.2 o superior para usar el asistente de estilo completo."
+            : "You need iOS 17.2 or later to use the full style assistant."
     }
 }
