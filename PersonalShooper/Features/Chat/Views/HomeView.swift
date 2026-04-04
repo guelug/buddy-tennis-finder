@@ -10,7 +10,8 @@ struct HomeView: View {
     }
 
     private enum Tab: Int {
-        case home = 0, chat = 1, closet = 2, tryOn = 3, ar = 4, profile = 5
+        case home = 0, chat = 1, closet = 2, tryOn = 3, profile = 4
+        // case ar = 5
     }
 
     private var lang: Language {
@@ -106,14 +107,14 @@ struct HomeView: View {
                 ) {
                     selectedTab = Tab.closet.rawValue
                 }
-                QuickActionCard(
-                    icon: "arkit",
-                    title: Strings.tabAR(lang),
-                    subtitle: Strings.tabAR(lang),
-                    color: .teal
-                ) {
-                    selectedTab = Tab.ar.rawValue
-                }
+                // QuickActionCard(
+                //     icon: "arkit",
+                //     title: Strings.tabAR(lang),
+                //     subtitle: Strings.tabAR(lang),
+                //     color: .teal
+                // ) {
+                //     selectedTab = Tab.ar.rawValue
+                // }
             }
         }
     }
