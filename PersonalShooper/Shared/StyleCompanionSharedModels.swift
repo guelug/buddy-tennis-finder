@@ -5,6 +5,13 @@ enum StyleCompanionSharedKeys {
     static let recommendation = "daily_style_recommendation"
     static let events = "today_calendar_events"
     static let configuration = "style_companion_configuration"
+    static let pendingLaunchDestination = "pending_launch_destination"
+}
+
+enum StyleCompanionLaunchDestination: String, Codable {
+    case chat
+    case closet
+    case tryOn
 }
 
 struct CalendarEventSnapshot: Codable, Identifiable, Hashable {
@@ -100,5 +107,19 @@ enum SharedStyleCompanionStore {
             return .default
         }
         return decoded
+    }
+
+    static func savePendingLaunchDestination(_ destination: StyleCompanionLaunchDestination?) {
+        defaults.set(destination?.rawValue, forKey: StyleCompanionSharedKeys.pendingLaunchDestination)
+    }
+
+    static func consumePendingLaunchDestination() -> StyleCompanionLaunchDestination? {
+        guard let rawValue = defaults.string(forKey: StyleCompanionSharedKeys.pendingLaunchDestination),
+              let destination = StyleCompanionLaunchDestination(rawValue: rawValue) else {
+            return nil
+        }
+
+        defaults.removeObject(forKey: StyleCompanionSharedKeys.pendingLaunchDestination)
+        return destination
     }
 }

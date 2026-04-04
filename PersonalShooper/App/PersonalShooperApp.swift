@@ -38,6 +38,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \User.createdAt) private var users: [User]
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
 
@@ -70,9 +71,20 @@ struct ContentView: View {
             }
 
             syncUserState()
+            applyPendingLaunchDestinationIfNeeded()
             Task {
                 await appState.refreshPremiumStatus()
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                applyPendingLaunchDestinationIfNeeded()
+            }
+        }
+        .onChange(of: isReady) { _, ready in
+            if ready {
+                applyPendingLaunchDestinationIfNeeded()
             }
         }
         .onChange(of: users.count) { _, _ in
@@ -106,6 +118,21 @@ struct ContentView: View {
             appState.updateUser(newUser)
         } catch {
             modelContext.delete(newUser)
+        }
+    }
+
+    private func applyPendingLaunchDestinationIfNeeded() {
+        guard let destination = SharedStyleCompanionStore.consumePendingLaunchDestination() else {
+            return
+        }
+
+        switch destination {
+        case .chat:
+            selectedTab = 1
+        case .closet:
+            selectedTab = 2
+        case .tryOn:
+            selectedTab = 3
         }
     }
 }

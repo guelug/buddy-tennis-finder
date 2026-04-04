@@ -1,10 +1,12 @@
 import SwiftUI
 import SwiftData
+import AVFoundation
 
 struct ChatView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ChatViewModel()
+    @State private var speechController = ChatSpeechController()
     @FocusState private var isInputFocused: Bool
     @State private var showingAttachmentOptions = false
     @State private var showingAttachmentPicker = false
@@ -12,6 +14,10 @@ struct ChatView: View {
 
     private var lang: Language {
         appState.preferredLanguage
+    }
+
+    private var preparedFeatures: ChatPreparedFeatures {
+        appState.chatPreparedFeatures
     }
 
     var body: some View {
@@ -23,9 +29,7 @@ struct ChatView: View {
                             profileContextCard
 
                             ForEach(viewModel.messages) { message in
-                                MessageBubbleView(message: message, features: appState.chatPreparedFeatures)
-                                    .padding(.horizontal)
-                                    .id(message.id)
+                                messageRow(for: message)
                             }
 
                             if viewModel.isLoading {
@@ -83,6 +87,9 @@ struct ChatView: View {
             ImagePicker(sourceType: attachmentSource) { image in
                 viewModel.attachedImage = image
             }
+        }
+        .onDisappear {
+            speechController.stop()
         }
     }
 
@@ -265,11 +272,51 @@ struct ChatView: View {
     private func text(_ spanish: String, _ english: String) -> String {
         lang == .spanish ? spanish : english
     }
+
+    private func messageRow(for message: Message) -> some View {
+        MessageBubbleView(
+            message: message,
+            features: preparedFeatures,
+            language: lang,
+            speechController: speechController
+        )
+        .padding(.horizontal)
+        .id(message.id)
+    }
+}
+
+struct TypingIndicatorView: View {
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.secondary.opacity(0.45))
+                        .frame(width: 8, height: 8)
+                    Circle()
+                        .fill(Color.secondary.opacity(0.65))
+                        .frame(width: 8, height: 8)
+                    Circle()
+                        .fill(Color.secondary.opacity(0.85))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemBackground))
+            .clipShape(ChatBubbleShape(isUser: false))
+            .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+
+            Spacer(minLength: 60)
+        }
+    }
 }
 
 struct MessageBubbleView: View {
     let message: Message
     let features: ChatPreparedFeatures
+    let language: Language
+    let speechController: ChatSpeechController
 
     private var shouldShowInlineImage: Bool {
         features.richMediaMessagesEnabled && (message.image != nil || message.imageURLString != nil)
@@ -297,9 +344,22 @@ struct MessageBubbleView: View {
                 .clipShape(ChatBubbleShape(isUser: isUser))
                 .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
 
-                Text(formattedTime(from: message.timestamp))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    if !isUser {
+                        Button {
+                            speechController.toggleSpeech(for: message, language: language)
+                        } label: {
+                            Image(systemName: speechController.speakingMessageID == message.id ? "stop.circle.fill" : "speaker.wave.2.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Text(formattedTime(from: message.timestamp))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if !isUser {
@@ -363,28 +423,6 @@ struct MessageBubbleView: View {
     }
 }
 
-private struct TypingIndicatorView: View {
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        Circle()
-                            .fill(Color.secondary.opacity(0.55))
-                            .frame(width: 8, height: 8)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color(.systemBackground))
-                .clipShape(ChatBubbleShape(isUser: false))
-            }
-
-            Spacer(minLength: 60)
-        }
-    }
-}
-
 struct ChatBubbleShape: Shape {
     let isUser: Bool
 
@@ -419,6 +457,50 @@ struct ChatBubbleShape: Shape {
         }
 
         return path
+    }
+}
+
+@Observable
+final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
+    var speakingMessageID: UUID?
+
+    private let synthesizer = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    func toggleSpeech(for message: Message, language: Language) {
+        if speakingMessageID == message.id {
+            stop()
+            return
+        }
+
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+
+        let utterance = AVSpeechUtterance(string: message.content)
+        utterance.voice = AVSpeechSynthesisVoice(language: language == .spanish ? "es-ES" : "en-US")
+        utterance.rate = 0.5
+        speakingMessageID = message.id
+        synthesizer.speak(utterance)
+    }
+
+    func stop() {
+        if synthesizer.isSpeaking {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        speakingMessageID = nil
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        speakingMessageID = nil
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        speakingMessageID = nil
     }
 }
 

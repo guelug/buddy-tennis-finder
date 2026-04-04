@@ -1,4 +1,4 @@
-import AppIntents
+@preconcurrency import AppIntents
 
 struct DailyStyleRecommendationIntent: AppIntent {
     static var title: LocalizedStringResource {
@@ -36,8 +36,83 @@ struct DailyStyleRecommendationIntent: AppIntent {
     }
 }
 
+struct OpenChatIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "Open Chat"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Open the Personal Shooper style chat.")
+    }
+
+    static var openAppWhenRun: Bool {
+        true
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let configuration = SharedStyleCompanionStore.loadConfiguration()
+
+        guard configuration.siriSuggestionsEnabled else {
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+        }
+
+        SharedStyleCompanionStore.savePendingLaunchDestination(.chat)
+        return .result(dialog: IntentDialog("Opening your style chat."))
+    }
+}
+
+struct OpenClosetIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "Open Closet"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Open the Personal Shooper closet.")
+    }
+
+    static var openAppWhenRun: Bool {
+        true
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let configuration = SharedStyleCompanionStore.loadConfiguration()
+
+        guard configuration.siriSuggestionsEnabled else {
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+        }
+
+        SharedStyleCompanionStore.savePendingLaunchDestination(.closet)
+        return .result(dialog: IntentDialog("Opening your closet."))
+    }
+}
+
+struct OpenTryOnIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "Open Try On"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Open the Personal Shooper try-on experience.")
+    }
+
+    static var openAppWhenRun: Bool {
+        true
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let configuration = SharedStyleCompanionStore.loadConfiguration()
+
+        guard configuration.siriSuggestionsEnabled else {
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+        }
+
+        SharedStyleCompanionStore.savePendingLaunchDestination(.tryOn)
+        return .result(dialog: IntentDialog("Opening try-on."))
+    }
+}
+
 struct PersonalShooperShortcuts: AppShortcutsProvider {
-    static var appShortcuts: [AppShortcut] {
+    static let appShortcuts: [AppShortcut] = [
         AppShortcut(
             intent: DailyStyleRecommendationIntent(),
             phrases: [
@@ -48,6 +123,41 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Daily Style",
             systemImageName: "sparkles"
+        ),
+        AppShortcut(
+            intent: OpenChatIntent(),
+            phrases: [
+                "Open chat in \(.applicationName)",
+                "Open my style chat in \(.applicationName)",
+                "Abre el chat de \(.applicationName)",
+                "Abre mi chat de estilo en \(.applicationName)"
+            ],
+            shortTitle: "Open Chat",
+            systemImageName: "bubble.left.and.bubble.right.fill"
+        ),
+        AppShortcut(
+            intent: OpenClosetIntent(),
+            phrases: [
+                "Open closet in \(.applicationName)",
+                "Show my closet in \(.applicationName)",
+                "Abre el armario de \(.applicationName)",
+                "Enséñame mi armario en \(.applicationName)"
+            ],
+            shortTitle: "Open Closet",
+            systemImageName: "hanger"
+        ),
+        AppShortcut(
+            intent: OpenTryOnIntent(),
+            phrases: [
+                "Open try on in \(.applicationName)",
+                "Open the fitting room in \(.applicationName)",
+                "Abre el probador de \(.applicationName)",
+                "Abre el try on en \(.applicationName)"
+            ],
+            shortTitle: "Open Try On",
+            systemImageName: "camera.fill"
         )
-    }
+    ]
+
+    static let shortcutTileColor: ShortcutTileColor = .orange
 }
