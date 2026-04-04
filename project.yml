@@ -71,6 +71,10 @@ targets:
   PersonalShooperLocalDebug:
     type: application
     platform: iOS
+    attributes:
+      SystemCapabilities:
+        com.apple.InAppPurchase:
+          enabled: 0
     sources:
       - path: PersonalShooper
         excludes:

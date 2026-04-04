@@ -818,6 +818,7 @@
 				TargetAttributes = {
 					40C239001D7CCE8C6E068655 = {
 						ProvisioningStyle = Automatic;
+						SystemCapabilities = "[\"com.apple.InAppPurchase\": [\"enabled\": 0]]";
 					};
 					7C0A0F217713BCEEDE032529 = {
 						DevelopmentTeam = "";
@@ -1040,10 +1041,8 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Personal Shopper";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1238,7 +1237,6 @@
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Personal Shopper";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
