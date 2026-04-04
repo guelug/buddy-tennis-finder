@@ -11,7 +11,7 @@ struct EditHint {
 }
 
 enum TryOnError: Error, LocalizedError {
-    case apiError
+    case apiError(String)
     case invalidURL
     case parsingError
     case invalidImageData
@@ -19,7 +19,7 @@ enum TryOnError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .apiError: return "API request failed"
+        case .apiError(let message): return "API request failed: \(message)"
         case .invalidURL: return "Invalid API URL"
         case .parsingError: return "Failed to parse response"
         case .invalidImageData: return "Invalid image data"
@@ -29,13 +29,13 @@ enum TryOnError: Error, LocalizedError {
 }
 
 final class GeminiTryOnService: TryOnServiceProtocol {
-
     private let apiKey: String?
     private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent"
+    private let session: URLSession
 
-    init(apiKey: String? = nil) {
-        // In production, load from secure configuration
-        self.apiKey = apiKey ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+    init(apiKey: String? = nil, session: URLSession = .shared) {
+        self.apiKey = apiKey ?? AppSecrets.geminiAPIKey ?? ProcessInfo.processInfo.environment["GEMINI_API_KEY"]
+        self.session = session
     }
 
     func generateTryOnImage(
@@ -43,83 +43,88 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         userImage: UIImage,
         editHints: [EditHint]?
     ) async throws -> UIImage {
-        guard let apiKey = apiKey else {
-            // Return a placeholder when no API key is configured
+        guard let apiKey, !apiKey.isEmpty else {
             return createPlaceholderResult(clothing: clothingImage, user: userImage)
         }
 
-        // Convert images to base64
-        guard let clothingBase64 = clothingImage.jpegData(compressionQuality: 0.8)?.base64EncodedString(),
-              let userBase64 = userImage.jpegData(compressionQuality: 0.8)?.base64EncodedString() else {
-            throw TryOnError.invalidImageData
-        }
+        let request = try buildRequest(
+            prompt: try tryOnPrompt(editHints: editHints),
+            images: [
+                try makeInlineImagePart(from: clothingImage),
+                try makeInlineImagePart(from: userImage)
+            ],
+            apiKey: apiKey
+        )
 
-        // Build prompt
-        var prompt = """
-        Create a realistic image showing the person from the second image wearing the clothing item from the first image.
-        The result should look natural with proper fit, lighting, and positioning.
-        """
-
-        if let hints = editHints {
-            let hintStrings = hints.map { $0.instruction }.joined(separator: ", ")
-            prompt += " Make the following adjustments: \(hintStrings)"
-        }
-
-        // Call Gemini API
-        let request = try buildRequest(prompt: prompt, images: [clothingBase64, userBase64], apiKey: apiKey)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw TryOnError.apiError
-        }
-
-        // Parse response
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
         return try parseResponse(data)
     }
 
     func refineImage(_ image: UIImage, instructions: String) async throws -> UIImage {
-        guard let apiKey = apiKey else {
+        guard let apiKey, !apiKey.isEmpty else {
             return image
         }
 
-        guard let base64 = image.jpegData(compressionQuality: 0.8)?.base64EncodedString() else {
-            throw TryOnError.invalidImageData
-        }
-
         let prompt = """
-        Based on the provided image, make the following modifications: \(instructions)
-        Maintain the person's identity and the clothing's general appearance.
+        Using the provided image, change only the requested element. \(instructions)
+        Keep everything else in the image exactly the same, preserving the original style, lighting, composition, fit, and identity.
         """
 
-        let request = try buildRequest(prompt: prompt, images: [base64], apiKey: apiKey)
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let request = try buildRequest(
+            prompt: prompt,
+            images: [try makeInlineImagePart(from: image)],
+            apiKey: apiKey
+        )
 
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
         return try parseResponse(data)
     }
 
-    private func buildRequest(prompt: String, images: [String], apiKey: String) throws -> URLRequest {
-        guard let url = URL(string: "\(baseURL)?key=\(apiKey)") else {
+    private func tryOnPrompt(editHints: [EditHint]?) throws -> String {
+        var prompt = """
+        Create a new image by combining the elements from the provided images.
+        Take the garment from image 1 and place it on the person from image 2.
+        The final image should be a realistic, professional full-body fashion try-on photo.
+        Keep the person's face, identity, body proportions, skin tone, pose, and visible features from image 2 unchanged.
+        Preserve the garment's color, pattern, fabric texture, silhouette, seams, hems, logos, and small details from image 1.
+        Ensure the change integrates naturally with correct fit, folds, drape, shadows, lighting, perspective, and occlusion.
+        Keep the background and scene style from image 2.
+        If image 2 includes multiple reference views in one frame, use the additional view only to preserve garment structure and fit accuracy, but generate the final result from the main front-facing person.
+        Do not add extra garments, accessories, anatomy changes, or unrelated styling changes.
+        """
+
+        if let editHints, !editHints.isEmpty {
+            let refinements = editHints.map(\.instruction).joined(separator: " ")
+            prompt += "\nAdditional fitting requirements: \(refinements)"
+        }
+
+        return prompt
+    }
+
+    private func buildRequest(prompt: String, images: [[String: Any]], apiKey: String) throws -> URLRequest {
+        guard let url = URL(string: baseURL) else {
             throw TryOnError.invalidURL
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 90
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 60
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
 
+        let parts: [[String: Any]] = images + [["text": prompt]]
         let payload: [String: Any] = [
             "contents": [
-                "parts": [
-                    ["text": prompt]
-                ] + images.map { ["image": ["data": $0, "mimeType": "image/jpeg"]]
-                }
+                [
+                    "parts": parts
+                ]
             ],
             "generationConfig": [
-                "temperature": 0.4,
-                "topK": 32,
-                "topP": 0.95
+                "temperature": 0.25,
+                "topP": 0.9,
+                "topK": 32
             ]
         ]
 
@@ -127,45 +132,86 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         return request
     }
 
-    private func parseResponse(_ data: Data) throws -> UIImage {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let parts = content["parts"] as? [[String: Any]],
-              let imagePart = parts.first(where: { ($0["image"] as? [String: Any]) != nil }),
-              let imageDataDict = imagePart["image"] as? [String: Any],
-              let imageDataString = imageDataDict["data"] as? String,
-              let imageBytes = Data(base64Encoded: imageDataString) else {
-            throw TryOnError.parsingError
-        }
-
-        guard let uiImage = UIImage(data: imageBytes) else {
+    private func makeInlineImagePart(from image: UIImage) throws -> [String: Any] {
+        guard let prepared = prepareImageData(from: image) else {
             throw TryOnError.invalidImageData
         }
 
-        return uiImage
+        return [
+            "inline_data": [
+                "mime_type": prepared.mimeType,
+                "data": prepared.data.base64EncodedString()
+            ]
+        ]
+    }
+
+    private func prepareImageData(from image: UIImage) -> (data: Data, mimeType: String)? {
+        let resized = resize(image: image, maxDimension: 1536)
+
+        if let pngData = resized.pngData(), pngData.count <= 18_000_000 {
+            return (pngData, "image/png")
+        }
+
+        if let jpegData = resized.jpegData(compressionQuality: 0.92), jpegData.count <= 18_000_000 {
+            return (jpegData, "image/jpeg")
+        }
+
+        return nil
+    }
+
+    private func resize(image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1)
+        guard scale < 1 else { return image }
+
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+
+    private func validate(response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TryOnError.apiError("Missing HTTP response")
+        }
+
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            let apiMessage = (try? JSONDecoder().decode(GeminiErrorEnvelope.self, from: data))?.error.message ?? "HTTP \(httpResponse.statusCode)"
+            throw TryOnError.apiError(apiMessage)
+        }
+    }
+
+    private func parseResponse(_ data: Data) throws -> UIImage {
+        let decoded = try JSONDecoder().decode(GeminiGenerateResponse.self, from: data)
+
+        guard let base64 = decoded.candidates
+            .first?
+            .content
+            .parts
+            .compactMap({ $0.inlineData?.data ?? $0.inline_data?.data })
+            .first,
+              let imageData = Data(base64Encoded: base64),
+              let image = UIImage(data: imageData) else {
+            throw TryOnError.parsingError
+        }
+
+        return image
     }
 
     private func createPlaceholderResult(clothing: UIImage, user: UIImage) -> UIImage {
-        // Create a placeholder result when API is not available
         let size = CGSize(width: 600, height: 800)
         let renderer = UIGraphicsImageRenderer(size: size)
 
         return renderer.image { context in
-            // White background
             UIColor.white.setFill()
             context.fill(CGRect(origin: .zero, size: size))
 
-            // Draw clothing on left
             let clothingRect = CGRect(x: 50, y: 50, width: 200, height: 300)
             clothing.draw(in: clothingRect)
 
-            // Draw user on right
             let userRect = CGRect(x: 300, y: 50, width: 250, height: 400)
             user.draw(in: userRect)
 
-            // Draw placeholder text
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
 
@@ -179,5 +225,37 @@ final class GeminiTryOnService: TryOnServiceProtocol {
             let textRect = CGRect(x: 50, y: 650, width: 500, height: 100)
             text.draw(in: textRect, withAttributes: attrs)
         }
+    }
+}
+
+private struct GeminiGenerateResponse: Decodable {
+    let candidates: [Candidate]
+
+    struct Candidate: Decodable {
+        let content: Content
+    }
+
+    struct Content: Decodable {
+        let parts: [Part]
+    }
+
+    struct Part: Decodable {
+        let text: String?
+        let inlineData: InlineData?
+        let inline_data: InlineData?
+    }
+
+    struct InlineData: Decodable {
+        let mimeType: String?
+        let mime_type: String?
+        let data: String
+    }
+}
+
+private struct GeminiErrorEnvelope: Decodable {
+    let error: GeminiAPIError
+
+    struct GeminiAPIError: Decodable {
+        let message: String
     }
 }

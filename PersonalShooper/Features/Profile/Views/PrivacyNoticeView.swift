@@ -49,7 +49,7 @@ struct PrivacyNoticeView: View {
                         NoticePoint(
                             icon: "photo.on.rectangle",
                             title: "Virtual Try-On Uses Google",
-                            description: "Only for Virtual Try-On: Clothing and selfie images are sent to Google's Gemini AI to generate the try-on result. Your photos are not stored by Google."
+                            description: "Only for Virtual Try-On: the garment photo and the profile reference photos needed for that garment are sent to Google's Gemini AI to generate the result. Your photos are not stored by Google."
                         )
                     }
 

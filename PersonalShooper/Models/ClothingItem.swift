@@ -97,11 +97,32 @@ final class ClothingItem {
 @Model
 final class TryOnResult {
     var id: UUID
+    var cacheKey: String
+    var providerRaw: String
+    var clothingName: String
+    var clothingCategoryRaw: String?
+    var closetItemIDString: String?
+    var referenceDescriptor: String
     var clothingImageData: Data
     var userPhotoData: Data
     var resultImageData: Data
     var editHistoryData: Data?
     var createdAt: Date
+
+    var provider: TryOnProvider {
+        get { TryOnProvider(rawValue: providerRaw) ?? .google }
+        set { providerRaw = newValue.rawValue }
+    }
+
+    var clothingCategory: ClothingCategory? {
+        get { clothingCategoryRaw.flatMap(ClothingCategory.init(rawValue:)) }
+        set { clothingCategoryRaw = newValue?.rawValue }
+    }
+
+    var closetItemID: UUID? {
+        get { closetItemIDString.flatMap(UUID.init(uuidString:)) }
+        set { closetItemIDString = newValue?.uuidString }
+    }
 
     var clothingImage: UIImage? {
         get { UIImage(data: clothingImageData) }
@@ -130,12 +151,24 @@ final class TryOnResult {
 
     init(
         id: UUID = UUID(),
+        cacheKey: String,
+        provider: TryOnProvider,
+        clothingName: String,
+        clothingCategory: ClothingCategory? = nil,
+        closetItemID: UUID? = nil,
+        referenceDescriptor: String,
         clothingImage: UIImage,
         userPhoto: UIImage,
         resultImage: UIImage,
         editHistory: [ImageEdit] = []
     ) {
         self.id = id
+        self.cacheKey = cacheKey
+        self.providerRaw = provider.rawValue
+        self.clothingName = clothingName
+        self.clothingCategoryRaw = clothingCategory?.rawValue
+        self.closetItemIDString = closetItemID?.uuidString
+        self.referenceDescriptor = referenceDescriptor
         self.clothingImageData = clothingImage.jpegData(compressionQuality: 0.8) ?? Data()
         self.userPhotoData = userPhoto.jpegData(compressionQuality: 0.8) ?? Data()
         self.resultImageData = resultImage.jpegData(compressionQuality: 0.8) ?? Data()

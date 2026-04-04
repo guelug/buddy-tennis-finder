@@ -1,6 +1,17 @@
 import SwiftUI
+import UIKit
 
 enum Theme {
+    // MARK: - Dark Mode Support
+
+    static var isDarkMode: Bool {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return false
+        }
+        return window.traitCollection.userInterfaceStyle == .dark
+    }
+
     // MARK: - Colors
 
     enum Colors {

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UIKit
 import Vision
 
@@ -6,6 +7,7 @@ struct ClothingCaptureView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
+    @Query private var items: [ClothingItem]
 
     @State private var frontImage: UIImage?
     @State private var backImage: UIImage?
@@ -370,6 +372,13 @@ struct ClothingCaptureView: View {
 
     private func saveItem() {
         guard let image = frontImage else { return }
+
+        if appState.hasReachedClosetLimit(currentCount: items.count) {
+            errorMessage = lang == .spanish
+                ? "Has alcanzado el límite gratuito de \(AppState.freeClosetItemLimit) prendas. Pásate a Premium para guardar prendas ilimitadas."
+                : "You've reached the free limit of \(AppState.freeClosetItemLimit) garments. Upgrade to Premium for unlimited closet items."
+            return
+        }
 
         let item = ClothingItem(
             name: itemName.isEmpty ? "Prenda sin nombre" : itemName,

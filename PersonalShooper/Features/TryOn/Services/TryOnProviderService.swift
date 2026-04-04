@@ -12,22 +12,22 @@ enum TryOnProvider: String, CaseIterable, Identifiable {
         switch self {
         case .google: return "Google Gemini"
         case .playground: return "Apple Playground"
-        case .chatgpt: return "ChatGPT"
+        case .chatgpt: return "BYOK"
         }
     }
 
-    var description: String {
+    var subtitle: String {
         switch self {
-        case .google: return "Best quality, uses Google's AI"
-        case .playground: return "Free on-device, cartoon style"
-        case .chatgpt: return "Your ChatGPT Plus account"
+        case .google: return "Most accurate results"
+        case .playground: return "Free, cartoon style"
+        case .chatgpt: return "Bring your own OpenAI key"
         }
     }
 
-    var icon: String {
+    var iconName: String {
         switch self {
         case .google: return "g.circle.fill"
-        case .playground: return "sun.max.fill"
+        case .playground: return "apple.logo"
         case .chatgpt: return "brain.head.profile"
         }
     }
@@ -37,6 +37,14 @@ enum TryOnProvider: String, CaseIterable, Identifiable {
         case .google: return false
         case .playground: return true
         case .chatgpt: return false
+        }
+    }
+
+    var requiresPremium: Bool {
+        switch self {
+        case .google: return true
+        case .playground: return false
+        case .chatgpt: return true
         }
     }
 
@@ -64,6 +72,8 @@ final class TryOnProviderService {
            let provider = TryOnProvider(rawValue: savedProvider) {
             currentProvider = provider
         }
+
+        isAuthenticated = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
     }
 
     func setProvider(_ provider: TryOnProvider) {
@@ -159,19 +169,17 @@ final class TryOnProviderService {
         return result
     }
 
-    // MARK: - ChatGPT OAuth
+    // MARK: - BYOK OpenAI Key
 
     func authenticateWithChatGPT() async throws {
-        // Sign in with Apple for OAuth token
-        // This would use ASAuthorizationController to present Sign in with Apple UI
-        // After authentication, exchange the Apple ID token for ChatGPT access token via backend
-
         throw TryOnProviderError.authenticationRequired
     }
 
     func checkChatGPTAuthentication() async -> Bool {
-        // Check if user has valid ChatGPT OAuth token stored
-        return UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil
+        // Check if user has a valid BYOK token stored
+        let hasToken = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+        isAuthenticated = hasToken
+        return hasToken
     }
 
     private func generateWithChatGPT(clothing: UIImage, user: UIImage) async throws -> UIImage {
@@ -179,11 +187,17 @@ final class TryOnProviderService {
             throw TryOnProviderError.authenticationRequired
         }
 
-        // Use ChatGPT DALL-E API through user's authenticated session
-        // This requires OpenAI SDK configured with OAuth flow
-        // For now, fall back to playground style
+        guard let apiKey = UserDefaults.standard.string(forKey: "chatgpt_access_token") ?? AppSecrets.openAIAPIKey,
+              !apiKey.isEmpty else {
+            throw TryOnProviderError.authenticationRequired
+        }
 
-        throw TryOnProviderError.notYetImplemented
+        let service = OpenAIImageTryOnService()
+        return try await service.generateTryOnImage(
+            clothingImage: clothing,
+            userImage: user,
+            apiKey: apiKey
+        )
     }
 }
 
@@ -195,9 +209,9 @@ enum TryOnProviderError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .authenticationRequired:
-            return "Please sign in with your ChatGPT account first"
+            return "OpenAI key not available"
         case .notYetImplemented:
-            return "ChatGPT integration is coming soon"
+            return "BYOK image generation is coming soon"
         case .generationFailed(let message):
             return "Generation failed: \(message)"
         }

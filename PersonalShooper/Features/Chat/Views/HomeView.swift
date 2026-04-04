@@ -22,13 +22,13 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
                     heroSection
+                    dailyRecommendationSection
                     quickActionsSection
                     recentConversationsSection
                 }
                 .padding(Theme.Spacing.screenPadding)
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-            .navigationTitle(Strings.tabHome(lang))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -110,6 +110,69 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder
+    private var dailyRecommendationSection: some View {
+        if let recommendation = appState.latestDailyRecommendation {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(lang == .spanish ? "Recomendación del día" : "Daily recommendation")
+                            .font(.headline)
+                        Text(recommendation.contextLine)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button(lang == .spanish ? "Chat" : "Chat") {
+                        selectedTab = Tab.chat.rawValue
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text(recommendation.headline)
+                        .font(.title3.weight(.semibold))
+
+                    Text(recommendation.outfitFormula)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+
+                    Text(recommendation.colorDirection)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if !recommendation.closetHighlightNames.isEmpty {
+                        Text(
+                            (lang == .spanish ? "Closet sugerido: " : "Suggested closet: ")
+                            + recommendation.closetHighlightNames.joined(separator: ", ")
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    if !recommendation.moodTags.isEmpty {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: Theme.Spacing.xs)], spacing: Theme.Spacing.xs) {
+                            ForEach(recommendation.moodTags, id: \.self) { tag in
+                                Text(tag)
+                                    .font(.caption.weight(.medium))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color(.systemBackground))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                }
+                .padding(Theme.Spacing.md)
+                .background(Theme.Colors.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+            }
+        }
+    }
+
     private var recentConversationsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
@@ -158,38 +221,5 @@ struct QuickActionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct SettingsView: View {
-    @Environment(AppState.self) private var appState
-    @Environment(\.dismiss) private var dismiss
-
-    private var lang: Language {
-        appState.preferredLanguage
-    }
-
-    var body: some View {
-        List {
-            Section(Strings.language(lang)) {
-                ForEach(Language.allCases) { language in
-                    Button {
-                        appState.setLanguage(language)
-                    } label: {
-                        HStack {
-                            Text(language.displayName)
-                            Spacer()
-                            if appState.preferredLanguage == language {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(Theme.Colors.primary)
-                            }
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-            }
-        }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -44,6 +44,7 @@ struct SubscriptionView: View {
                 Text(errorMessage ?? "An error occurred")
             }
             .task {
+                await appState.refreshPremiumStatus()
                 await storeKitManager.loadProducts()
             }
         }
@@ -63,6 +64,17 @@ struct SubscriptionView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                Text("7-day free premium trial")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(Theme.Colors.premiumGold)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Theme.Colors.premiumGold.opacity(0.12))
+            .clipShape(Capsule())
         }
     }
 
@@ -72,35 +84,48 @@ struct SubscriptionView: View {
                 icon: "infinity",
                 title: "Unlimited Try-Ons",
                 description: "Generate as many virtual try-on images as you want",
-                isPremiumOnly: true
+                badgeText: "PREMIUM",
+                badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "paintpalette.fill",
                 title: "Personal Color Analysis",
                 description: "Complete skin tone and undertone analysis",
-                isPremiumOnly: true
+                badgeText: "PREMIUM",
+                badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "arkit",
                 title: "AR Wardrobe Preview",
                 description: "See clothes in your space with AR",
-                isPremiumOnly: true
+                badgeText: "PREMIUM",
+                badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "bubble.left.and.bubble.right.fill",
                 title: "Priority AI Responses",
                 description: "Get faster responses from your AI stylist",
-                isPremiumOnly: true
+                badgeText: "PREMIUM",
+                badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "photo.on.rectangle",
-                title: "5 Photo Closet",
-                description: "Store up to 5 clothing items",
-                isPremiumOnly: false
+                title: "10-Garment Free Closet",
+                description: "The free plan lets you save up to 10 garments",
+                badgeText: "FREE",
+                badgeColor: Theme.Colors.primary
+            )
+
+            FeatureRow(
+                icon: "cabinet.fill",
+                title: "Unlimited Premium Closet",
+                description: "Save as many garments as you want, depending on local and iCloud space",
+                badgeText: "PREMIUM",
+                badgeColor: Theme.Colors.premiumGold
             )
         }
         .padding(Theme.Spacing.md)
@@ -129,6 +154,10 @@ struct SubscriptionView: View {
                                 Text(product.displayPrice)
                                     .font(.title3)
                                     .fontWeight(.bold)
+
+                                Text("Includes a 7-day free trial")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.Colors.premiumGold)
                             }
 
                             Spacer()
@@ -157,9 +186,7 @@ struct SubscriptionView: View {
     private var restoreSection: some View {
         VStack(spacing: Theme.Spacing.sm) {
             Button {
-                Task {
-                    await restorePurchases()
-                }
+                Task { await restorePurchases() }
             } label: {
                 Text("Restore Purchases")
                     .font(.subheadline)
@@ -179,6 +206,7 @@ struct SubscriptionView: View {
             _ = try await storeKitManager.purchase(product)
             await MainActor.run {
                 isPurchasing = false
+                appState.isPremium = true
                 dismiss()
             }
         } catch {
@@ -195,14 +223,8 @@ struct SubscriptionView: View {
     }
 
     private func restorePurchases() async {
-        do {
-            try await storeKitManager.restorePurchases()
-        } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
-                showError = true
-            }
-        }
+        await storeKitManager.restorePurchases()
+        await appState.refreshPremiumStatus()
     }
 }
 
@@ -210,13 +232,14 @@ struct FeatureRow: View {
     let icon: String
     let title: String
     let description: String
-    let isPremiumOnly: Bool
+    let badgeText: String
+    let badgeColor: Color
 
     var body: some View {
         HStack(spacing: Theme.Spacing.md) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(isPremiumOnly ? Theme.Colors.premiumGold : Theme.Colors.primary)
+                .foregroundStyle(badgeColor)
                 .frame(width: 40)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -225,16 +248,14 @@ struct FeatureRow: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
 
-                    if isPremiumOnly {
-                        Text("PREMIUM")
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Theme.Colors.premiumGold)
-                            .clipShape(Capsule())
-                    }
+                    Text(badgeText)
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(badgeColor)
+                        .clipShape(Capsule())
                 }
 
                 Text(description)

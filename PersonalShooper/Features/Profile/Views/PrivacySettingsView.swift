@@ -105,6 +105,7 @@ struct PrivacySettingsView: View {
             user.profilePhotos = ProfilePhotos()
             user.skinAnalysis = nil
             user.personalPalette = nil
+            user.updateStylingProfile(PersonalStylingProfile())
         }
         // Conversations would be cleared via SwiftData
         dismiss()

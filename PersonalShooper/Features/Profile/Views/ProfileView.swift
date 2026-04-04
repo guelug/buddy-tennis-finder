@@ -7,11 +7,16 @@ struct ProfileView: View {
     @State private var showingLanguagePicker = false
     @State private var editingPhotoStep: PhotoUploadView.UploadStep = .faceCloseUp
 
+    private var lang: Language {
+        appState.preferredLanguage
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
                     profileHeaderSection
+                    stylingProfileSection
                     photoUploadSection
                     settingsSection
                 }
@@ -48,17 +53,37 @@ struct ProfileView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            if appState.isPremium {
+            if let occupation = appState.currentUser?.personalStylingProfile.occupation,
+               !occupation.isEmpty {
+                Text(occupation)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 8) {
+                if appState.isPremium {
+                    HStack(spacing: 4) {
+                        Image(systemName: "crown.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Premium")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.yellow.opacity(0.1))
+                    .clipShape(Capsule())
+                }
+
                 HStack(spacing: 4) {
-                    Image(systemName: "crown.fill")
-                        .foregroundStyle(.yellow)
-                    Text("Premium")
+                    Image(systemName: "cabinet.fill")
+                    Text(appState.closetItemLimitDescription(language: lang))
                         .font(.caption)
                         .fontWeight(.medium)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.yellow.opacity(0.1))
+                .background(Theme.Colors.primary.opacity(0.1))
                 .clipShape(Capsule())
             }
         }
@@ -66,6 +91,62 @@ struct ProfileView: View {
         .padding(Theme.Spacing.lg)
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.xl))
+    }
+
+    private var stylingProfileSection: some View {
+        let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
+
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(lang == .spanish ? "Perfil de estilismo" : "Styling Profile")
+                        .font(.headline)
+                    Text(
+                        profile.isCompleteEnough
+                            ? (lang == .spanish
+                                ? "El chat ya usa este contexto para personalizar recomendaciones."
+                                : "Chat already uses this context to personalize recommendations.")
+                            : (lang == .spanish
+                                ? "Completa estos datos opcionales para recibir consejos más finos."
+                                : "Complete these optional details for sharper advice.")
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Text("\(Int(profile.completionRatio * 100))%")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.primary)
+            }
+
+            ProgressView(value: profile.completionRatio)
+                .tint(Theme.Colors.primary)
+
+            if !profile.highlightTags(in: lang).isEmpty {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: Theme.Spacing.xs)], spacing: Theme.Spacing.xs) {
+                    ForEach(profile.highlightTags(in: lang), id: \.self) { tag in
+                        Text(tag)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.primary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color(.systemBackground))
+                            .clipShape(Capsule())
+                    }
+                }
+            } else if let nextQuestion = profile.nextQuestion(in: lang) {
+                Text(nextQuestion)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, Theme.Spacing.xs)
+            }
+        }
+        .padding(Theme.Spacing.md)
+        .background(Theme.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
     }
 
     private var photoUploadSection: some View {
@@ -138,8 +219,7 @@ struct ProfileView: View {
     private var settingsSection: some View {
         VStack(spacing: 0) {
             NavigationLink {
-                Text("Edit Profile")
-                    .navigationTitle("Edit Profile")
+                EditProfileView()
             } label: {
                 SettingsRowContent(icon: "person.fill", title: "Edit Profile", color: .blue)
             }

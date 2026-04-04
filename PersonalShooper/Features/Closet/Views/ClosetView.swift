@@ -8,6 +8,7 @@ struct ClosetView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var items: [ClothingItem]
     @State private var selectedCategory: ClothingCategory?
     @State private var showingAddItem = false
+    @State private var showingSubscription = false
     @State private var searchText = ""
 
     private var lang: Language {
@@ -60,7 +61,7 @@ struct ClosetView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Button {
-                            showingAddItem = true
+                            startAddingItem()
                         } label: {
                             Label(Strings.closetAddArticle(lang), systemImage: "plus")
                         }
@@ -97,7 +98,7 @@ struct ClosetView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showingAddItem = true
+                        startAddingItem()
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -106,11 +107,22 @@ struct ClosetView: View {
             .sheet(isPresented: $showingAddItem) {
                 ClothingCaptureView()
             }
+            .sheet(isPresented: $showingSubscription) {
+                SubscriptionView()
+            }
         }
     }
 
     private func deleteItem(_ item: ClothingItem) {
         modelContext.delete(item)
+    }
+
+    private func startAddingItem() {
+        if appState.hasReachedClosetLimit(currentCount: items.count) {
+            showingSubscription = true
+        } else {
+            showingAddItem = true
+        }
     }
 }
 

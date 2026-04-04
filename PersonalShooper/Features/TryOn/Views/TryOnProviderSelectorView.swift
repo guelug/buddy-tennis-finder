@@ -16,10 +16,11 @@ struct TryOnProviderSelectorView: View {
                     ForEach(TryOnProvider.allCases) { provider in
                         Button {
                             selectedProvider = provider
+                            appState.setTryOnProvider(provider)
                             dismiss()
                         } label: {
                             HStack(spacing: Theme.Spacing.md) {
-                                Image(systemName: provider.icon)
+                                Image(systemName: provider.iconName)
                                     .font(.title2)
                                     .foregroundStyle(providerColor(provider))
                                     .frame(width: 30)
@@ -51,9 +52,20 @@ struct TryOnProviderSelectorView: View {
                                                 .background(Color.purple)
                                                 .clipShape(Capsule())
                                         }
+
+                                        if provider.requiresPremium {
+                                            Text("PREMIUM")
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundStyle(.white)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.blue)
+                                                .clipShape(Capsule())
+                                        }
                                     }
 
-                                    Text(provider.description)
+                                    Text(provider.subtitle)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -74,11 +86,11 @@ struct TryOnProviderSelectorView: View {
                         .font(.headline)
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("**Google Gemini**: Best quality and realism. Requires API usage.")
+                        Text("**Google Gemini**: Best quality and realism. Requires API usage or premium.")
 
                         Text("**Apple Playground**: Free on-device generation. Creates cartoon-style images, fun for kids!")
 
-                        Text("**ChatGPT**: Uses your ChatGPT Plus subscription. Connect your account for premium quality.")
+                        Text("**BYOK**: Use your own OpenAI API key if you want this provider available in try-on and chat.")
                     }
                     .font(.caption)
                     .padding(.top, Theme.Spacing.sm)
@@ -110,7 +122,7 @@ struct ProviderBadge: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: provider.icon)
+            Image(systemName: provider.iconName)
                 .font(.caption)
             Text(provider.displayName)
                 .font(.caption)

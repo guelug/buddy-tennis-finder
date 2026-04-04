@@ -53,17 +53,29 @@ enum MessageRole: String, Codable {
 struct ChatContext {
     var userPalette: PersonalPalette?
     var userStylePreferences: [String]
+    var personalStylingProfile: PersonalStylingProfile?
+    var preferredName: String?
+    var todayEvents: [CalendarEventSnapshot]
+    var dailyRecommendation: DailyStyleRecommendationSnapshot?
     var recentConversations: [ConversationSummary]
     var language: Language
 
     init(
         userPalette: PersonalPalette? = nil,
         userStylePreferences: [String] = [],
+        personalStylingProfile: PersonalStylingProfile? = nil,
+        preferredName: String? = nil,
+        todayEvents: [CalendarEventSnapshot] = [],
+        dailyRecommendation: DailyStyleRecommendationSnapshot? = nil,
         recentConversations: [ConversationSummary] = [],
         language: Language = .english
     ) {
         self.userPalette = userPalette
         self.userStylePreferences = userStylePreferences
+        self.personalStylingProfile = personalStylingProfile
+        self.preferredName = preferredName
+        self.todayEvents = todayEvents
+        self.dailyRecommendation = dailyRecommendation
         self.recentConversations = recentConversations
         self.language = language
     }

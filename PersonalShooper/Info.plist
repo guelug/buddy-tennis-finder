@@ -27,6 +27,10 @@
     <key>NSAppleIntelligenceUsageDescription</key>
     <string>Personal Shooper uses Apple Intelligence to provide personalized fashion advice directly on your device.</string>
 
+    <!-- Calendar -->
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Sync your Apple Calendar so Personal Shooper can tailor outfit recommendations to your schedule and events.</string>
+
     <!-- Camera -->
     <key>NSCameraUsageDescription</key>
     <string>Take photos to try on clothes virtually and capture your profile photos for personalized style recommendations.</string>

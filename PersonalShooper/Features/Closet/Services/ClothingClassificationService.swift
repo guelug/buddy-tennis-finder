@@ -18,8 +18,8 @@ final class ClothingClassificationService: @unchecked Sendable {
         async let categoryResult = Self.classifyCategory(cgImage: cgImage)
         async let colorsResult = Self.extractColors(from: cgImage)
 
-        let (category, confidence) = try await categoryResult
-        let colors = try await colorsResult
+        let (category, confidence) = await categoryResult
+        let colors = await colorsResult
 
         return ClothingClassificationResult(
             category: category,
@@ -28,11 +28,14 @@ final class ClothingClassificationService: @unchecked Sendable {
         )
     }
 
-    private static func classifyCategory(cgImage: CGImage) async throws -> (ClothingCategory, Float) {
-        try await withCheckedThrowingContinuation { continuation in
+    private static func classifyCategory(cgImage: CGImage) async -> (ClothingCategory, Float) {
+        await withCheckedContinuation { continuation in
             let request = VNClassifyImageRequest { request, error in
                 if let error = error {
-                    continuation.resume(throwing: error)
+                    #if DEBUG
+                    print("ClothingClassificationService.classifyCategory callback failed: \(error.localizedDescription)")
+                    #endif
+                    continuation.resume(returning: (.tops, 0.5))
                     return
                 }
 
@@ -52,16 +55,15 @@ final class ClothingClassificationService: @unchecked Sendable {
             do {
                 try handler.perform([request])
             } catch {
-                continuation.resume(throwing: error)
+                #if DEBUG
+                print("ClothingClassificationService.classifyCategory perform failed: \(error.localizedDescription)")
+                #endif
+                continuation.resume(returning: (.tops, 0.5))
             }
         }
     }
 
     private static func mapObservationToCategory(_ observations: [VNClassificationObservation]) -> ClothingCategory {
-        let keywords = observations.flatMap { observation -> [String] in
-            [observation.identifier.lowercased()]
-        }
-
         for observation in observations {
             let identifier = observation.identifier.lowercased()
 
@@ -135,8 +137,8 @@ final class ClothingClassificationService: @unchecked Sendable {
         return .tops
     }
 
-    private static func extractColors(from cgImage: CGImage) async throws -> [String] {
-        try await withCheckedThrowingContinuation { continuation in
+    private static func extractColors(from cgImage: CGImage) async -> [String] {
+        await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let width = min(cgImage.width, 100)
                 let height = min(cgImage.height, 100)

@@ -36,6 +36,9 @@ struct ContentView: View {
     @State private var isReady = false
     @State private var selectedTab = 0
     @Environment(AppState.self) private var appState
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \User.createdAt) private var users: [User]
+    @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
 
     var body: some View {
         Group {
@@ -52,7 +55,41 @@ struct ContentView: View {
                     isReady = true
                 }
             }
+
+            syncUserState()
+            Task {
+                await appState.refreshPremiumStatus()
+                await appState.refreshStyleCompanionState(closetItems: clothingItems)
+            }
         }
+        .onChange(of: users.count) { _, _ in
+            syncUserState()
+            Task {
+                await appState.refreshStyleCompanionState(closetItems: clothingItems)
+            }
+        }
+        .onChange(of: clothingItems.count) { _, _ in
+            Task {
+                await appState.refreshStyleCompanionState(closetItems: clothingItems)
+            }
+        }
+    }
+
+    private func syncUserState() {
+        if let user = users.first {
+            if appState.currentUser?.id != user.id || appState.preferredLanguage != user.preferredLanguage {
+                appState.updateUser(user)
+            }
+            return
+        }
+
+        let newUser = User(
+            displayName: Strings.guestUser(appState.preferredLanguage),
+            preferredLanguage: appState.preferredLanguage
+        )
+        modelContext.insert(newUser)
+        try? modelContext.save()
+        appState.updateUser(newUser)
     }
 }
 

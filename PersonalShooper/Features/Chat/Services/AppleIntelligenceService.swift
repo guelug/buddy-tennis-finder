@@ -35,11 +35,13 @@ struct AIResponse {
 }
 
 // MARK: - AI Chat Service Protocol
+@MainActor
 protocol AIChatServiceProtocol {
     func sendMessage(_ message: String, context: ChatContext) async throws -> String
 }
 
 // MARK: - Streaming Service Protocol
+@MainActor
 protocol FoundationModelsServiceProtocol: AIChatServiceProtocol {
     var isStreaming: Bool { get }
     func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error>
@@ -66,10 +68,12 @@ struct ClothingItemSummary: Codable {
 
 // MARK: - Service Factory
 enum AIChatServiceFactory {
+    @MainActor
     static func createService() -> AIChatServiceProtocol {
         return EnhancedAppleIntelligenceService()
     }
 
+    @MainActor
     static func createFallbackService() -> AIChatServiceProtocol {
         return BasicFallbackService()
     }
@@ -77,6 +81,7 @@ enum AIChatServiceFactory {
 
 // MARK: - Enhanced Apple Intelligence Service (Fallback for older iOS)
 /// Enhanced fallback service using keyword analysis and NaturalLanguage framework
+@MainActor
 final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
 
     private let fashionSystemPrompt = """
@@ -242,6 +247,8 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
         
         // Extract occasion
         let occasions = extractOccasions(from: message)
+        let profileSnippet = styleProfileSnippet(from: context.personalStylingProfile, language: language)
+        let eventSnippet = syncedEventSnippet(from: context, language: language)
         
         if isSpanish {
             var response = "¡Me encantaría ayudarte con un outfit"
@@ -254,6 +261,14 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
                 response += "Con tu paleta \(palette.seasonalType.displayName.lowercased()), considera usar "
                 response += "prendas en tonos \(palette.recommendedColors.prefix(2).map { colorNameInSpanish(for: $0) }.joined(separator: " o ")) "
                 response += "como piezas principales. "
+            }
+
+            if !profileSnippet.isEmpty {
+                response += profileSnippet + " "
+            }
+
+            if !eventSnippet.isEmpty {
+                response += eventSnippet + " "
             }
             
             response += "Para un look completo, necesitaría saber más sobre tu estilo preferido y la ocasión específica. "
@@ -271,6 +286,14 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
             response += "With your \(palette.seasonalType.displayName.lowercased()) palette, consider wearing "
             response += "pieces in \(palette.recommendedColors.prefix(2).map { colorName(for: $0) }.joined(separator: " or ")) "
             response += "as your main items. "
+        }
+
+        if !profileSnippet.isEmpty {
+            response += profileSnippet + " "
+        }
+
+        if !eventSnippet.isEmpty {
+            response += eventSnippet + " "
         }
         
         response += "For a complete look, I'd need to know more about your preferred style and the specific occasion. "
@@ -313,12 +336,17 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
     
     private func generateStyleAdvice(language: Language, context: ChatContext) -> String {
         let isSpanish = language == .spanish
+        let profileSnippet = styleProfileSnippet(from: context.personalStylingProfile, language: language)
         
         if isSpanish {
             var response = "El estilo personal es una forma de expresión única. "
             
             if !context.userStylePreferences.isEmpty {
                 response += "Veo que te gustan los estilos: \(context.userStylePreferences.joined(separator: ", ")). "
+            }
+
+            if !profileSnippet.isEmpty {
+                response += profileSnippet + " "
             }
             
             response += "Para definir mejor tu estilo, considera: ¿qué te hace sentir más cómodo y seguro? "
@@ -331,6 +359,10 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
         
         if !context.userStylePreferences.isEmpty {
             response += "I see you like these styles: \(context.userStylePreferences.joined(separator: ", ")). "
+        }
+
+        if !profileSnippet.isEmpty {
+            response += profileSnippet + " "
         }
         
         response += "To define your style better, consider: what makes you feel most comfortable and confident? "
@@ -398,6 +430,8 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
     private func generateOccasionAdvice(language: Language, message: String, context: ChatContext) -> String {
         let isSpanish = language == .spanish
         let occasions = extractOccasions(from: message)
+        let profileSnippet = styleProfileSnippet(from: context.personalStylingProfile, language: language)
+        let eventSnippet = syncedEventSnippet(from: context, language: language)
         
         if isSpanish {
             var response = ""
@@ -409,6 +443,14 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
             
             if let palette = context.userPalette {
                 response += "Con tu tono \(palette.undertone.displayName.lowercased()), los colores \(palette.recommendedColors.prefix(2).map { colorNameInSpanish(for: $0) }.joined(separator: " y ")) te favorecerán especialmente. "
+            }
+
+            if !profileSnippet.isEmpty {
+                response += profileSnippet + " "
+            }
+
+            if !eventSnippet.isEmpty {
+                response += eventSnippet + " "
             }
             
             response += "Cuéntame más sobre el evento específico para darte recomendaciones más precisas."
@@ -425,6 +467,14 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
         if let palette = context.userPalette {
             response += "With your \(palette.undertone.displayName.lowercased()) undertones, colors like \(palette.recommendedColors.prefix(2).map { colorName(for: $0) }.joined(separator: " and ")) will be especially flattering. "
         }
+
+        if !profileSnippet.isEmpty {
+            response += profileSnippet + " "
+        }
+
+        if !eventSnippet.isEmpty {
+            response += eventSnippet + " "
+        }
         
         response += "Tell me more about the specific event for more precise recommendations."
         return response
@@ -433,6 +483,8 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
     private func generateGeneralResponse(language: Language, sentiment: Double, context: ChatContext) -> String {
         let isSpanish = language == .spanish
         let isPositive = sentiment > 0
+        let profile = context.personalStylingProfile
+        let eventSnippet = syncedEventSnippet(from: context, language: language)
         
         if isSpanish {
             var response = isPositive 
@@ -443,6 +495,14 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
             
             if context.userPalette == nil {
                 response += "Para empezar con recomendaciones personalizadas, completa tu perfil con fotos para analizar tu paleta de colores. "
+            }
+
+            if profile?.isCompleteEnough == false {
+                response += "También puedes contarme tu trabajo, tus eventos habituales o cómo te gusta proyectarte, y lo guardaré para afinar futuras respuestas. "
+            }
+
+            if !eventSnippet.isEmpty {
+                response += eventSnippet + " "
             }
             
             response += "¿Qué te gustaría explorar hoy? Puedo ayudarte con outfits, combinaciones de colores, o tendencias."
@@ -458,9 +518,69 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
         if context.userPalette == nil {
             response += "To start with personalized recommendations, complete your profile with photos to analyze your color palette. "
         }
+
+        if profile?.isCompleteEnough == false {
+            response += "You can also tell me about your work, routine, or the image you want to project, and I'll save it to refine future answers. "
+        }
+
+        if !eventSnippet.isEmpty {
+            response += eventSnippet + " "
+        }
         
         response += "What would you like to explore today? I can help with outfits, color combinations, or trends."
         return response
+    }
+
+    private func styleProfileSnippet(from profile: PersonalStylingProfile?, language: Language) -> String {
+        guard let profile else { return "" }
+
+        if language == .spanish {
+            if !profile.fitPriorities.isEmpty {
+                let priorities = profile.fitPriorities.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " y ")
+                return "Tendré en cuenta que priorizas \(priorities.lowercased())."
+            }
+
+            if !profile.desiredImpression.isEmpty {
+                let impression = profile.desiredImpression.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " y ")
+                return "Buscaré que el look proyecte una imagen \(impression.lowercased())."
+            }
+
+            if !profile.usualSocialPlans.isEmpty {
+                let plans = profile.usualSocialPlans.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " y ")
+                return "Sé que en tu rutina aparecen \(plans.lowercased())."
+            }
+        } else {
+            if !profile.fitPriorities.isEmpty {
+                let priorities = profile.fitPriorities.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " and ")
+                return "I'll take into account that you prioritize \(priorities.lowercased())."
+            }
+
+            if !profile.desiredImpression.isEmpty {
+                let impression = profile.desiredImpression.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " and ")
+                return "I'll aim for a look that feels \(impression.lowercased())."
+            }
+
+            if !profile.usualSocialPlans.isEmpty {
+                let plans = profile.usualSocialPlans.prefix(2).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: " and ")
+                return "I know your routine includes \(plans.lowercased())."
+            }
+        }
+
+        return ""
+    }
+
+    private func syncedEventSnippet(from context: ChatContext, language: Language) -> String {
+        if let recommendation = context.dailyRecommendation {
+            return language == .spanish
+                ? "He tenido en cuenta tu recomendación diaria: \(recommendation.contextLine.lowercased())"
+                : "I've taken your daily recommendation into account: \(recommendation.contextLine.lowercased())"
+        }
+
+        guard let event = context.todayEvents.first else { return "" }
+
+        return language == .spanish
+            ? "Veo en tu calendario \(event.title) para hoy."
+            : "I can see \(event.title) in your calendar today."
     }
     
     // MARK: - Helper Methods
@@ -547,6 +667,7 @@ enum UserIntent {
 }
 
 // MARK: - Legacy Fallback (for very old iOS versions)
+@MainActor
 final class BasicFallbackService: AIChatServiceProtocol {
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
         let isSpanish = context.language == .spanish ||

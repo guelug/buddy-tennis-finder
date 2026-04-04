@@ -63,6 +63,31 @@ targets:
       - sdk: Photos.framework
       - sdk: Speech.framework
       - sdk: ImageIO.framework
+      - sdk: EventKit.framework
+      - sdk: AppIntents.framework
+      - sdk: WidgetKit.framework
+      - target: PersonalShooperWidgets
+
+  PersonalShooperWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PersonalShooperWidgets
+      - path: PersonalShooper/Shared/StyleCompanionSharedModels.swift
+    settings:
+      base:
+        INFOPLIST_FILE: PersonalShooperWidgets/Info.plist
+        CODE_SIGN_ENTITLEMENTS: PersonalShooperWidgets/PersonalShooperWidgets.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.personalshooper.app.widgets
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SWIFT_EMIT_LOC_STRINGS: true
+    entitlements:
+      path: PersonalShooperWidgets/PersonalShooperWidgets.entitlements
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: AppIntents.framework
 
 packages:
   SnapKit:
