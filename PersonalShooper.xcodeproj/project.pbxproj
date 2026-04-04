@@ -14,7 +14,6 @@
 		0920EF86CEF6E09EA74C1778 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC8515ECFA5F640EACA07DA /* CloudKitManager.swift */; };
 		116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */; };
 		1B8427145F72DD383FBA32D7 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4ED6A1E503E280CED9735D85 /* Vision.framework */; };
-		223C7B584ABEE50DAC60EA1E /* TryOnView.swift.bak in Resources */ = {isa = PBXBuildFile; fileRef = 5F89890087A78DBC336E90DF /* TryOnView.swift.bak */; };
 		22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F78EBA23E4FB4692771AFB /* MainTabView.swift */; };
 		240302348AD244A108B8C9F5 /* ProfileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */; };
 		2659D2E917EC254A0E435A66 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66B45EAFDE59A049CE181887 /* ARKit.framework */; };
@@ -125,7 +124,6 @@
 		5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
 		56173F3B4C47A44171AD4425 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		5F89890087A78DBC336E90DF /* TryOnView.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = TryOnView.swift.bak; sourceTree = "<group>"; };
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKSettingsView.swift; sourceTree = "<group>"; };
@@ -251,7 +249,6 @@
 			children = (
 				6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */,
 				1C09A315901B54622384FDF8 /* TryOnView.swift */,
-				5F89890087A78DBC336E90DF /* TryOnView.swift.bak */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -708,6 +705,7 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					7C0A0F217713BCEEDE032529 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					D19B5E2F93C0CE249A6DE4B2 = {
@@ -746,7 +744,6 @@
 			files = (
 				78731E3956A5ADA50089D44F /* Assets.xcassets in Resources */,
 				EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */,
-				223C7B584ABEE50DAC60EA1E /* TryOnView.swift.bak in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -838,9 +835,9 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1032,7 +1029,9 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = LocalSecrets.plist;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

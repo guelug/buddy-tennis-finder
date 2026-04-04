@@ -38,6 +38,7 @@ targets:
         excludes:
           - "**/*.md"
           - "**/*.xcloc"
+          - "**/*.bak"
     settings:
       base:
         INFOPLIST_FILE: PersonalShooper/Info.plist
@@ -48,6 +49,9 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SWIFT_EMIT_LOC_STRINGS: true
         ENABLE_PREVIEWS: YES
+      configs:
+        Release:
+          EXCLUDED_SOURCE_FILE_NAMES: LocalSecrets.plist
     entitlements:
       path: PersonalShooper/PersonalShooper.entitlements
     dependencies:
