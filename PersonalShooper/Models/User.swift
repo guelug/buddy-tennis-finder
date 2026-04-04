@@ -136,11 +136,6 @@ struct ProfilePhotos {
     }
 }
 
-enum SubscriptionTier: String, Codable {
-    case free
-    case premium
-}
-
 struct PersonalStylingProfile: Codable, Equatable {
     var age: Int?
     var occupation: String

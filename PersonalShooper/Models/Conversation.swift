@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UIKit
 
 @Model
 final class Conversation {
@@ -29,6 +30,10 @@ final class Message {
     var roleRaw: String
     var content: String
     var imageURLString: String?
+    var imageData: Data?
+    var linkedClosetItemIDString: String?
+    var linkedTryOnResultIDString: String?
+    var metadataData: Data?
     var timestamp: Date
 
     var role: MessageRole {
@@ -36,11 +41,49 @@ final class Message {
         set { roleRaw = newValue.rawValue }
     }
 
-    init(id: UUID = UUID(), role: MessageRole, content: String, imageURL: String? = nil) {
+    var image: UIImage? {
+        get { imageData.flatMap(UIImage.init(data:)) }
+        set { imageData = newValue?.jpegData(compressionQuality: 0.85) }
+    }
+
+    var linkedClosetItemID: UUID? {
+        get { linkedClosetItemIDString.flatMap(UUID.init(uuidString:)) }
+        set { linkedClosetItemIDString = newValue?.uuidString }
+    }
+
+    var linkedTryOnResultID: UUID? {
+        get { linkedTryOnResultIDString.flatMap(UUID.init(uuidString:)) }
+        set { linkedTryOnResultIDString = newValue?.uuidString }
+    }
+
+    var metadata: ChatMessageMetadata {
+        get {
+            guard let metadataData else { return ChatMessageMetadata() }
+            return (try? JSONDecoder().decode(ChatMessageMetadata.self, from: metadataData)) ?? ChatMessageMetadata()
+        }
+        set {
+            metadataData = try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    init(
+        id: UUID = UUID(),
+        role: MessageRole,
+        content: String,
+        imageURL: String? = nil,
+        image: UIImage? = nil,
+        linkedClosetItemID: UUID? = nil,
+        linkedTryOnResultID: UUID? = nil,
+        metadata: ChatMessageMetadata = ChatMessageMetadata()
+    ) {
         self.id = id
         self.roleRaw = role.rawValue
         self.content = content
         self.imageURLString = imageURL
+        self.imageData = image?.jpegData(compressionQuality: 0.85)
+        self.linkedClosetItemIDString = linkedClosetItemID?.uuidString
+        self.linkedTryOnResultIDString = linkedTryOnResultID?.uuidString
+        self.metadataData = try? JSONEncoder().encode(metadata)
         self.timestamp = Date()
     }
 }
@@ -48,6 +91,29 @@ final class Message {
 enum MessageRole: String, Codable {
     case user
     case assistant
+}
+
+enum ChatMessageAssetSource: String, Codable {
+    case none
+    case localAttachment
+    case generatedTryOn
+    case remoteImage
+}
+
+struct ChatMessageMetadata: Codable {
+    var assetSource: ChatMessageAssetSource
+    var toolIdentifier: String?
+    var cacheKey: String?
+
+    init(
+        assetSource: ChatMessageAssetSource = .none,
+        toolIdentifier: String? = nil,
+        cacheKey: String? = nil
+    ) {
+        self.assetSource = assetSource
+        self.toolIdentifier = toolIdentifier
+        self.cacheKey = cacheKey
+    }
 }
 
 struct ChatContext {

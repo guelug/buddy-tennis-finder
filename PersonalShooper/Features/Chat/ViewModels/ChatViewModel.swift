@@ -15,6 +15,7 @@ final class ChatViewModel {
     private var context = ChatContext()
     private var hasPrepared = false
     private let classificationService = ClothingClassificationService()
+    private let workspaceService = ChatWorkspaceService()
 
     func prepare(appState: AppState, modelContext: ModelContext) {
         setContext(from: appState)
@@ -88,7 +89,13 @@ final class ChatViewModel {
 
         let userMessage = Message(
             role: .user,
-            content: userFacingMessageContent(from: trimmedInput, hasAttachedImage: attachedImage != nil, language: appState.preferredLanguage)
+            content: userFacingMessageContent(from: trimmedInput, hasAttachedImage: attachedImage != nil, language: appState.preferredLanguage),
+            image: attachedImage,
+            metadata: ChatMessageMetadata(
+                assetSource: attachedImage == nil ? .none : .localAttachment,
+                toolIdentifier: nil,
+                cacheKey: nil
+            )
         )
         messages.append(userMessage)
         conversation?.addMessage(userMessage)
@@ -119,7 +126,17 @@ final class ChatViewModel {
                 closetSummary: closetSummary,
                 appState: appState
             )
-            appendAssistantMessage(assistantResponse, saveToModel: true, modelContext: modelContext)
+            let toolResult = try await preparedToolResultIfEnabled(
+                for: trimmedInput,
+                appState: appState,
+                modelContext: modelContext
+            )
+            appendAssistantMessage(
+                assistantResponse,
+                toolResult: toolResult,
+                saveToModel: true,
+                modelContext: modelContext
+            )
             try? modelContext.save()
         } catch {
             let fallback = fallbackResponse(appState: appState, savedFacts: savedFacts, closetSummary: closetSummary)
@@ -131,14 +148,94 @@ final class ChatViewModel {
         isLoading = false
     }
 
-    private func appendAssistantMessage(_ content: String, saveToModel: Bool, modelContext: ModelContext) {
-        let assistantMessage = Message(role: .assistant, content: content)
+    private func appendAssistantMessage(
+        _ content: String,
+        toolResult: ChatToolResult? = nil,
+        saveToModel: Bool,
+        modelContext: ModelContext
+    ) {
+        let assistantMessage = workspaceService.makeAssistantMessage(baseContent: content, toolResult: toolResult)
         messages.append(assistantMessage)
 
         if saveToModel {
             conversation?.addMessage(assistantMessage)
             try? modelContext.save()
         }
+    }
+
+    private func preparedToolResultIfEnabled(
+        for message: String,
+        appState: AppState,
+        modelContext: ModelContext
+    ) async throws -> ChatToolResult? {
+        let features = appState.chatPreparedFeatures
+        guard features.toolInvocationEnabled else { return nil }
+        guard features.imageGenerationEnabled else { return nil }
+        guard isPreparedImageRequest(message, language: appState.preferredLanguage) else { return nil }
+        guard let user = appState.currentUser else { return nil }
+
+        if let closetItem = matchedClosetItem(for: message, modelContext: modelContext) {
+            return try await workspaceService.generateTryOnAsset(
+                for: closetItem,
+                user: user,
+                provider: appState.tryOnProvider,
+                modelContext: modelContext,
+                language: appState.preferredLanguage
+            )
+        }
+
+        return try workspaceService.prepareStandaloneImageGeneration(
+            prompt: message,
+            language: appState.preferredLanguage
+        )
+    }
+
+    private func matchedClosetItem(for message: String, modelContext: ModelContext) -> ClothingItem? {
+        let descriptor = FetchDescriptor<ClothingItem>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
+        guard let items = try? modelContext.fetch(descriptor), !items.isEmpty else {
+            return nil
+        }
+
+        let normalizedMessage = message.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+
+        return items
+            .filter { !$0.name.isEmpty }
+            .sorted { $0.name.count > $1.name.count }
+            .first { item in
+                let normalizedName = item.name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+                return normalizedMessage.contains(normalizedName)
+            }
+    }
+
+    private func isPreparedImageRequest(_ message: String, language: Language) -> Bool {
+        let normalizedMessage = message.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let keywords: [String]
+
+        if language == .spanish {
+            keywords = [
+                "genera una imagen",
+                "crear una imagen",
+                "crea una imagen",
+                "haz una imagen",
+                "muestrame una imagen",
+                "pruebame",
+                "try on"
+            ]
+        } else {
+            keywords = [
+                "generate an image",
+                "create an image",
+                "make an image",
+                "show me an image",
+                "try on",
+                "visualize"
+            ]
+        }
+
+        return keywords.contains { normalizedMessage.contains($0) }
     }
 
     private func welcomeMessage(for appState: AppState) -> String {

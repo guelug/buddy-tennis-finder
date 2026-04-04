@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import StoreKit
 
 @Observable
 @MainActor
@@ -9,11 +10,14 @@ final class AppState {
 
     var currentUser: User?
     var isPremium: Bool = false
+    var isBYOKEnabled: Bool = false
+    var currentTier: SubscriptionTier = .free
     var preferredLanguage: Language = .spanish
     var hasCompletedProfileSetup: Bool = false
     var tryOnProvider: TryOnProvider = .google
     var isChatGPTConnected: Bool = false
     var useConnectedChatGPTForChat: Bool = false
+    var chatPreparedFeatures = ChatPreparedFeatures()
     var isCalendarSyncEnabled: Bool = false
     var areDailyWidgetsEnabled: Bool = true
     var isSiriStyleSupportEnabled: Bool = true
@@ -22,7 +26,7 @@ final class AppState {
     var latestDailyRecommendation: DailyStyleRecommendationSnapshot?
     var lastStyleRefreshAt: Date?
 
-    private let storeKitManager = StoreKitManager()
+    private let storeKitManager = StoreKitManager.shared
     private let calendarSyncService = CalendarSyncService()
     private let dailyRecommendationService = DailyStyleRecommendationService()
 
@@ -46,6 +50,18 @@ final class AppState {
         // Check ChatGPT connection
         isChatGPTConnected = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
         useConnectedChatGPTForChat = UserDefaults.standard.bool(forKey: "chatgpt_chat_enabled")
+
+        // Load BYOK state
+        isBYOKEnabled = KeychainHelper.load(for: "byok_enabled") == "true"
+        if isBYOKEnabled {
+            currentTier = .byok
+        }
+        chatPreparedFeatures = ChatPreparedFeatures(
+            textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
+            richMediaMessagesEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_rich_media_enabled"),
+            toolInvocationEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_tool_invocation_enabled"),
+            imageGenerationEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_image_generation_enabled")
+        )
     }
 
     func loadUserState() async {

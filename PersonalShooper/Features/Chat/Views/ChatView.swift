@@ -23,7 +23,7 @@ struct ChatView: View {
                             profileContextCard
 
                             ForEach(viewModel.messages) { message in
-                                MessageBubbleView(message: message)
+                                MessageBubbleView(message: message, features: appState.chatPreparedFeatures)
                                     .padding(.horizontal)
                                     .id(message.id)
                             }
@@ -269,6 +269,11 @@ struct ChatView: View {
 
 struct MessageBubbleView: View {
     let message: Message
+    let features: ChatPreparedFeatures
+
+    private var shouldShowInlineImage: Bool {
+        features.richMediaMessagesEnabled && (message.image != nil || message.imageURLString != nil)
+    }
 
     var body: some View {
         let isUser = message.role == .user
@@ -279,14 +284,18 @@ struct MessageBubbleView: View {
             }
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(message.content)
-                    .font(.body)
-                    .foregroundStyle(isUser ? .white : .primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(isUser ? Theme.Colors.primary : Color(.systemBackground))
-                    .clipShape(ChatBubbleShape(isUser: isUser))
-                    .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                VStack(alignment: isUser ? .trailing : .leading, spacing: 10) {
+                    if shouldShowInlineImage {
+                        messageImage
+                    }
+
+                    messageText(isUser: isUser)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(isUser ? Theme.Colors.primary : Color(.systemBackground))
+                .clipShape(ChatBubbleShape(isUser: isUser))
+                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
 
                 Text(formattedTime(from: message.timestamp))
                     .font(.caption2)
@@ -303,6 +312,54 @@ struct MessageBubbleView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    @ViewBuilder
+    private func messageText(isUser: Bool) -> some View {
+        if features.textSelectionEnabled {
+            Text(message.content)
+                .font(.body)
+                .foregroundStyle(isUser ? .white : .primary)
+                .textSelection(.enabled)
+        } else {
+            Text(message.content)
+                .font(.body)
+                .foregroundStyle(isUser ? .white : .primary)
+        }
+    }
+
+    @ViewBuilder
+    private var messageImage: some View {
+        if let image = message.image {
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(maxWidth: 260, minHeight: 160, maxHeight: 280)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        } else if let imageURLString = message.imageURLString,
+                   let url = URL(string: imageURLString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .empty:
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .failure:
+                    Image(systemName: "photo")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(.secondarySystemBackground))
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .frame(maxWidth: 260, minHeight: 160, maxHeight: 280)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        }
     }
 }
 

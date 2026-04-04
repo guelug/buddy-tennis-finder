@@ -4,7 +4,7 @@ import StoreKit
 struct SubscriptionView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
-    @State private var storeKitManager = StoreKitManager()
+    private let storeKitManager = StoreKitManager.shared
     @State private var selectedProduct: Product?
     @State private var isPurchasing = false
     @State private var errorMessage: String?
