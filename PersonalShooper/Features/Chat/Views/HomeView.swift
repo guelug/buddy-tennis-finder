@@ -3,35 +3,36 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.modelContext) private var modelContext
-    @Binding private var selectedTab: MainTabView.Tab
-    @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
+    @Binding var selectedTab: Int
 
-    init(selectedTab: Binding<MainTabView.Tab> = .constant(.home)) {
+    init(selectedTab: Binding<Int> = .constant(0)) {
         self._selectedTab = selectedTab
+    }
+
+    private enum Tab: Int {
+        case home = 0, chat = 1, closet = 2, tryOn = 3, profile = 4
+    }
+
+    private var lang: Language {
+        appState.preferredLanguage
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
-                    // Hero greeting
                     heroSection
-
-                    // Quick actions
                     quickActionsSection
-
-                    // Recent conversations
                     recentConversationsSection
                 }
                 .padding(Theme.Spacing.screenPadding)
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-            .navigationTitle("Home")
+            .navigationTitle(Strings.tabHome(lang))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        // Settings action
+                    NavigationLink {
+                        SettingsView()
                     } label: {
                         Image(systemName: "gearshape")
                     }
@@ -47,11 +48,11 @@ struct HomeView: View {
                 .fontWeight(.bold)
 
             if let user = appState.currentUser, let palette = user.personalPalette {
-                Text("Your palette: \(palette.seasonalType.displayName) \(palette.undertone.displayName)")
+                Text("\(Strings.profilePaletteTitle(lang)): \(palette.seasonalType.displayName) \(palette.undertone.displayName)")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Set up your profile for personalized recommendations")
+                Text(Strings.homeSetupProfile(lang))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -61,63 +62,49 @@ struct HomeView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let name = appState.currentUser?.displayName ?? "there"
+        let name = appState.currentUser?.displayName ?? Strings.guestUser(lang)
 
-        if hour < 12 {
-            return "Good morning, \(name)"
-        } else if hour < 17 {
-            return "Good afternoon, \(name)"
-        } else {
-            return "Good evening, \(name)"
-        }
+        if hour < 12 { return Strings.greetingMorning(lang, name: name) }
+        else if hour < 17 { return Strings.greetingAfternoon(lang, name: name) }
+        else { return Strings.greetingEvening(lang, name: name) }
     }
 
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Quick Actions")
-                .font(.headline)
+            Text(Strings.homeQuickActions(lang)).font(.headline)
 
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: Theme.Spacing.sm) {
-                NavigationLink {
-                    ChatView(conversation: nil)
-                } label: {
-                    QuickActionCardContent(
-                        icon: "bubble.left.and.bubble.right.fill",
-                        title: "Chat with AI",
-                        subtitle: "Get style advice",
-                        color: .blue
-                    )
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Spacing.sm) {
+                QuickActionCard(
+                    icon: "bubble.left.and.bubble.right.fill",
+                    title: Strings.homeStartChat(lang),
+                    subtitle: Strings.tabChat(lang),
+                    color: .blue
+                ) {
+                    selectedTab = Tab.chat.rawValue
                 }
-                .buttonStyle(.plain)
-
                 QuickActionCard(
                     icon: "camera.fill",
-                    title: "Try On",
-                    subtitle: "Virtual fitting",
+                    title: Strings.homeTryOn(lang),
+                    subtitle: Strings.tabTryOn(lang),
                     color: .purple
                 ) {
-                    selectedTab = .tryOn
+                    selectedTab = Tab.tryOn.rawValue
                 }
-
                 QuickActionCard(
                     icon: "paintpalette.fill",
-                    title: "My Palette",
-                    subtitle: "Your colors",
+                    title: Strings.homeViewPalette(lang),
+                    subtitle: Strings.profilePaletteTitle(lang),
                     color: .orange
                 ) {
-                    selectedTab = .profile
+                    selectedTab = Tab.profile.rawValue
                 }
-
                 QuickActionCard(
-                    icon: "arkit",
-                    title: "AR View",
-                    subtitle: "Preview clothes",
+                    icon: "cabinet.fill",
+                    title: Strings.tabCloset(lang),
+                    subtitle: Strings.tabCloset(lang),
                     color: .green
                 ) {
-                    selectedTab = .ar
+                    selectedTab = Tab.closet.rawValue
                 }
             }
         }
@@ -126,59 +113,28 @@ struct HomeView: View {
     private var recentConversationsSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             HStack {
-                Text("Recent Conversations")
-                    .font(.headline)
-
+                Text(Strings.homeRecentConversations(lang)).font(.headline)
                 Spacer()
+                Button(Strings.homeViewAll(lang)) {
+                    selectedTab = Tab.chat.rawValue
+                }
+                .font(.subheadline)
+            }
 
-                if !conversations.isEmpty {
-                    NavigationLink("See All") {
-                        ChatHistoryView()
-                    }
+            VStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.secondary)
+                Text(Strings.homeNoConversations(lang))
+                    .font(.headline)
+                Text(Strings.homeStartChatting(lang))
                     .font(.subheadline)
-                }
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-
-            if conversations.isEmpty {
-                ContentUnavailableView(
-                    "No Conversations Yet",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Start chatting with your AI stylist for personalized fashion advice")
-                )
-                .frame(height: 200)
-            } else {
-                ForEach(conversations.prefix(3)) { conversation in
-                    ConversationRow(conversation: conversation)
-                }
-            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, Theme.Spacing.xl)
         }
-    }
-}
-
-struct QuickActionCardContent: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-
-            Text(title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.Spacing.md)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
     }
 }
 
@@ -192,17 +148,9 @@ struct QuickActionCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color)
-
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Image(systemName: icon).font(.title2).foregroundStyle(color)
+                Text(title).font(.headline).foregroundStyle(.primary)
+                Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(Theme.Spacing.md)
@@ -213,45 +161,35 @@ struct QuickActionCard: View {
     }
 }
 
-struct ConversationRow: View {
-    let conversation: Conversation
+struct SettingsView: View {
+    @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+
+    private var lang: Language {
+        appState.preferredLanguage
+    }
 
     var body: some View {
-        NavigationLink {
-            ChatView(conversation: conversation)
-        } label: {
-            HStack(spacing: Theme.Spacing.sm) {
-                Image(systemName: "bubble.left.and.bubble.right.fill")
-                    .font(.title2)
-                    .foregroundStyle(.blue)
-                    .frame(width: 44, height: 44)
-                    .background(Color.blue.opacity(0.1))
-                    .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(conversation.title)
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-
-                    if let lastMessage = conversation.messages.last {
-                        Text(lastMessage.content)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
+        List {
+            Section(Strings.language(lang)) {
+                ForEach(Language.allCases) { language in
+                    Button {
+                        appState.setLanguage(language)
+                    } label: {
+                        HStack {
+                            Text(language.displayName)
+                            Spacer()
+                            if appState.preferredLanguage == language {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(Theme.Colors.primary)
+                            }
+                        }
                     }
+                    .foregroundStyle(.primary)
                 }
-
-                Spacer()
-
-                Text(conversation.updatedAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
             }
-            .padding(Theme.Spacing.sm)
-            .background(Theme.Colors.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
         }
-        .buttonStyle(.plain)
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
-

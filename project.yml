@@ -53,8 +53,6 @@ targets:
     dependencies:
       - sdk: FoundationModels.framework
         weak: true
-      - sdk: Playgrounds.framework
-        weak: true
       - sdk: ARKit.framework
       - sdk: RealityKit.framework
       - sdk: Vision.framework

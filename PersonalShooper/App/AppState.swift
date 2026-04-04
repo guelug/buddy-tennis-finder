@@ -1,10 +1,11 @@
 import SwiftUI
 
 @Observable
+@MainActor
 final class AppState {
     var currentUser: User?
     var isPremium: Bool = false
-    var preferredLanguage: Language = .english
+    var preferredLanguage: Language = .spanish
     var hasCompletedProfileSetup: Bool = false
 
     private let storeKitManager = StoreKitManager()
@@ -13,14 +14,11 @@ final class AppState {
         isPremium = storeKitManager.isPremium
     }
 
-    @MainActor
     func loadUserState() async {
         // User state is managed via SwiftData model context
-        // This is handled by the views directly
     }
 
-    @MainActor
-    func updateUser(_ user: User) async {
+    func updateUser(_ user: User) {
         currentUser = user
         hasCompletedProfileSetup = user.profilePhotos.allPhotosUploaded
     }
@@ -30,23 +28,3 @@ final class AppState {
     }
 }
 
-enum Language: String, Codable, CaseIterable, Identifiable {
-    case english = "en"
-    case spanish = "es"
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .english: return "English"
-        case .spanish: return "Español"
-        }
-    }
-
-    var flag: String {
-        switch self {
-        case .english: return "🇺🇸"
-        case .spanish: return "🇪🇸"
-        }
-    }
-}

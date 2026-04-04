@@ -78,14 +78,14 @@ enum AIChatServiceFactory {
 // MARK: - Enhanced Apple Intelligence Service (Fallback for older iOS)
 /// Enhanced fallback service using keyword analysis and NaturalLanguage framework
 final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
-    
+
     private let fashionSystemPrompt = """
     You are Personal Shooper, a professional AI fashion stylist assistant. Your role is to help users with:
     - Color recommendations based on their personal color palette
     - Outfit suggestions for various occasions
     - Style advice matching their preferences
     - Fashion tips and trends
-    
+
     Important guidelines:
     - Always be helpful, friendly, and professional
     - Respect user privacy - never ask for personal information beyond fashion preferences
@@ -93,33 +93,22 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
     - Consider the user's personal color palette and style preferences when giving recommendations
     - If unsure about something, suggest consulting a human stylist
     """
-    
+
     private let responseCache = NSCache<NSString, NSString>()
     private let sentimentAnalyzer = NLTagger(tagSchemes: [.sentimentScore])
-    
+
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
-        // Check cache first
-        let cacheKey = "\(message)_\(context.language.rawValue)" as NSString
-        if let cached = responseCache.object(forKey: cacheKey) {
-            return cached as String
-        }
-        
-        let response = generateContextualResponse(message: message, context: context)
-        
-        // Cache the response
-        responseCache.setObject(response as NSString, forKey: cacheKey)
-        
-        return response
+        return generateContextualResponse(message: message, context: context)
     }
-    
+
     // MARK: - Response Generation
     private func generateContextualResponse(message: String, context: ChatContext) -> String {
         let lowercasedMessage = message.lowercased()
         let language = detectLanguage(message: message, context: context)
-        
+
         // Analyze sentiment to adjust tone
         let sentiment = analyzeSentiment(message)
-        
+
         // Detect intent using more sophisticated pattern matching
         let intent = detectIntent(message: lowercasedMessage)
         

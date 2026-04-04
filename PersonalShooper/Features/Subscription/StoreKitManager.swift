@@ -2,33 +2,26 @@ import Foundation
 import StoreKit
 
 @Observable
+@MainActor
 final class StoreKitManager {
 
     var products: [Product] = []
     var purchaseState: PurchaseState = .idle
     private(set) var purchasedProductIDs: Set<String> = []
 
-    private var updateListenerTask: Task<Void, Error>?
-
     var isPremium: Bool {
         !purchasedProductIDs.isEmpty
     }
 
     init() {
-        updateListenerTask = listenForTransactions()
-        Task { @MainActor in
+        Task {
             await loadProducts()
             await updatePurchasedProducts()
         }
     }
 
-    deinit {
-        updateListenerTask?.cancel()
-    }
-
     // MARK: - Product Loading
 
-    @MainActor
     func loadProducts() async {
         let productIDs = [
             ProductID.premiumMonthly,
@@ -45,7 +38,6 @@ final class StoreKitManager {
 
     // MARK: - Purchase Flow
 
-    @MainActor
     func purchase(_ product: Product) async throws -> Transaction {
         purchaseState = .purchasing
 
@@ -79,33 +71,11 @@ final class StoreKitManager {
 
     // MARK: - Restore & Verification
 
-    func restorePurchases() async throws {
-        var restoredTransactions: [Transaction] = []
-
-        for await result in Transaction.currentEntitlements {
-            if case .verified(let transaction) = result {
-                restoredTransactions.append(transaction)
-            }
-        }
-
+    func restorePurchases() async {
         await updatePurchasedProducts()
     }
 
-    private func listenForTransactions() -> Task<Void, Error> {
-        Task.detached { [weak self] in
-            for await result in Transaction.updates {
-                guard let self = self else { return }
-
-                if case .verified(let transaction) = result {
-                    await self.updatePurchasedProducts()
-                    await transaction.finish()
-                }
-            }
-        }
-    }
-
-    @MainActor
-    private func updatePurchasedProducts() async {
+    func updatePurchasedProducts() async {
         var purchased: Set<String> = []
 
         for await result in Transaction.currentEntitlements {
@@ -114,7 +84,7 @@ final class StoreKitManager {
             }
         }
 
-        self.purchasedProductIDs = purchased
+        purchasedProductIDs = purchased
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
@@ -140,14 +110,14 @@ enum ProductID {
     static let premiumYearly = "com.personalshooper.premium.yearly"
 }
 
-enum PurchaseState {
+enum PurchaseState: Sendable {
     case idle
     case purchasing
     case purchased
-    case failed(Error)
+    case failed(String)
 }
 
-enum StoreKitError: Error, LocalizedError {
+enum StoreKitError: Error, LocalizedError, Sendable {
     case productLoadingFailed
     case verificationFailed
     case userCancelled

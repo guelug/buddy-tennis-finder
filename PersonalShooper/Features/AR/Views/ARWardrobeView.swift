@@ -80,13 +80,13 @@ struct ARWardrobeView: View {
                     }
                 } else {
                     ContentUnavailableView(
-                        "AR Not Supported",
+                        "AR No Disponible",
                         systemImage: "arkit",
-                        description: Text("This device doesn't support AR experiences")
+                        description: Text("Este dispositivo no soporta experiencias de AR")
                     )
                 }
             }
-            .navigationTitle("AR Wardrobe")
+            .navigationTitle("Armario AR")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingClothingPicker) {
                 ClothingPickerSheet(viewModel: viewModel)
@@ -137,13 +137,14 @@ struct ARViewContainer: UIViewRepresentable {
         Coordinator(viewModel: viewModel)
     }
 
-    class Coordinator: NSObject, ARSessionDelegate {
+    class Coordinator: NSObject, ARSessionDelegate, @unchecked Sendable {
         weak var viewModel: ARViewModel?
 
         init(viewModel: ARViewModel) {
             self.viewModel = viewModel
         }
 
+        @MainActor
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let arView = gesture.view as? ARView else { return }
             let location = gesture.location(in: arView)
@@ -202,11 +203,11 @@ struct ClothingPickerSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("Select Clothing")
+            .navigationTitle("Seleccionar Ropa")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button("Hecho") {
                         dismiss()
                     }
                 }

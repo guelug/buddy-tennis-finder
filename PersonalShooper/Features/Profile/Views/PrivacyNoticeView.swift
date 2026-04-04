@@ -45,6 +45,12 @@ struct PrivacyNoticeView: View {
                             title: "Secure Storage",
                             description: "Your photos are stored securely on your device using iOS data protection."
                         )
+
+                        NoticePoint(
+                            icon: "photo.on.rectangle",
+                            title: "Virtual Try-On Uses Google",
+                            description: "Only for Virtual Try-On: Clothing and selfie images are sent to Google's Gemini AI to generate the try-on result. Your photos are not stored by Google."
+                        )
                     }
 
                     Spacer(minLength: Theme.Spacing.lg)

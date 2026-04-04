@@ -11,7 +11,10 @@ struct TryOnView: View {
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
     @State private var capturePhase: CapturePhase = .clothing
     @State private var showingDownloadSuccess = false
-    @State private var showingProviderPicker = false
+    @State private var showingProviderSelector = false
+    @State private var selectedProvider: TryOnProvider = .google
+
+    private let providerService = TryOnProviderService()
 
     private var lang: Language {
         appState.preferredLanguage
@@ -26,6 +29,9 @@ struct TryOnView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: Theme.Spacing.lg) {
+                // Provider selector bar
+                providerSelectorBar
+
                 if let generatedImage = viewModel.generatedImage {
                     resultView(generatedImage)
                 } else if viewModel.isGenerating {
@@ -36,23 +42,6 @@ struct TryOnView: View {
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle(Strings.tryOnTitle(lang))
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingProviderPicker = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: viewModel.selectedProvider.iconName)
-                            Text(viewModel.selectedProvider.displayName)
-                                .font(.caption)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Theme.Colors.primary.opacity(0.1))
-                        .clipShape(Capsule())
-                    }
-                }
-            }
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()
             }
@@ -66,8 +55,8 @@ struct TryOnView: View {
                     handleImageSelected(image)
                 }
             }
-            .sheet(isPresented: $showingProviderPicker) {
-                ProviderPickerSheet(viewModel: viewModel, showingSubscription: $showingSubscription)
+            .sheet(isPresented: $showingProviderSelector) {
+                TryOnProviderSelectorView(selectedProvider: $selectedProvider)
             }
             .alert("Downloaded!", isPresented: $showingDownloadSuccess) {
                 Button("OK", role: .cancel) {}
@@ -75,6 +64,43 @@ struct TryOnView: View {
                 Text("Image saved to your Photos library.")
             }
         }
+    }
+
+    private var providerSelectorBar: some View {
+        Button {
+            showingProviderSelector = true
+        } label: {
+            HStack {
+                Image(systemName: selectedProvider.icon)
+                    .font(.body)
+
+                Text(selectedProvider.displayName)
+                    .font(.subheadline)
+
+                if selectedProvider.isCartoonStyle {
+                    Text("CARTOON")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.purple)
+                        .clipShape(Capsule())
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+            }
+            .padding(.horizontal, Theme.Spacing.md)
+            .padding(.vertical, Theme.Spacing.sm)
+            .background(Theme.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+        .padding(.top, Theme.Spacing.sm)
     }
 
     private var captureView: some View {
@@ -96,13 +122,19 @@ struct TryOnView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, Theme.Spacing.xl)
 
+            if selectedProvider.isCartoonStyle {
+                Text("🎨 Estilo caricatura")
+                    .font(.caption)
+                    .foregroundStyle(.purple)
+            }
+
             Spacer()
 
             Button {
                 if !hasAcceptedPrivacy {
                     showingPrivacyNotice = true
                 } else {
-                    imagePickerSource = capturePhase == .clothing ? .camera : .camera
+                    imagePickerSource = .camera
                     showingImagePicker = true
                 }
             } label: {
@@ -235,121 +267,6 @@ struct TryOnView: View {
         viewModel.selectedClothingImage = nil
         viewModel.selectedUserImage = nil
         capturePhase = .clothing
-    }
-}
-
-struct ProviderPickerSheet: View {
-    @Bindable var viewModel: TryOnViewModel
-    @Binding var showingSubscription: Bool
-    @Environment(\.dismiss) private var dismiss
-    @Environment(AppState.self) private var appState
-
-    private var lang: Language {
-        appState.preferredLanguage
-    }
-
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    ForEach(TryOnProvider.allCases) { provider in
-                        ProviderRow(
-                            provider: provider,
-                            isSelected: viewModel.selectedProvider == provider,
-                            isPremiumUser: appState.isPremium
-                        ) {
-                            if provider.requiresPremium && !appState.isPremium {
-                                dismiss()
-                                showingSubscription = true
-                            } else {
-                                viewModel.selectProvider(provider)
-                                dismiss()
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Select Provider")
-                } footer: {
-                    Text("Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. ChatGPT uses your paid account.")
-                }
-            }
-            .navigationTitle("Try-On Provider")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct ProviderRow: View {
-    let provider: TryOnProvider
-    let isSelected: Bool
-    let isPremiumUser: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: Theme.Spacing.md) {
-                Image(systemName: provider.iconName)
-                    .font(.title2)
-                    .foregroundStyle(providerColor)
-                    .frame(width: 40)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack {
-                        Text(provider.displayName)
-                            .font(.body)
-                            .foregroundStyle(.primary)
-
-                        if provider.isFree {
-                            Text("FREE")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.green)
-                                .clipShape(Capsule())
-                        } else if provider.requiresPremium {
-                            Text("PREMIUM")
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.purple)
-                                .clipShape(Capsule())
-                        }
-                    }
-
-                    Text(provider.subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Theme.Colors.primary)
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var providerColor: Color {
-        switch provider {
-        case .google: return .blue
-        case .applePlayground: return .black
-        case .chatGPTOAuth: return .purple
-        }
     }
 }
 

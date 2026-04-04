@@ -36,19 +36,19 @@ struct PhotoUploadView: View {
 
         var title: String {
             switch self {
-            case .faceCloseUp: return "Face Close-up"
-            case .faceProfile: return "Face Profile"
-            case .fullBodyFront: return "Full Body Front"
-            case .fullBodyBack: return "Full Body Back"
+            case .faceCloseUp: return "Primer Plano del Rostro"
+            case .faceProfile: return "Perfil del Rostro"
+            case .fullBodyFront: return "Cuerpo Completo Frontal"
+            case .fullBodyBack: return "Cuerpo Completo Posterior"
             }
         }
 
         var description: String {
             switch self {
-            case .faceCloseUp: return "Take a clear photo of your face from the front"
-            case .faceProfile: return "Take a photo of your face from the side"
-            case .fullBodyFront: return "Take a full body photo facing the camera"
-            case .fullBodyBack: return "Take a full body photo from the back"
+            case .faceCloseUp: return "Toma una foto clara de tu rostro de frente"
+            case .faceProfile: return "Toma una foto de tu rostro de perfil"
+            case .fullBodyFront: return "Toma una foto de cuerpo completo de frente"
+            case .fullBodyBack: return "Toma una foto de cuerpo completo de espalda"
             }
         }
 
@@ -92,11 +92,11 @@ struct PhotoUploadView: View {
                 }
             }
             .background(Theme.Colors.groupedBackground)
-            .navigationTitle("Photo Upload")
+            .navigationTitle("Subir Fotos")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button("Cancelar") {
                         dismiss()
                     }
                 }
@@ -108,7 +108,7 @@ struct PhotoUploadView: View {
             }
             .sheet(isPresented: $showPhotoPicker) {
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Text("Select Photo")
+                    Text("Seleccionar Foto")
                 }
                 .onChange(of: selectedPhotoItem) { _, newItem in
                     Task {
@@ -185,7 +185,7 @@ struct PhotoUploadView: View {
                                     VStack {
                                         ProgressView()
                                             .tint(.white)
-                                        Text("Analyzing...")
+                                        Text("Analizando...")
                                             .font(.caption)
                                             .foregroundStyle(.white)
                                     }
@@ -201,7 +201,7 @@ struct PhotoUploadView: View {
                             Image(systemName: "photo.badge.plus")
                                 .font(.largeTitle)
                                 .foregroundStyle(.secondary)
-                            Text("No photo selected")
+                            Text("Sin foto seleccionada")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -215,7 +215,7 @@ struct PhotoUploadView: View {
             Button {
                 showCamera = true
             } label: {
-                Label("Take Photo", systemImage: "camera.fill")
+                Label("Tomar Foto", systemImage: "camera.fill")
                     .frame(maxWidth: .infinity)
                     .primaryButtonStyle()
             }
@@ -224,7 +224,7 @@ struct PhotoUploadView: View {
             Button {
                 showPhotoPicker = true
             } label: {
-                Label("Choose from Library", systemImage: "photo.on.rectangle")
+                Label("Elegir de Biblioteca", systemImage: "photo.on.rectangle")
                     .frame(maxWidth: .infinity)
                     .font(.headline)
                     .foregroundStyle(Theme.Colors.primary)
@@ -238,7 +238,7 @@ struct PhotoUploadView: View {
                 Button {
                     moveToNextStep()
                 } label: {
-                    Text("Continue")
+                    Text("Continuar")
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
@@ -267,7 +267,7 @@ struct PhotoUploadView: View {
 
     private func analyzePhotos() async {
         guard let face = faceCloseUp else {
-            errorMessage = "Face close-up photo is required"
+            errorMessage = "Se requiere foto de primer plano del rostro"
             return
         }
 
@@ -302,7 +302,7 @@ struct PhotoUploadView: View {
             }
         } catch {
             await MainActor.run {
-                errorMessage = "Analysis failed: \(error.localizedDescription)"
+                errorMessage = "Error en el analisis: \(error.localizedDescription)"
                 isAnalyzing = false
             }
         }
