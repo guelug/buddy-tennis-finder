@@ -42,19 +42,20 @@ final class TryOnViewModel {
         source: TryOnSelectionSource,
         closetItem: ClothingItem? = nil
     ) async {
-        selectedClothingImage = image
         selectedSource = source
         generatedImage = nil
         lastResultWasCached = false
         errorMessage = nil
 
         if let closetItem {
+            selectedClothingImage = image
             selectedClothingCategory = closetItem.category
             selectedClothingName = closetItem.name
             selectedClosetItemID = closetItem.id
             return
         }
 
+        selectedClothingImage = image
         selectedClosetItemID = nil
         selectedClothingName = ""
         selectedClothingCategory = nil
@@ -62,8 +63,11 @@ final class TryOnViewModel {
 
         defer { isAnalyzingClothing = false }
 
+        let preparedImage = await GarmentBackgroundRemovalService.prepareImage(image)
+        selectedClothingImage = preparedImage
+
         do {
-            let classification = try await classificationService.classifyClothing(image: image)
+            let classification = try await classificationService.classifyClothing(image: preparedImage)
             selectedClothingCategory = classification.category
             selectedClothingName = classification.category.displayName
         } catch {
@@ -94,7 +98,7 @@ final class TryOnViewModel {
 
         referenceDescription = referencePlan.descriptor
 
-        guard let clothingData = StorageBudgetManager.normalizedImageData(clothingImage),
+        guard let clothingData = StorageBudgetManager.normalizedClothingImageData(clothingImage),
               let referenceData = StorageBudgetManager.normalizedImageData(referencePlan.image) else {
             errorMessage = language == .spanish
                 ? "No he podido preparar las imágenes para el try-on."

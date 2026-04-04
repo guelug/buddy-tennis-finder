@@ -98,7 +98,7 @@ final class ChatWorkspaceService {
             throw ChatWorkspaceError.missingProfilePhoto
         }
 
-        guard let clothingData = StorageBudgetManager.normalizedImageData(clothingImage),
+        guard let clothingData = StorageBudgetManager.normalizedClothingImageData(clothingImage),
               let referenceData = StorageBudgetManager.normalizedImageData(referencePlan.image) else {
             throw ChatWorkspaceError.imagePreparationFailed
         }

@@ -65,7 +65,7 @@ final class ClothingItem {
             return UIImage(data: data)
         }
         set {
-            imageData = StorageBudgetManager.normalizedImageData(newValue)
+            imageData = StorageBudgetManager.normalizedClothingImageData(newValue)
         }
     }
 
@@ -82,7 +82,7 @@ final class ClothingItem {
         self.id = id
         self.name = name
         self.categoryRaw = category.rawValue
-        self.imageData = StorageBudgetManager.normalizedImageData(image)
+        self.imageData = StorageBudgetManager.normalizedClothingImageData(image)
         self.colorTags = colorTags
         self.styleTags = styleTags
         self.brandName = brandName
@@ -126,7 +126,7 @@ final class TryOnResult {
 
     var clothingImage: UIImage? {
         get { UIImage(data: clothingImageData) }
-        set { clothingImageData = StorageBudgetManager.normalizedImageData(newValue) ?? Data() }
+        set { clothingImageData = StorageBudgetManager.normalizedClothingImageData(newValue) ?? Data() }
     }
 
     var userPhoto: UIImage? {
@@ -169,7 +169,7 @@ final class TryOnResult {
         self.clothingCategoryRaw = clothingCategory?.rawValue
         self.closetItemIDString = closetItemID?.uuidString
         self.referenceDescriptor = referenceDescriptor
-        self.clothingImageData = StorageBudgetManager.normalizedImageData(clothingImage) ?? Data()
+        self.clothingImageData = StorageBudgetManager.normalizedClothingImageData(clothingImage) ?? Data()
         self.userPhotoData = StorageBudgetManager.normalizedImageData(userPhoto) ?? Data()
         self.resultImageData = StorageBudgetManager.normalizedImageData(resultImage) ?? Data()
         self.editHistoryData = try? JSONEncoder().encode(editHistory)

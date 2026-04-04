@@ -13,6 +13,7 @@ struct ClothingCaptureView: View {
     @State private var backImage: UIImage?
     @State private var currentStep: CaptureStep = .front
     @State private var isAnalyzing = false
+    @State private var isPreparingImage = false
     @State private var detectedCategory: ClothingCategory?
     @State private var detectedColors: [String] = []
     @State private var showCamera = false
@@ -159,14 +160,14 @@ struct ClothingCaptureView: View {
                     .frame(maxHeight: 250)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                     .overlay {
-                        if isAnalyzing {
+                        if isAnalyzing || isPreparingImage {
                             RoundedRectangle(cornerRadius: Theme.CornerRadius.large)
                                 .fill(.black.opacity(0.5))
                                 .overlay {
                                     VStack {
                                         ProgressView()
                                             .tint(.white)
-                                        Text(text("Analizando...", "Analyzing..."))
+                                        Text(isPreparingImage ? text("Quitando fondo...", "Removing background...") : text("Analizando...", "Analyzing..."))
                                             .font(.caption)
                                             .foregroundStyle(.white)
                                     }
@@ -205,12 +206,19 @@ struct ClothingCaptureView: View {
                 .frame(height: 200)
                 .overlay {
                     VStack(spacing: Theme.Spacing.sm) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text(text("Sin foto", "No photo"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if isPreparingImage {
+                            ProgressView()
+                            Text(text("Quitando fondo...", "Removing background..."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.largeTitle)
+                                .foregroundStyle(.secondary)
+                            Text(text("Sin foto", "No photo"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
         }
@@ -287,6 +295,7 @@ struct ClothingCaptureView: View {
                 .disabled(itemName.isEmpty)
             }
         }
+        .disabled(isPreparingImage || isAnalyzing)
     }
 
     private func text(_ spanish: String, _ english: String) -> String {
@@ -317,20 +326,28 @@ struct ClothingCaptureView: View {
 
     private func handleImageCapture(_ image: UIImage?) {
         guard let image = image else { return }
-        let compressed = compressImage(image)
-        assignImage(compressed)
         showCamera = false
+        let step = currentStep
+        let compressed = compressImage(image)
+        assignImage(compressed, for: step)
+        Task {
+            await prepareImage(compressed, for: step)
+        }
     }
 
     private func handleImageSelection(_ image: UIImage?) {
         guard let image = image else { return }
         showPhotoPicker = false
+        let step = currentStep
         let compressed = compressImage(image)
-        assignImage(compressed)
+        assignImage(compressed, for: step)
+        Task {
+            await prepareImage(compressed, for: step)
+        }
     }
 
-    private func assignImage(_ image: UIImage) {
-        switch currentStep {
+    private func assignImage(_ image: UIImage, for step: CaptureStep? = nil) {
+        switch step ?? currentStep {
         case .front:
             frontImage = image
         case .back:
@@ -341,7 +358,22 @@ struct ClothingCaptureView: View {
     }
 
     private func compressImage(_ image: UIImage) -> UIImage {
-        StorageBudgetManager.normalizedImage(image) ?? image
+        StorageBudgetManager.normalizedClothingImage(image)
+            ?? StorageBudgetManager.normalizedImage(image)
+            ?? image
+    }
+
+    private func prepareImage(_ image: UIImage, for step: CaptureStep) async {
+        await MainActor.run {
+            isPreparingImage = true
+        }
+
+        let preparedImage = await GarmentBackgroundRemovalService.prepareImage(image)
+
+        await MainActor.run {
+            assignImage(preparedImage, for: step)
+            isPreparingImage = false
+        }
     }
 
     private func moveToNextStep() {

@@ -106,26 +106,43 @@ enum StorageBudgetManager {
     }
 
     static func normalizedImageData(_ image: UIImage?) -> Data? {
-        guard let image else { return nil }
-        let maxDimension = max(image.size.width, image.size.height)
+        normalizedImageData(image, preservesAlpha: false)
+    }
 
-        guard maxDimension > normalizedImageMaxDimension else {
-            return image.jpegData(compressionQuality: normalizedImageCompressionQuality)
-        }
+    static func normalizedClothingImageData(_ image: UIImage?) -> Data? {
+        normalizedImageData(image, preservesAlpha: true)
+    }
 
-        let scale = normalizedImageMaxDimension / maxDimension
-        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        let resizedImage = renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
-
-        return resizedImage.jpegData(compressionQuality: normalizedImageCompressionQuality)
+    static func normalizedClothingImage(_ image: UIImage?) -> UIImage? {
+        guard let data = normalizedClothingImageData(image) else { return nil }
+        return UIImage(data: data)
     }
 
     static func normalizedImage(_ image: UIImage?) -> UIImage? {
         guard let data = normalizedImageData(image) else { return nil }
         return UIImage(data: data)
+    }
+
+    private static func normalizedImageData(_ image: UIImage?, preservesAlpha: Bool) -> Data? {
+        guard let image else { return nil }
+        let maxDimension = max(image.size.width, image.size.height)
+        let shouldPreserveAlpha = preservesAlpha && imageHasAlpha(image)
+
+        guard maxDimension > normalizedImageMaxDimension else {
+            return encodedData(for: image, preservesAlpha: shouldPreserveAlpha)
+        }
+
+        let scale = normalizedImageMaxDimension / maxDimension
+        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let rendererFormat = UIGraphicsImageRendererFormat.default()
+        rendererFormat.opaque = !shouldPreserveAlpha
+        rendererFormat.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: rendererFormat)
+        let resizedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+
+        return encodedData(for: resizedImage, preservesAlpha: shouldPreserveAlpha)
     }
 
     static func incrementalBytesForProfileUpdate(
@@ -166,7 +183,7 @@ enum StorageBudgetManager {
         brandName: String? = nil,
         notes: String? = nil
     ) -> Int64 {
-        Int64(normalizedImageData(image)?.count ?? 0)
+        Int64(normalizedClothingImageData(image)?.count ?? 0)
             + stringBytes(name)
             + stringBytes(category.rawValue)
             + collectionBytes(colorTags)
@@ -188,7 +205,7 @@ enum StorageBudgetManager {
         resultImage: UIImage,
         editHistory: [ImageEdit] = []
     ) -> Int64 {
-        Int64(normalizedImageData(clothingImage)?.count ?? 0)
+        Int64(normalizedClothingImageData(clothingImage)?.count ?? 0)
             + Int64(normalizedImageData(userPhoto)?.count ?? 0)
             + Int64(normalizedImageData(resultImage)?.count ?? 0)
             + Int64((try? JSONEncoder().encode(editHistory))?.count ?? 0)
@@ -208,6 +225,29 @@ enum StorageBudgetManager {
     private static func collectionBytes(_ values: [String]) -> Int64 {
         values.reduce(into: Int64.zero) { partialResult, value in
             partialResult += Int64(value.utf8.count)
+        }
+    }
+
+    private static func encodedData(for image: UIImage, preservesAlpha: Bool) -> Data? {
+        if preservesAlpha {
+            return image.pngData()
+        }
+
+        return image.jpegData(compressionQuality: normalizedImageCompressionQuality)
+    }
+
+    private static func imageHasAlpha(_ image: UIImage) -> Bool {
+        guard let alphaInfo = image.cgImage?.alphaInfo else {
+            return false
+        }
+
+        switch alphaInfo {
+        case .first, .last, .premultipliedFirst, .premultipliedLast, .alphaOnly:
+            return true
+        case .none, .noneSkipFirst, .noneSkipLast:
+            return false
+        @unknown default:
+            return false
         }
     }
 

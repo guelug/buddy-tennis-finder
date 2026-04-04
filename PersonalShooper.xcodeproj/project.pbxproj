@@ -28,6 +28,7 @@
 		52ABCBE5722A745FEA2EF801 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5054F6856E9D8B83341CA704 /* AppIntents.framework */; };
 		53DF86C0D2C0D34D009D4EAB /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBABC5D5EE29FF5A45A135E0 /* Strings.swift */; };
 		5578E15F8309AE0BD9035D4F /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE3DB318DDEB8829D50DAF8E /* ChatViewModel.swift */; };
+		57B4002CEC6FFB05083D4CEA /* GarmentBackgroundRemovalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */; };
 		59DAC8F2BDD2A49E39AA5E7D /* GeminiTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07644CA6E4DED93F1DF5E841 /* GeminiTryOnService.swift */; };
 		5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7327AED235F37BA65C119031 /* SkinToneExtractor.swift */; };
 		5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C3A6D967523FBE144BC1419 /* Language.swift */; };
@@ -106,6 +107,7 @@
 
 /* Begin PBXFileReference section */
 		07644CA6E4DED93F1DF5E841 /* GeminiTryOnService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiTryOnService.swift; sourceTree = "<group>"; };
+		09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarmentBackgroundRemovalService.swift; sourceTree = "<group>"; };
 		14A10A268571DD14DAE2AC68 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1986786BD0DF89A0E35BF53F /* CalendarSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSyncService.swift; sourceTree = "<group>"; };
 		19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClosetView.swift; sourceTree = "<group>"; };
@@ -133,7 +135,7 @@
 		6E7DD8E4BD58EFE0B4841017 /* AppleIntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceService.swift; sourceTree = "<group>"; };
 		6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderSelectorView.swift; sourceTree = "<group>"; };
 		7327AED235F37BA65C119031 /* SkinToneExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinToneExtractor.swift; sourceTree = "<group>"; };
-		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		75191249CD415955E041E75E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		75FF91397AF47465ED682DC4 /* ARViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewModel.swift; sourceTree = "<group>"; };
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
@@ -473,6 +475,7 @@
 		A074EF61D2BFD75720ACA085 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */,
 				8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */,
 				FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */,
 			);
@@ -785,6 +788,7 @@
 				116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */,
 				DC287BA429B7BA24485C0EB7 /* DailyStyleRecommendationService.swift in Sources */,
 				653F52F805B613307D414401 /* EditProfileView.swift in Sources */,
+				57B4002CEC6FFB05083D4CEA /* GarmentBackgroundRemovalService.swift in Sources */,
 				59DAC8F2BDD2A49E39AA5E7D /* GeminiTryOnService.swift in Sources */,
 				3831A7980AE129987A0850EF /* HomeView.swift in Sources */,
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
@@ -837,7 +841,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1031,7 +1034,6 @@
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = LocalSecrets.plist;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

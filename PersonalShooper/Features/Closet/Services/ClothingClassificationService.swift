@@ -173,6 +173,11 @@ final class ClothingClassificationService: @unchecked Sendable {
                         let r = Int(pointer[offset])
                         let g = Int(pointer[offset + 1])
                         let b = Int(pointer[offset + 2])
+                        let alpha = Int(pointer[offset + 3])
+
+                        guard alpha > 25 else {
+                            continue
+                        }
 
                         let colorName = self.classifyColor(r: r, g: g, b: b)
                         colorCounts[colorName, default: 0] += 1
