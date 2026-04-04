@@ -73,11 +73,11 @@ struct ClothingCaptureView: View {
             }
             .padding(Theme.Spacing.screenPadding)
             .background(Theme.Colors.groupedBackground)
-            .navigationTitle("Añadir Prenda")
+            .navigationTitle(text("Añadir prenda", "Add Garment"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") {
+                    Button(text("Cancelar", "Cancel")) {
                         dismiss()
                     }
                 }
@@ -92,7 +92,7 @@ struct ClothingCaptureView: View {
                     handleImageSelection(image)
                 }
             }
-            .alert("Error", isPresented: .constant(errorMessage != nil)) {
+            .alert(text("Error", "Error"), isPresented: .constant(errorMessage != nil)) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
@@ -108,7 +108,7 @@ struct ClothingCaptureView: View {
                         .fill(stepOrder(step) <= stepOrder(currentStep) ? Theme.Colors.primary : Color.gray.opacity(0.3))
                         .frame(width: 10, height: 10)
 
-                    Text(step.title)
+                    Text(stepTitle(step))
                         .font(.caption2)
                         .foregroundStyle(stepOrder(step) <= stepOrder(currentStep) ? Theme.Colors.primary : .secondary)
                 }
@@ -132,11 +132,11 @@ struct ClothingCaptureView: View {
                 .foregroundStyle(Theme.Colors.primary)
 
             VStack(spacing: Theme.Spacing.xs) {
-                Text(currentStep.title)
+                Text(stepTitle(currentStep))
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text(currentStep.description)
+                Text(stepDescription(currentStep))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -166,7 +166,7 @@ struct ClothingCaptureView: View {
                                     VStack {
                                         ProgressView()
                                             .tint(.white)
-                                        Text("Analizando...")
+                                        Text(text("Analizando...", "Analyzing..."))
                                             .font(.caption)
                                             .foregroundStyle(.white)
                                     }
@@ -176,7 +176,7 @@ struct ClothingCaptureView: View {
 
                 if currentStep == .details, let category = detectedCategory {
                     VStack(spacing: Theme.Spacing.xs) {
-                        Text("Categoría detectada:")
+                        Text(text("Categoría detectada:", "Detected category:"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -193,7 +193,7 @@ struct ClothingCaptureView: View {
                     }
 
                     if !detectedColors.isEmpty {
-                        Text("Colores: \(detectedColors.joined(separator: ", "))")
+                        Text("\(text("Colores", "Colors")): \(detectedColors.joined(separator: ", "))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -208,7 +208,7 @@ struct ClothingCaptureView: View {
                         Image(systemName: "photo.badge.plus")
                             .font(.largeTitle)
                             .foregroundStyle(.secondary)
-                        Text("Sin foto")
+                        Text(text("Sin foto", "No photo"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -222,7 +222,7 @@ struct ClothingCaptureView: View {
                 photoPickerSource = .camera
                 showCamera = true
             } label: {
-                Label("Tomar Foto", systemImage: "camera.fill")
+                Label(text("Tomar foto", "Take Photo"), systemImage: "camera.fill")
                     .frame(maxWidth: .infinity)
                     .primaryButtonStyle()
             }
@@ -231,7 +231,7 @@ struct ClothingCaptureView: View {
                 photoPickerSource = .photoLibrary
                 showPhotoPicker = true
             } label: {
-                Label("Elegir de Biblioteca", systemImage: "photo.on.rectangle")
+                Label(text("Elegir de la biblioteca", "Choose from Library"), systemImage: "photo.on.rectangle")
                     .frame(maxWidth: .infinity)
                     .font(.headline)
                     .foregroundStyle(Theme.Colors.primary)
@@ -244,7 +244,7 @@ struct ClothingCaptureView: View {
                 Button {
                     moveToNextStep()
                 } label: {
-                    Text("Continuar")
+                    Text(text("Continuar", "Continue"))
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
@@ -255,7 +255,7 @@ struct ClothingCaptureView: View {
                     Button {
                         skipBackPhoto()
                     } label: {
-                        Text("Saltar")
+                        Text(text("Saltar", "Skip"))
                             .frame(maxWidth: .infinity)
                             .font(.headline)
                             .foregroundStyle(.secondary)
@@ -268,7 +268,7 @@ struct ClothingCaptureView: View {
                         Button {
                             moveToNextStep()
                         } label: {
-                            Text("Continuar")
+                            Text(text("Continuar", "Continue"))
                                 .frame(maxWidth: .infinity)
                                 .primaryButtonStyle()
                         }
@@ -280,12 +280,38 @@ struct ClothingCaptureView: View {
                 Button {
                     saveItem()
                 } label: {
-                    Text("Guardar")
+                    Text(text("Guardar", "Save"))
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
                 .disabled(itemName.isEmpty)
             }
+        }
+    }
+
+    private func text(_ spanish: String, _ english: String) -> String {
+        lang == .spanish ? spanish : english
+    }
+
+    private func stepTitle(_ step: CaptureStep) -> String {
+        switch step {
+        case .front:
+            return text("Foto frontal", "Front photo")
+        case .back:
+            return text("Foto trasera (opcional)", "Back photo (optional)")
+        case .details:
+            return text("Detalles", "Details")
+        }
+    }
+
+    private func stepDescription(_ step: CaptureStep) -> String {
+        switch step {
+        case .front:
+            return text("Extiende la prenda y toma una foto de frente", "Lay the garment flat and take a front photo")
+        case .back:
+            return text("Toma una foto de la parte trasera o salta este paso", "Take a photo of the back or skip this step")
+        case .details:
+            return text("Revisa los detalles detectados", "Review the detected details")
         }
     }
 

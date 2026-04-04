@@ -33,12 +33,24 @@ struct PersonalShooperApp: App {
 }
 
 struct ContentView: View {
+    @AppStorage("app_theme") private var storedTheme = AppTheme.system.rawValue
     @State private var isReady = false
     @State private var selectedTab = 0
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \User.createdAt) private var users: [User]
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
+
+    private var preferredColorScheme: ColorScheme? {
+        switch AppTheme(rawValue: storedTheme) ?? .system {
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        case .system:
+            return nil
+        }
+    }
 
     var body: some View {
         Group {
@@ -49,6 +61,7 @@ struct ContentView: View {
             }
         }
         .environment(\.locale, Locale(identifier: appState.preferredLanguage.rawValue))
+        .preferredColorScheme(preferredColorScheme)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation {
@@ -94,6 +107,16 @@ struct ContentView: View {
 }
 
 struct SplashView: View {
+    @Environment(AppState.self) private var appState
+
+    private var title: String {
+        Strings.appName(appState.preferredLanguage)
+    }
+
+    private var subtitle: String {
+        appState.preferredLanguage == .spanish ? "Tu asistente de estilo con IA" : "Your AI Style Assistant"
+    }
+
     var body: some View {
         ZStack {
             Color.orange.ignoresSafeArea()
@@ -103,12 +126,12 @@ struct SplashView: View {
                     .font(.system(size: 80))
                     .foregroundStyle(.white)
                 
-                Text("Personal Shooper")
+                Text(title)
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                 
-                Text("Your AI Style Assistant")
+                Text(subtitle)
                     .font(.title3)
                     .foregroundStyle(.white.opacity(0.8))
                 

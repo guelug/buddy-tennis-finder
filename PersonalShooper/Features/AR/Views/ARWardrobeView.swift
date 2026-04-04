@@ -3,9 +3,14 @@ import ARKit
 import RealityKit
 
 struct ARWardrobeView: View {
+    @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel = ARViewModel()
     @State private var showingClothingPicker = false
+
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
 
     var body: some View {
         NavigationStack {
@@ -80,13 +85,13 @@ struct ARWardrobeView: View {
                     }
                 } else {
                     ContentUnavailableView(
-                        "AR No Disponible",
+                        isSpanish ? "AR no disponible" : "AR Not Available",
                         systemImage: "arkit",
-                        description: Text("Este dispositivo no soporta experiencias de AR")
+                        description: Text(isSpanish ? "Este dispositivo no soporta experiencias de AR" : "This device does not support AR experiences")
                     )
                 }
             }
-            .navigationTitle("Armario AR")
+            .navigationTitle(isSpanish ? "Armario AR" : "AR Closet")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showingClothingPicker) {
                 ClothingPickerSheet(viewModel: viewModel)
@@ -161,7 +166,12 @@ struct ARViewContainer: UIViewRepresentable {
 
 struct ClothingPickerSheet: View {
     let viewModel: ARViewModel
+    @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
 
     var body: some View {
         NavigationStack {
@@ -203,11 +213,11 @@ struct ClothingPickerSheet: View {
                 }
                 .padding()
             }
-            .navigationTitle("Seleccionar Ropa")
+            .navigationTitle(isSpanish ? "Seleccionar ropa" : "Select clothing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Hecho") {
+                    Button(isSpanish ? "Hecho" : "Done") {
                         dismiss()
                     }
                 }

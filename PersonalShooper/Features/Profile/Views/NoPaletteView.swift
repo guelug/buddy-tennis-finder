@@ -5,6 +5,10 @@ struct NoPaletteView: View {
     @State private var showingPhotoUpload = false
     @State private var editingPhotoStep: PhotoUploadView.UploadStep = .faceCloseUp
 
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
+
     var body: some View {
         VStack(spacing: Theme.Spacing.xl) {
             Spacer()
@@ -14,11 +18,11 @@ struct NoPaletteView: View {
                 .foregroundStyle(Theme.Colors.primary.opacity(0.5))
 
             VStack(spacing: Theme.Spacing.md) {
-                Text("Tu Paleta de Colores")
+                Text(isSpanish ? "Tu paleta de colores" : "Your Color Palette")
                     .font(.title)
                     .fontWeight(.bold)
 
-                Text("Para crear tu paleta personal, necesitamos analizar tus fotos. Sube al menos una foto de tu rostro para comenzar.")
+                Text(isSpanish ? "Para crear tu paleta personal, necesitamos analizar tus fotos. Sube al menos una foto de tu rostro para comenzar." : "To create your personal palette, we need to analyze your photos. Upload at least one face photo to get started.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -30,12 +34,12 @@ struct NoPaletteView: View {
                     editingPhotoStep = .faceCloseUp
                     showingPhotoUpload = true
                 } label: {
-                    Label("Subir Fotos", systemImage: "photo.badge.plus")
+                    Label(isSpanish ? "Subir fotos" : "Upload Photos", systemImage: "photo.badge.plus")
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
 
-                Text("Necesitaras una foto clara de tu rostro")
+                Text(isSpanish ? "Necesitarás una foto clara de tu rostro" : "You will need a clear photo of your face")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -46,25 +50,25 @@ struct NoPaletteView: View {
             // Show current upload status
             if let user = appState.currentUser {
                 VStack(spacing: Theme.Spacing.sm) {
-                    Text("Estado de tus fotos")
+                    Text(isSpanish ? "Estado de tus fotos" : "Your photo status")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: Theme.Spacing.md) {
                         PhotoStatusIndicator(
-                            title: "Rostro",
+                            title: isSpanish ? "Rostro" : "Face",
                             isUploaded: user.profilePhotos.faceCloseUp != nil
                         )
                         PhotoStatusIndicator(
-                            title: "Perfil",
+                            title: isSpanish ? "Perfil" : "Profile",
                             isUploaded: user.profilePhotos.faceProfile != nil
                         )
                         PhotoStatusIndicator(
-                            title: "Frente",
+                            title: isSpanish ? "Frente" : "Front",
                             isUploaded: user.profilePhotos.fullBodyFront != nil
                         )
                         PhotoStatusIndicator(
-                            title: "Atras",
+                            title: isSpanish ? "Atrás" : "Back",
                             isUploaded: user.profilePhotos.fullBodyBack != nil
                         )
                     }
@@ -74,7 +78,7 @@ struct NoPaletteView: View {
         }
         .padding(Theme.Spacing.screenPadding)
         .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-        .navigationTitle("Mi Paleta")
+        .navigationTitle(isSpanish ? "Mi paleta" : "My Palette")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingPhotoUpload) {
             PhotoUploadView(startStep: editingPhotoStep)

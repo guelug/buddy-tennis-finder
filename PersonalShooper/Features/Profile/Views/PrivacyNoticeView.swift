@@ -1,8 +1,13 @@
 import SwiftUI
 
 struct PrivacyNoticeView: View {
+    @Environment(AppState.self) private var appState
     var onContinue: () -> Void
     @Environment(\.dismiss) private var dismiss
+
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
 
     var body: some View {
         NavigationStack {
@@ -15,7 +20,7 @@ struct PrivacyNoticeView: View {
                         .frame(maxWidth: .infinity)
 
                     // Title
-                    Text("Your Privacy Matters")
+                    Text(isSpanish ? "Tu privacidad importa" : "Your Privacy Matters")
                         .font(.title2)
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
@@ -24,32 +29,32 @@ struct PrivacyNoticeView: View {
                     VStack(alignment: .leading, spacing: Theme.Spacing.md) {
                         NoticePoint(
                             icon: "iphone",
-                            title: "Processed Locally",
-                            description: "All photo analysis happens on your device. Your photos are never uploaded to our servers."
+                            title: isSpanish ? "Procesado local" : "Processed Locally",
+                            description: isSpanish ? "Todo el análisis de fotos ocurre en tu dispositivo. Tus fotos no se suben a nuestros servidores." : "All photo analysis happens on your device. Your photos are never uploaded to our servers."
                         )
 
                         NoticePoint(
                             icon: "eye.slash",
-                            title: "Not Shared",
-                            description: "We never sell, share, or transmit your photos to third parties."
+                            title: isSpanish ? "No se comparte" : "Not Shared",
+                            description: isSpanish ? "Nunca vendemos, compartimos ni transmitimos tus fotos a terceros." : "We never sell, share, or transmit your photos to third parties."
                         )
 
                         NoticePoint(
                             icon: "trash",
-                            title: "You Control Your Data",
-                            description: "You can delete all your data at any time from the Privacy Settings."
+                            title: isSpanish ? "Tú controlas tus datos" : "You Control Your Data",
+                            description: isSpanish ? "Puedes borrar todos tus datos en cualquier momento desde los ajustes de privacidad." : "You can delete all your data at any time from the Privacy Settings."
                         )
 
                         NoticePoint(
                             icon: "checkmark.shield",
-                            title: "Secure Storage",
-                            description: "Your photos are stored securely on your device using iOS data protection."
+                            title: isSpanish ? "Almacenamiento seguro" : "Secure Storage",
+                            description: isSpanish ? "Tus fotos se guardan de forma segura en tu dispositivo usando la protección de datos de iOS." : "Your photos are stored securely on your device using iOS data protection."
                         )
 
                         NoticePoint(
                             icon: "photo.on.rectangle",
-                            title: "Virtual Try-On Uses Google",
-                            description: "Only for Virtual Try-On: the garment photo and the profile reference photos needed for that garment are sent to Google's Gemini AI to generate the result. Your photos are not stored by Google."
+                            title: isSpanish ? "El try-on virtual usa Google" : "Virtual Try-On Uses Google",
+                            description: isSpanish ? "Solo para el try-on virtual: la foto de la prenda y las fotos de perfil necesarias como referencia se envían a Gemini de Google para generar el resultado. Google no almacena tus fotos." : "Only for Virtual Try-On: the garment photo and the profile reference photos needed for that garment are sent to Google's Gemini AI to generate the result. Your photos are not stored by Google."
                         )
                     }
 
@@ -60,7 +65,7 @@ struct PrivacyNoticeView: View {
                         onContinue()
                         dismiss()
                     } label: {
-                        Text("I Understand, Continue")
+                        Text(isSpanish ? "Entendido, continuar" : "I Understand, Continue")
                             .frame(maxWidth: .infinity)
                             .primaryButtonStyle()
                     }

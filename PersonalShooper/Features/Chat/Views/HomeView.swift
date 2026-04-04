@@ -10,7 +10,7 @@ struct HomeView: View {
     }
 
     private enum Tab: Int {
-        case home = 0, chat = 1, closet = 2, tryOn = 3, profile = 4
+        case home = 0, chat = 1, closet = 2, tryOn = 3, ar = 4, profile = 5
     }
 
     private var lang: Language {
@@ -105,6 +105,14 @@ struct HomeView: View {
                     color: .green
                 ) {
                     selectedTab = Tab.closet.rawValue
+                }
+                QuickActionCard(
+                    icon: "arkit",
+                    title: Strings.tabAR(lang),
+                    subtitle: Strings.tabAR(lang),
+                    color: .teal
+                ) {
+                    selectedTab = Tab.ar.rawValue
                 }
             }
         }

@@ -268,9 +268,46 @@ final class TryOnViewModel {
     }
 
     private func localizedErrorMessage(_ error: Error, language: Language) -> String {
-        if let tryOnError = error as? TryOnProviderError,
-           let description = tryOnError.errorDescription {
-            return description
+        if let tryOnError = error as? TryOnProviderError {
+            switch (tryOnError, language) {
+            case (.authenticationRequired, .spanish):
+                return "Necesitas configurar una clave válida de OpenAI para usar este proveedor."
+            case (.authenticationRequired, .english):
+                return "You need to configure a valid OpenAI key to use this provider."
+            case (.notYetImplemented, .spanish):
+                return "Este proveedor aún no está disponible."
+            case (.notYetImplemented, .english):
+                return "This provider is not available yet."
+            case (.generationFailed(let message), .spanish):
+                return "No se ha podido generar el try-on. \(message)"
+            case (.generationFailed(let message), .english):
+                return "The try-on could not be generated. \(message)"
+            }
+        }
+
+        if let tryOnError = error as? TryOnError {
+            switch (tryOnError, language) {
+            case (.apiError(let message), .spanish):
+                return "La llamada al proveedor de try-on falló: \(message)"
+            case (.apiError(let message), .english):
+                return "The try-on provider request failed: \(message)"
+            case (.invalidURL, .spanish):
+                return "La URL del proveedor de try-on no es válida."
+            case (.invalidURL, .english):
+                return "The try-on provider URL is invalid."
+            case (.parsingError, .spanish):
+                return "No he podido interpretar la respuesta del proveedor de try-on."
+            case (.parsingError, .english):
+                return "I couldn't parse the try-on provider response."
+            case (.invalidImageData, .spanish):
+                return "No he podido preparar correctamente las imágenes enviadas al proveedor."
+            case (.invalidImageData, .english):
+                return "I couldn't prepare the images correctly for the provider."
+            case (.noAPIKey, .spanish):
+                return "Falta configurar la clave de Gemini para este proveedor."
+            case (.noAPIKey, .english):
+                return "The Gemini API key is missing for this provider."
+            }
         }
 
         return language == .spanish

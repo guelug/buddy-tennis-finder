@@ -28,6 +28,10 @@ struct PhotoUploadView: View {
 
     private let photoAnalysisService = PhotoAnalysisService()
 
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
+
     enum UploadStep: Int, CaseIterable {
         case faceCloseUp = 0
         case faceProfile = 1
@@ -92,11 +96,11 @@ struct PhotoUploadView: View {
                 }
             }
             .background(Theme.Colors.groupedBackground)
-            .navigationTitle("Subir Fotos")
+            .navigationTitle(isSpanish ? "Subir fotos" : "Upload Photos")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancelar") {
+                    Button(isSpanish ? "Cancelar" : "Cancel") {
                         dismiss()
                     }
                 }
@@ -108,7 +112,7 @@ struct PhotoUploadView: View {
             }
             .sheet(isPresented: $showPhotoPicker) {
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Text("Seleccionar Foto")
+                    Text(isSpanish ? "Seleccionar foto" : "Select Photo")
                 }
                 .onChange(of: selectedPhotoItem) { _, newItem in
                     Task {
@@ -126,7 +130,7 @@ struct PhotoUploadView: View {
                     handleImageSelection(image)
                 }
             }
-            .alert("Analysis Error", isPresented: .constant(errorMessage != nil)) {
+            .alert(isSpanish ? "Error de análisis" : "Analysis Error", isPresented: .constant(errorMessage != nil)) {
                 Button("OK") { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
@@ -142,7 +146,7 @@ struct PhotoUploadView: View {
                         .fill(step.rawValue <= currentStep.rawValue ? Theme.Colors.primary : Color.gray.opacity(0.3))
                         .frame(width: 10, height: 10)
 
-                    Text(step.title)
+                    Text(title(for: step))
                         .font(.caption2)
                         .foregroundStyle(step.rawValue <= currentStep.rawValue ? Theme.Colors.primary : .secondary)
                 }
@@ -160,11 +164,11 @@ struct PhotoUploadView: View {
 
             // Title and description
             VStack(spacing: Theme.Spacing.xs) {
-                Text(currentStep.title)
+                Text(title(for: currentStep))
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text(currentStep.description)
+                Text(description(for: currentStep))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -185,7 +189,7 @@ struct PhotoUploadView: View {
                                     VStack {
                                         ProgressView()
                                             .tint(.white)
-                                        Text("Analizando...")
+                                        Text(isSpanish ? "Analizando..." : "Analyzing...")
                                             .font(.caption)
                                             .foregroundStyle(.white)
                                     }
@@ -201,7 +205,7 @@ struct PhotoUploadView: View {
                             Image(systemName: "photo.badge.plus")
                                 .font(.largeTitle)
                                 .foregroundStyle(.secondary)
-                            Text("Sin foto seleccionada")
+                            Text(isSpanish ? "Sin foto seleccionada" : "No photo selected")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -215,7 +219,7 @@ struct PhotoUploadView: View {
             Button {
                 showCamera = true
             } label: {
-                Label("Tomar Foto", systemImage: "camera.fill")
+                Label(isSpanish ? "Tomar foto" : "Take Photo", systemImage: "camera.fill")
                     .frame(maxWidth: .infinity)
                     .primaryButtonStyle()
             }
@@ -224,7 +228,7 @@ struct PhotoUploadView: View {
             Button {
                 showPhotoPicker = true
             } label: {
-                Label("Elegir de Biblioteca", systemImage: "photo.on.rectangle")
+                Label(isSpanish ? "Elegir de la biblioteca" : "Choose from Library", systemImage: "photo.on.rectangle")
                     .frame(maxWidth: .infinity)
                     .font(.headline)
                     .foregroundStyle(Theme.Colors.primary)
@@ -238,7 +242,7 @@ struct PhotoUploadView: View {
                 Button {
                     moveToNextStep()
                 } label: {
-                    Text("Continuar")
+                    Text(isSpanish ? "Continuar" : "Continue")
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
@@ -267,7 +271,7 @@ struct PhotoUploadView: View {
 
     private func analyzePhotos() async {
         guard let face = faceCloseUp else {
-            errorMessage = "Se requiere foto de primer plano del rostro"
+            errorMessage = isSpanish ? "Se requiere una foto de primer plano del rostro." : "A close-up face photo is required."
             return
         }
 
@@ -302,9 +306,35 @@ struct PhotoUploadView: View {
             }
         } catch {
             await MainActor.run {
-                errorMessage = "Error en el analisis: \(error.localizedDescription)"
+                errorMessage = isSpanish ? "Error en el análisis: \(error.localizedDescription)" : "Analysis error: \(error.localizedDescription)"
                 isAnalyzing = false
             }
+        }
+    }
+
+    private func title(for step: UploadStep) -> String {
+        switch (step, isSpanish) {
+        case (.faceCloseUp, true): return "Primer plano del rostro"
+        case (.faceProfile, true): return "Perfil del rostro"
+        case (.fullBodyFront, true): return "Cuerpo completo frontal"
+        case (.fullBodyBack, true): return "Cuerpo completo posterior"
+        case (.faceCloseUp, false): return "Face Close-Up"
+        case (.faceProfile, false): return "Face Profile"
+        case (.fullBodyFront, false): return "Full Body Front"
+        case (.fullBodyBack, false): return "Full Body Back"
+        }
+    }
+
+    private func description(for step: UploadStep) -> String {
+        switch (step, isSpanish) {
+        case (.faceCloseUp, true): return "Toma una foto clara de tu rostro de frente"
+        case (.faceProfile, true): return "Toma una foto de tu rostro de perfil"
+        case (.fullBodyFront, true): return "Toma una foto de cuerpo completo de frente"
+        case (.fullBodyBack, true): return "Toma una foto de cuerpo completo de espalda"
+        case (.faceCloseUp, false): return "Take a clear front-facing photo of your face"
+        case (.faceProfile, false): return "Take a side profile photo of your face"
+        case (.fullBodyFront, false): return "Take a full-body front photo"
+        case (.fullBodyBack, false): return "Take a full-body back photo"
         }
     }
 }

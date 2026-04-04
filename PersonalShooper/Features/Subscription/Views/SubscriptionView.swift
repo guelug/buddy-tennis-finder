@@ -10,6 +10,10 @@ struct SubscriptionView: View {
     @State private var errorMessage: String?
     @State private var showError = false
 
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -29,19 +33,19 @@ struct SubscriptionView: View {
                 .padding(Theme.Spacing.screenPadding)
             }
             .background(Theme.Colors.groupedBackground)
-            .navigationTitle("Go Premium")
+            .navigationTitle(isSpanish ? "Hazte premium" : "Go Premium")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") {
+                    Button(isSpanish ? "Cerrar" : "Close") {
                         dismiss()
                     }
                 }
             }
-            .alert("Error", isPresented: $showError) {
+            .alert(isSpanish ? "Error" : "Error", isPresented: $showError) {
                 Button("OK") {}
             } message: {
-                Text(errorMessage ?? "An error occurred")
+                Text(errorMessage ?? (isSpanish ? "Ha ocurrido un error" : "An error occurred"))
             }
             .task {
                 await appState.refreshPremiumStatus()
@@ -56,18 +60,18 @@ struct SubscriptionView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(Theme.Colors.premiumGold)
 
-            Text("Unlock Your Full Potential")
+            Text(isSpanish ? "Desbloquea todo tu potencial" : "Unlock Your Full Potential")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Get unlimited virtual try-ons and premium features")
+            Text(isSpanish ? "Obtén try-ons ilimitados y funciones premium" : "Get unlimited virtual try-ons and premium features")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                Text("7-day free premium trial")
+                Text(isSpanish ? "Prueba premium gratis de 7 días" : "7-day free premium trial")
                     .font(.subheadline.weight(.semibold))
             }
             .foregroundStyle(Theme.Colors.premiumGold)
@@ -82,49 +86,49 @@ struct SubscriptionView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             FeatureRow(
                 icon: "infinity",
-                title: "Unlimited Try-Ons",
-                description: "Generate as many virtual try-on images as you want",
-                badgeText: "PREMIUM",
+                title: isSpanish ? "Try-ons ilimitados" : "Unlimited Try-Ons",
+                description: isSpanish ? "Genera tantas imágenes de try-on como quieras" : "Generate as many virtual try-on images as you want",
+                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "paintpalette.fill",
-                title: "Personal Color Analysis",
-                description: "Complete skin tone and undertone analysis",
-                badgeText: "PREMIUM",
+                title: isSpanish ? "Análisis personal de color" : "Personal Color Analysis",
+                description: isSpanish ? "Análisis completo de tono de piel y subtono" : "Complete skin tone and undertone analysis",
+                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "arkit",
-                title: "AR Wardrobe Preview",
-                description: "See clothes in your space with AR",
-                badgeText: "PREMIUM",
+                title: isSpanish ? "Vista previa AR del armario" : "AR Wardrobe Preview",
+                description: isSpanish ? "Mira ropa en tu espacio con AR" : "See clothes in your space with AR",
+                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "bubble.left.and.bubble.right.fill",
-                title: "Priority AI Responses",
-                description: "Get faster responses from your AI stylist",
-                badgeText: "PREMIUM",
+                title: isSpanish ? "Respuestas prioritarias de IA" : "Priority AI Responses",
+                description: isSpanish ? "Recibe respuestas más rápidas de tu estilista IA" : "Get faster responses from your AI stylist",
+                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "photo.on.rectangle",
-                title: "10-Garment Free Closet",
-                description: "The free plan lets you save up to 10 garments",
-                badgeText: "FREE",
+                title: isSpanish ? "Armario gratis de 10 prendas" : "10-Garment Free Closet",
+                description: isSpanish ? "El plan gratis te deja guardar hasta 10 prendas" : "The free plan lets you save up to 10 garments",
+                badgeText: isSpanish ? "GRATIS" : "FREE",
                 badgeColor: Theme.Colors.primary
             )
 
             FeatureRow(
                 icon: "cabinet.fill",
-                title: "Unlimited Premium Closet",
-                description: "Save as many garments as you want, depending on local and iCloud space",
-                badgeText: "PREMIUM",
+                title: isSpanish ? "Armario premium ilimitado" : "Unlimited Premium Closet",
+                description: isSpanish ? "Guarda tantas prendas como quieras, según el espacio local y de iCloud" : "Save as many garments as you want, depending on local and iCloud space",
+                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
         }
@@ -155,7 +159,7 @@ struct SubscriptionView: View {
                                     .font(.title3)
                                     .fontWeight(.bold)
 
-                                Text("Includes a 7-day free trial")
+                                Text(isSpanish ? "Incluye 7 días de prueba gratis" : "Includes a 7-day free trial")
                                     .font(.caption)
                                     .foregroundStyle(Theme.Colors.premiumGold)
                             }
@@ -188,12 +192,12 @@ struct SubscriptionView: View {
             Button {
                 Task { await restorePurchases() }
             } label: {
-                Text("Restore Purchases")
+                Text(isSpanish ? "Restaurar compras" : "Restore Purchases")
                     .font(.subheadline)
                     .foregroundStyle(Theme.Colors.primary)
             }
 
-            Text("Already subscribed? Restore your purchases here.")
+            Text(isSpanish ? "¿Ya estás suscrito? Restaura aquí tus compras." : "Already subscribed? Restore your purchases here.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

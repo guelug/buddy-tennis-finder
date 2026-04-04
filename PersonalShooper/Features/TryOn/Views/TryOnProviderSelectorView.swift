@@ -27,12 +27,12 @@ struct TryOnProviderSelectorView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack {
-                                        Text(provider.displayName)
+                                        Text(provider.displayName(language: lang))
                                             .font(.headline)
                                             .foregroundStyle(.primary)
 
                                         if provider.isFree {
-                                            Text("FREE")
+                                            Text(lang == .spanish ? "GRATIS" : "FREE")
                                                 .font(.caption2)
                                                 .fontWeight(.bold)
                                                 .foregroundStyle(.white)
@@ -43,7 +43,7 @@ struct TryOnProviderSelectorView: View {
                                         }
 
                                         if provider.isCartoonStyle {
-                                            Text("CARTOON")
+                                            Text(lang == .spanish ? "CARTOON" : "CARTOON")
                                                 .font(.caption2)
                                                 .fontWeight(.bold)
                                                 .foregroundStyle(.white)
@@ -54,7 +54,7 @@ struct TryOnProviderSelectorView: View {
                                         }
 
                                         if provider.requiresPremium {
-                                            Text("PREMIUM")
+                                            Text(lang == .spanish ? "PREMIUM" : "PREMIUM")
                                                 .font(.caption2)
                                                 .fontWeight(.bold)
                                                 .foregroundStyle(.white)
@@ -65,7 +65,7 @@ struct TryOnProviderSelectorView: View {
                                         }
                                     }
 
-                                    Text(provider.subtitle)
+                                    Text(provider.subtitle(language: lang))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -82,25 +82,25 @@ struct TryOnProviderSelectorView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    Text("Select Try-On Provider")
+                    Text(lang == .spanish ? "Selecciona el proveedor de try-on" : "Select Try-On Provider")
                         .font(.headline)
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("**Google Gemini**: Best quality and realism. Requires API usage or premium.")
+                        Text(lang == .spanish ? "**Google Gemini**: mejor calidad y realismo. Requiere uso de API o premium." : "**Google Gemini**: Best quality and realism. Requires API usage or premium.")
 
-                        Text("**Apple Playground**: Free on-device generation. Creates cartoon-style images, fun for kids!")
+                        Text(lang == .spanish ? "**Apple Playground**: generación gratuita en el dispositivo. Crea imágenes estilo cartoon." : "**Apple Playground**: Free on-device generation. Creates cartoon-style images, fun for kids!")
 
-                        Text("**BYOK**: Use your own OpenAI API key if you want this provider available in try-on and chat.")
+                        Text(lang == .spanish ? "**BYOK**: usa tu propia clave de OpenAI si quieres este proveedor disponible en try-on y chat." : "**BYOK**: Use your own OpenAI API key if you want this provider available in try-on and chat.")
                     }
                     .font(.caption)
                     .padding(.top, Theme.Spacing.sm)
                 }
             }
-            .navigationTitle("Try-On Provider")
+            .navigationTitle(lang == .spanish ? "Proveedor de try-on" : "Try-On Provider")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(lang == .spanish ? "Cerrar" : "Done") {
                         dismiss()
                     }
                 }

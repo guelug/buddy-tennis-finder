@@ -732,16 +732,16 @@ struct ProviderPickerSheet: View {
                         }
                     }
                 } header: {
-                    Text("Select Provider")
+                    Text(lang == .spanish ? "Selecciona proveedor" : "Select Provider")
                 } footer: {
-                    Text("Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. BYOK uses your own OpenAI API key.")
+                    Text(lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. BYOK uses your own OpenAI API key.")
                 }
             }
-            .navigationTitle("Try-On Provider")
+            .navigationTitle(lang == .spanish ? "Proveedor de try-on" : "Try-On Provider")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(lang == .spanish ? "Cerrar" : "Done") {
                         dismiss()
                     }
                 }
@@ -755,6 +755,11 @@ struct ProviderRow: View {
     let isSelected: Bool
     let isPremiumUser: Bool
     let action: () -> Void
+    @Environment(AppState.self) private var appState
+
+    private var lang: Language {
+        appState.preferredLanguage
+    }
 
     var body: some View {
         Button(action: action) {
@@ -766,12 +771,12 @@ struct ProviderRow: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack {
-                        Text(provider.displayName)
+                        Text(provider.displayName(language: lang))
                             .font(.body)
                             .foregroundStyle(.primary)
 
                         if provider.isFree {
-                            Text("FREE")
+                            Text(lang == .spanish ? "GRATIS" : "FREE")
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.white)
@@ -791,7 +796,7 @@ struct ProviderRow: View {
                         }
                     }
 
-                    Text(provider.subtitle)
+                    Text(provider.subtitle(language: lang))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

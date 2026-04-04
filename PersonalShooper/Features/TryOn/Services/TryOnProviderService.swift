@@ -1,7 +1,7 @@
 import UIKit
 import AuthenticationServices
 
-enum TryOnProvider: String, CaseIterable, Identifiable {
+enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     case google = "google"
     case playground = "playground"
     case chatgpt = "chatgpt"
@@ -9,18 +9,26 @@ enum TryOnProvider: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var displayName: String {
+        displayName(language: .english)
+    }
+
+    func displayName(language: Language) -> String {
         switch self {
         case .google: return "Google Gemini"
-        case .playground: return "Apple Playground"
-        case .chatgpt: return "BYOK"
+        case .playground: return language == .spanish ? "Playground de Apple" : "Apple Playground"
+        case .chatgpt: return language == .spanish ? "Tu clave de OpenAI" : "BYOK"
         }
     }
 
     var subtitle: String {
+        subtitle(language: .english)
+    }
+
+    func subtitle(language: Language) -> String {
         switch self {
-        case .google: return "Most accurate results"
-        case .playground: return "Free, cartoon style"
-        case .chatgpt: return "Bring your own OpenAI key"
+        case .google: return language == .spanish ? "Resultados más precisos" : "Most accurate results"
+        case .playground: return language == .spanish ? "Gratis, estilo cartoon" : "Free, cartoon style"
+        case .chatgpt: return language == .spanish ? "Usa tu propia clave de OpenAI" : "Bring your own OpenAI key"
         }
     }
 
@@ -80,8 +88,9 @@ final class TryOnProviderService {
         currentProvider = provider
         UserDefaults.standard.set(provider.rawValue, forKey: "tryon_provider")
 
-        // Reset authentication when switching providers
-        if provider != .chatgpt {
+        if provider == .chatgpt {
+            isAuthenticated = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+        } else {
             isAuthenticated = false
             chatGPTUserId = nil
         }
@@ -183,14 +192,13 @@ final class TryOnProviderService {
     }
 
     private func generateWithChatGPT(clothing: UIImage, user: UIImage) async throws -> UIImage {
-        guard isAuthenticated else {
+        guard let apiKey = UserDefaults.standard.string(forKey: "chatgpt_access_token") ?? AppSecrets.openAIAPIKey,
+              !apiKey.isEmpty else {
+            isAuthenticated = false
             throw TryOnProviderError.authenticationRequired
         }
 
-        guard let apiKey = UserDefaults.standard.string(forKey: "chatgpt_access_token") ?? AppSecrets.openAIAPIKey,
-              !apiKey.isEmpty else {
-            throw TryOnProviderError.authenticationRequired
-        }
+        isAuthenticated = true
 
         let service = OpenAIImageTryOnService()
         return try await service.generateTryOnImage(

@@ -23,7 +23,7 @@ struct ProfileView: View {
                 .padding(Theme.Spacing.screenPadding)
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-            .navigationTitle("Profile")
+            .navigationTitle(text("Perfil", "Profile"))
             .sheet(isPresented: $showingPhotoUpload) {
                 PhotoUploadView(startStep: editingPhotoStep)
             }
@@ -49,7 +49,7 @@ struct ProfileView: View {
                 }
             }
 
-            Text(appState.currentUser?.displayName ?? "Guest")
+            Text(appState.currentUser?.displayName ?? text("Invitado", "Guest"))
                 .font(.title2)
                 .fontWeight(.semibold)
 
@@ -65,7 +65,7 @@ struct ProfileView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "crown.fill")
                             .foregroundStyle(.yellow)
-                        Text("Premium")
+                        Text(text("Premium", "Premium"))
                             .font(.caption)
                             .fontWeight(.medium)
                     }
@@ -150,8 +150,8 @@ struct ProfileView: View {
     }
 
     private var photoUploadSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text("Your Photos")
+        return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            Text(text("Tus fotos", "Your Photos"))
                 .font(.headline)
 
             LazyVGrid(columns: [
@@ -159,7 +159,7 @@ struct ProfileView: View {
                 GridItem(.flexible())
             ], spacing: Theme.Spacing.sm) {
                 PhotoThumbnail(
-                    title: "Close-up",
+                    title: text("Primer plano", "Close-up"),
                     icon: "face.smiling",
                     image: appState.currentUser?.profilePhotos.faceCloseUp,
                     isUploaded: appState.currentUser?.profilePhotos.faceCloseUp != nil
@@ -169,7 +169,7 @@ struct ProfileView: View {
                 }
 
                 PhotoThumbnail(
-                    title: "Profile",
+                    title: text("Perfil lateral", "Profile"),
                     icon: "face.dashed",
                     image: appState.currentUser?.profilePhotos.faceProfile,
                     isUploaded: appState.currentUser?.profilePhotos.faceProfile != nil
@@ -179,7 +179,7 @@ struct ProfileView: View {
                 }
 
                 PhotoThumbnail(
-                    title: "Body Front",
+                    title: text("Cuerpo frontal", "Body Front"),
                     icon: "figure.stand",
                     image: appState.currentUser?.profilePhotos.fullBodyFront,
                     isUploaded: appState.currentUser?.profilePhotos.fullBodyFront != nil
@@ -189,7 +189,7 @@ struct ProfileView: View {
                 }
 
                 PhotoThumbnail(
-                    title: "Body Back",
+                    title: text("Cuerpo trasero", "Body Back"),
                     icon: "figure.stand.line.dotted.figure.stand",
                     image: appState.currentUser?.profilePhotos.fullBodyBack,
                     isUploaded: appState.currentUser?.profilePhotos.fullBodyBack != nil
@@ -200,12 +200,12 @@ struct ProfileView: View {
             }
 
             if appState.currentUser?.profilePhotos.allPhotosUploaded == true {
-                Text("All photos uploaded! Your personal palette is ready.")
+                Text(text("Todas las fotos están subidas. Tu paleta personal está lista.", "All photos uploaded! Your personal palette is ready."))
                     .font(.caption)
                     .foregroundStyle(.green)
                     .padding(.top, Theme.Spacing.xs)
             } else {
-                Text("Upload 4 photos to analyze your personal color palette")
+                Text(text("Sube 4 fotos para analizar tu paleta personal de color.", "Upload 4 photos to analyze your personal color palette"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, Theme.Spacing.xs)
@@ -221,7 +221,7 @@ struct ProfileView: View {
             NavigationLink {
                 EditProfileView()
             } label: {
-                SettingsRowContent(icon: "person.fill", title: "Edit Profile", color: .blue)
+                SettingsRowContent(icon: "person.fill", title: text("Editar perfil", "Edit Profile"), color: .blue)
             }
 
             Divider().padding(.leading, 52)
@@ -230,14 +230,14 @@ struct ProfileView: View {
                 NavigationLink {
                     ColorPaletteDetailView(palette: palette)
                 } label: {
-                    SettingsRowContent(icon: "paintpalette.fill", title: "My Color Palette", color: .orange)
+                    SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
                 }
             } else {
                 NavigationLink {
-                    Text("No palette available. Upload photos to generate one.")
-                        .navigationTitle("My Palette")
+                    Text(text("Todavía no tienes una paleta. Sube fotos para generarla.", "No palette available. Upload photos to generate one."))
+                        .navigationTitle(text("Mi paleta", "My Palette"))
                 } label: {
-                    SettingsRowContent(icon: "paintpalette.fill", title: "My Color Palette", color: .orange)
+                    SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
                 }
             }
 
@@ -247,7 +247,7 @@ struct ProfileView: View {
                 showingLanguagePicker = true
             } label: {
                 HStack {
-                    SettingsRowContent(icon: "globe", title: "Language", color: .green)
+                    SettingsRowContent(icon: "globe", title: text("Idioma", "Language"), color: .green)
                     Spacer()
                     Text(appState.preferredLanguage.displayName)
                         .font(.subheadline)
@@ -264,19 +264,23 @@ struct ProfileView: View {
             NavigationLink {
                 PrivacySettingsView()
             } label: {
-                SettingsRowContent(icon: "lock.shield.fill", title: "Privacy", color: .red)
+                SettingsRowContent(icon: "lock.shield.fill", title: text("Privacidad", "Privacy"), color: .red)
             }
         }
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
-        .confirmationDialog("Select Language", isPresented: $showingLanguagePicker) {
+        .confirmationDialog(text("Selecciona idioma", "Select Language"), isPresented: $showingLanguagePicker) {
             ForEach(Language.allCases) { language in
                 Button(language.displayName) {
                     appState.setLanguage(language)
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(text("Cancelar", "Cancel"), role: .cancel) {}
         }
+    }
+
+    private func text(_ spanish: String, _ english: String) -> String {
+        lang == .spanish ? spanish : english
     }
 }
 
@@ -362,12 +366,17 @@ struct PhotoThumbnail: View {
 }
 
 struct ColorPaletteDetailView: View {
+    @Environment(AppState.self) private var appState
     let palette: PersonalPalette
+
+    private var isSpanish: Bool {
+        appState.preferredLanguage == .spanish
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.lg) {
-                Text("Your Personal Palette")
+                Text(isSpanish ? "Tu paleta personal" : "Your Personal Palette")
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
@@ -389,7 +398,7 @@ struct ColorPaletteDetailView: View {
                     }
                 }
 
-                Text("Recommended Colors")
+                Text(isSpanish ? "Colores recomendados" : "Recommended Colors")
                     .font(.headline)
 
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: Theme.Spacing.sm) {
@@ -409,7 +418,7 @@ struct ColorPaletteDetailView: View {
             .padding()
         }
         .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-        .navigationTitle("My Palette")
+        .navigationTitle(isSpanish ? "Mi paleta" : "My Palette")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

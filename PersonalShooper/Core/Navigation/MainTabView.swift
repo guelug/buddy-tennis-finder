@@ -34,11 +34,17 @@ struct MainTabView: View {
                 }
                 .tag(3)
 
+            ARWardrobeView()
+                .tabItem {
+                    Label(Strings.tabAR(lang), systemImage: "arkit")
+                }
+                .tag(4)
+
             ProfileView()
                 .tabItem {
                     Label(Strings.tabProfile(lang), systemImage: "person.fill")
                 }
-                .tag(4)
+                .tag(5)
         }
         .accentColor(.orange)
     }
