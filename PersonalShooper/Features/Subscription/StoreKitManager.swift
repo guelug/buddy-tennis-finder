@@ -36,6 +36,7 @@ enum StoreProduct: String, CaseIterable {
     case free = "com.personalshooper.free"
     case premiumMonthly = "com.personalshooper.premium.monthly"
     case proMonthly = "com.personalshooper.pro.monthly"
+    case byokLifetime = "com.personalshooper.byok.lifetime"
     case creditsPack10 = "com.personalshooper.credits.pack10"
     case creditsPack50 = "com.personalshooper.credits.pack50"
 
@@ -46,7 +47,16 @@ enum StoreProduct: String, CaseIterable {
         case .free: return .free
         case .premiumMonthly: return .premium
         case .proMonthly: return .pro
-        case .creditsPack10, .creditsPack50: return nil
+        case .byokLifetime, .creditsPack10, .creditsPack50: return nil
+        }
+    }
+
+    var visibleInSubscriptionUI: Bool {
+        switch self {
+        case .free, .creditsPack10, .creditsPack50, .byokLifetime:
+            return false
+        case .premiumMonthly, .proMonthly:
+            return true
         }
     }
 }
@@ -184,14 +194,11 @@ final class StoreKitManager: ObservableLike {
 
     func getCurrentTier() async {
         var highestTier: SubscriptionTier = .free
-        var hasActiveSubscription = false
 
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else { continue }
 
             if transaction.revocationDate == nil {
-                hasActiveSubscription = true
-
                 if let storeProduct = StoreProduct(rawValue: transaction.productID),
                    let tier = storeProduct.tier {
                     if tier.rank > highestTier.rank {
@@ -199,11 +206,6 @@ final class StoreKitManager: ObservableLike {
                     }
                 }
             }
-        }
-
-        // Check for BYOK API key in UserDefaults (set externally)
-        if UserDefaults.standard.string(forKey: "PersonalShooper.BYOKAPIKey") != nil {
-            highestTier = .byok
         }
 
         currentTier = highestTier
@@ -240,7 +242,7 @@ final class StoreKitManager: ObservableLike {
         let maxCredits = creditsForTier(currentTier)
         remainingCredits = maxCredits - totalUsedThisMonth
 
-        if currentTier == .byok {
+        if isBYOKActive {
             remainingCredits = Int.max
         }
     }
@@ -314,8 +316,24 @@ final class StoreKitManager: ObservableLike {
         tier.monthlyCredits
     }
 
+    var hasBYOKPurchase: Bool {
+        purchasedProductIDs.contains(StoreProduct.byokLifetime.productID) || AppSecrets.internalBYOKTestingEnabled
+    }
+
+    var isBYOKConfigured: Bool {
+        let geminiKey = KeychainHelper.load(for: "gemini_api_key")
+        let openAIKey = KeychainHelper.load(for: "openai_api_key")
+        return [geminiKey, openAIKey]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .contains { !$0.isEmpty }
+    }
+
+    var isBYOKActive: Bool {
+        hasBYOKPurchase && isBYOKConfigured
+    }
+
     var isSubscribed: Bool {
-        currentTier == .premium || currentTier == .pro || currentTier == .byok
+        currentTier == .premium || currentTier == .pro
     }
 
     var isPremium: Bool {
@@ -323,7 +341,7 @@ final class StoreKitManager: ObservableLike {
     }
 
     var canTryOn: Bool {
-        remainingCredits > 0 || currentTier == .byok
+        remainingCredits > 0 || isBYOKActive
     }
 }
 

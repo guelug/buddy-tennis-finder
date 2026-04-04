@@ -125,7 +125,7 @@ struct PrivacySettingsView: View {
             } header: {
                 Text("Danger Zone")
             } footer: {
-                Text("This will permanently delete all your data from iCloud and our servers. This action cannot be undone.")
+                Text("This will permanently delete all your data from iCloud and any configured remote integration. This action cannot be undone.")
             }
         }
         .navigationTitle("Privacy")
@@ -210,9 +210,10 @@ struct PrivacySettingsView: View {
 
             // 2. Eliminar localmente (SwiftData se maneja solo con cascade)
 
-            // 3. Llamar a Vercel para eliminar de Redis (si hay receipt hash)
-            if let receiptHash = UserDefaults.standard.string(forKey: "receipt_hash") {
-                let url = URL(string: "https://your-vercel-app.vercel.app/api/delete-user")!
+            // 3. Llamar a Vercel para eliminar de Redis (si hay receipt hash y URL configurada)
+            if let receiptHash = UserDefaults.standard.string(forKey: "receipt_hash"),
+               let baseURL = AppSecrets.vercelAPIBaseURL {
+                let url = URL(string: "\(baseURL.absoluteString)/api/delete-user")!
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.setValue(receiptHash, forHTTPHeaderField: "X-Receipt-Hash")

@@ -9,11 +9,15 @@ struct TryOnProviderSelectorView: View {
         appState.preferredLanguage
     }
 
+    private var availableProviders: [TryOnProvider] {
+        TryOnProvider.allCases.filter { appState.isTryOnProviderAvailable($0) }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(TryOnProvider.allCases) { provider in
+                    ForEach(availableProviders) { provider in
                         Button {
                             selectedProvider = provider
                             appState.setTryOnProvider(provider)
@@ -90,7 +94,9 @@ struct TryOnProviderSelectorView: View {
 
                         Text(lang == .spanish ? "**Apple Playground**: generación gratuita en el dispositivo. Crea imágenes estilo cartoon." : "**Apple Playground**: Free on-device generation. Creates cartoon-style images, fun for kids!")
 
-                        Text(lang == .spanish ? "**BYOK**: usa tu propia clave de OpenAI si quieres este proveedor disponible en try-on y chat." : "**BYOK**: Use your own OpenAI API key if you want this provider available in try-on and chat.")
+                        if appState.hasBYOKAccess {
+                            Text(lang == .spanish ? "**BYOK**: usa tu propia clave de OpenAI si quieres este proveedor disponible." : "**BYOK**: Use your own OpenAI API key if you want this provider available.")
+                        }
                     }
                     .font(.caption)
                     .padding(.top, Theme.Spacing.sm)

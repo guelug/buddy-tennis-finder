@@ -712,11 +712,23 @@ struct ProviderPickerSheet: View {
         appState.preferredLanguage
     }
 
+    private var availableProviders: [TryOnProvider] {
+        TryOnProvider.allCases.filter { appState.isTryOnProviderAvailable($0) }
+    }
+
+    private var providerFooterText: String {
+        if appState.hasBYOKAccess {
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. BYOK uses your own OpenAI API key."
+        } else {
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style."
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    ForEach(TryOnProvider.allCases) { provider in
+                    ForEach(availableProviders) { provider in
                         ProviderRow(
                             provider: provider,
                             isSelected: viewModel.selectedProvider == provider,
@@ -734,7 +746,7 @@ struct ProviderPickerSheet: View {
                 } header: {
                     Text(lang == .spanish ? "Selecciona proveedor" : "Select Provider")
                 } footer: {
-                    Text(lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. BYOK uses your own OpenAI API key.")
+                    Text(providerFooterText)
                 }
             }
             .navigationTitle(lang == .spanish ? "Proveedor de try-on" : "Try-On Provider")

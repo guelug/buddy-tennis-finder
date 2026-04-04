@@ -10,6 +10,7 @@ final class AppState {
 
     var currentUser: User?
     var isPremium: Bool = false
+    var hasBYOKAccess: Bool = false
     var isBYOKEnabled: Bool = false
     var currentTier: SubscriptionTier = .free
     var preferredLanguage: Language = .spanish
@@ -32,7 +33,7 @@ final class AppState {
 
     init() {
         AppSecrets.primeDefaultsIfNeeded()
-        isPremium = storeKitManager.isPremium
+        syncSubscriptionState()
         let sharedConfiguration = SharedStyleCompanionStore.loadConfiguration()
         isCalendarSyncEnabled = sharedConfiguration.calendarSyncEnabled
         areDailyWidgetsEnabled = sharedConfiguration.widgetRecommendationsEnabled
@@ -50,18 +51,16 @@ final class AppState {
         // Check ChatGPT connection
         isChatGPTConnected = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
         useConnectedChatGPTForChat = UserDefaults.standard.bool(forKey: "chatgpt_chat_enabled")
-
-        // Load BYOK state
-        isBYOKEnabled = KeychainHelper.load(for: "byok_enabled") == "true"
-        if isBYOKEnabled {
-            currentTier = .byok
-        }
         chatPreparedFeatures = ChatPreparedFeatures(
             textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
             richMediaMessagesEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_rich_media_enabled"),
             toolInvocationEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_tool_invocation_enabled"),
             imageGenerationEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_image_generation_enabled")
         )
+
+        if !isTryOnProviderAvailable(tryOnProvider) {
+            tryOnProvider = .google
+        }
     }
 
     func loadUserState() async {
@@ -69,8 +68,8 @@ final class AppState {
     }
 
     func refreshPremiumStatus() async {
-        await storeKitManager.updatePurchasedProducts()
-        isPremium = storeKitManager.isPremium
+        await storeKitManager.refreshSubscriptionStatus()
+        syncSubscriptionState()
     }
 
     func updateUser(_ user: User) {
@@ -86,8 +85,9 @@ final class AppState {
     }
 
     func setTryOnProvider(_ provider: TryOnProvider) {
-        tryOnProvider = provider
-        UserDefaults.standard.set(provider.rawValue, forKey: "tryon_provider")
+        let normalizedProvider = isTryOnProviderAvailable(provider) ? provider : .google
+        tryOnProvider = normalizedProvider
+        UserDefaults.standard.set(normalizedProvider.rawValue, forKey: "tryon_provider")
     }
 
     func setCalendarSyncEnabled(_ enabled: Bool, closetItems: [ClothingItem]) async {
@@ -166,9 +166,13 @@ final class AppState {
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue = enabled && isChatGPTConnected
+        let effectiveValue = enabled && isChatGPTConnected && hasBYOKAccess
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
+    }
+
+    func isTryOnProviderAvailable(_ provider: TryOnProvider) -> Bool {
+        provider != .chatgpt || hasBYOKAccess
     }
 
     func closetItemLimitDescription(language: Language) -> String {
@@ -185,6 +189,18 @@ final class AppState {
 
     func hasReachedClosetLimit(currentCount: Int) -> Bool {
         !isPremium && currentCount >= Self.freeClosetItemLimit
+    }
+
+    private func syncSubscriptionState() {
+        currentTier = storeKitManager.currentTier
+        isPremium = storeKitManager.isPremium
+        hasBYOKAccess = storeKitManager.hasBYOKPurchase
+        isBYOKEnabled = storeKitManager.isBYOKActive
+
+        if !hasBYOKAccess {
+            useConnectedChatGPTForChat = false
+            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
+        }
     }
 
     private func persistStyleCompanionConfiguration() {

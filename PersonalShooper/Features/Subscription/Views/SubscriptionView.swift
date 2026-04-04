@@ -14,6 +14,13 @@ struct SubscriptionView: View {
         appState.preferredLanguage == .spanish
     }
 
+    private var visibleProducts: [Product] {
+        storeKitManager.products.filter {
+            guard let storeProduct = StoreProduct(rawValue: $0.id) else { return false }
+            return storeProduct.visibleInSubscriptionUI
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -139,11 +146,11 @@ struct SubscriptionView: View {
 
     private var pricingSection: some View {
         VStack(spacing: Theme.Spacing.md) {
-            if storeKitManager.products.isEmpty {
+            if visibleProducts.isEmpty {
                 ProgressView()
                     .padding()
             } else {
-                ForEach(storeKitManager.products, id: \.id) { product in
+                ForEach(visibleProducts, id: \.id) { product in
                     Button {
                         selectedProduct = product
                         Task {
@@ -207,10 +214,10 @@ struct SubscriptionView: View {
         isPurchasing = true
 
         do {
-            _ = try await storeKitManager.purchase(product)
+            try await storeKitManager.purchase(product)
+            await appState.refreshPremiumStatus()
             await MainActor.run {
                 isPurchasing = false
-                appState.isPremium = true
                 dismiss()
             }
         } catch {
