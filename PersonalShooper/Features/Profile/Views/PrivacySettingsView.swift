@@ -8,10 +8,19 @@ struct PrivacySettingsView: View {
 
     @State private var shareAnalyticsData = false
     @State private var allowPersonalizedAds = false
-    @State private var showClearDataAlert = false
+    @State private var showClearDataConfirmation = false
+    @State private var clearDataConfirmationText = ""
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
+    }
+
+    private var confirmationMatches: Bool {
+        let normalized = clearDataConfirmationText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: .diacriticInsensitive, locale: .current)
+            .lowercased()
+        return normalized == "si" || normalized == "borrar" || normalized == "delete"
     }
 
     var body: some View {
@@ -66,12 +75,12 @@ struct PrivacySettingsView: View {
 
             Section {
                 Button(role: .destructive) {
-                    showClearDataAlert = true
+                    showClearDataConfirmation = true
                 } label: {
                     Label(isSpanish ? "Borrar todos los datos" : "Clear All Data", systemImage: "trash")
                 }
             } footer: {
-                Text(isSpanish ? "Esto eliminará tus fotos, armario, resultados de try-on, análisis y conversaciones. Esta acción no se puede deshacer." : "This will delete your photos, closet, try-on results, analysis, and conversation history. This action cannot be undone.")
+                Text(isSpanish ? "Esto eliminará tus fotos, armario, resultados de try-on, análisis y conversaciones. Si en el futuro sincronizas el catálogo con iCloud, también podrías borrar esa copia. Esta acción no se puede deshacer." : "This will delete your photos, closet, try-on results, analysis, and conversation history. If you sync your catalog with iCloud in the future, that copy could be removed too. This action cannot be undone.")
             }
 
             Section {
@@ -96,13 +105,40 @@ struct PrivacySettingsView: View {
         }
         .navigationTitle(isSpanish ? "Ajustes de privacidad" : "Privacy Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .alert(isSpanish ? "¿Borrar todos los datos?" : "Clear All Data?", isPresented: $showClearDataAlert) {
-            Button(isSpanish ? "Cancelar" : "Cancel", role: .cancel) {}
-            Button(isSpanish ? "Borrar" : "Clear", role: .destructive) {
-                clearAllData()
+        .sheet(isPresented: $showClearDataConfirmation, onDismiss: resetConfirmationState) {
+            NavigationStack {
+                Form {
+                    Section {
+                        Text(isSpanish ? "Vas a borrar permanentemente tus fotos, tu armario, los resultados de try-on, la paleta y el historial de chat. La suscripción premium seguirá activa." : "You are about to permanently delete your photos, closet, try-on results, palette, and chat history. Your premium subscription will remain active.")
+                            .font(.body)
+                        Text(isSpanish ? "Para continuar, escribe 'sí' o 'borrar'." : "To continue, type 'delete'.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Section(isSpanish ? "Confirmación manual" : "Manual Confirmation") {
+                        TextField(isSpanish ? "Escribe 'sí' o 'borrar'" : "Type 'delete'", text: $clearDataConfirmationText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+
+                    Section {
+                        Button(isSpanish ? "Borrar fotos, armario y datos" : "Delete Photos, Closet, and Data", role: .destructive) {
+                            clearAllData()
+                        }
+                        .disabled(!confirmationMatches)
+                    }
+                }
+                .navigationTitle(isSpanish ? "Confirmar borrado" : "Confirm Deletion")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(isSpanish ? "Cancelar" : "Cancel") {
+                            showClearDataConfirmation = false
+                        }
+                    }
+                }
             }
-        } message: {
-            Text(isSpanish ? "Esto borrará permanentemente tus fotos, paleta, armario, resultados de try-on e historial de chat. La suscripción premium seguirá activa." : "This will permanently delete your photos, palette, closet, try-on results, and chat history. Premium subscription will remain active.")
         }
     }
 
@@ -132,6 +168,11 @@ struct PrivacySettingsView: View {
         if let user = (try? modelContext.fetch(FetchDescriptor<User>()))?.first {
             appState.updateUser(user)
         }
+        resetConfirmationState()
         dismiss()
+    }
+
+    private func resetConfirmationState() {
+        clearDataConfirmationText = ""
     }
 }
