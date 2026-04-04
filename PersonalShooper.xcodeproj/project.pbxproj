@@ -125,7 +125,7 @@
 		5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
 		56173F3B4C47A44171AD4425 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		5F89890087A78DBC336E90DF /* TryOnView.swift.bak */ = {isa = PBXFileReference; path = TryOnView.swift.bak; sourceTree = "<group>"; };
+		5F89890087A78DBC336E90DF /* TryOnView.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = TryOnView.swift.bak; sourceTree = "<group>"; };
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKSettingsView.swift; sourceTree = "<group>"; };
@@ -135,7 +135,7 @@
 		6E7DD8E4BD58EFE0B4841017 /* AppleIntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceService.swift; sourceTree = "<group>"; };
 		6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderSelectorView.swift; sourceTree = "<group>"; };
 		7327AED235F37BA65C119031 /* SkinToneExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinToneExtractor.swift; sourceTree = "<group>"; };
-		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		75191249CD415955E041E75E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		75FF91397AF47465ED682DC4 /* ARViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewModel.swift; sourceTree = "<group>"; };
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
@@ -164,7 +164,7 @@
 		C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderService.swift; sourceTree = "<group>"; };
 		CCF43F9E1D797C468B6BA7DD /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyNoticeView.swift; sourceTree = "<group>"; };
-		D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PersonalShooperWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PersonalShooperWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3791AD898833449685E1931 /* PersonalShooperWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalShooperWidgets.swift; sourceTree = "<group>"; };
 		D5FB969B5E70E76DC39DC291 /* TryOnViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnViewModel.swift; sourceTree = "<group>"; };
 		D7BF33F1413C0F51AB610238 /* NaturalLanguage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NaturalLanguage.framework; path = System/Library/Frameworks/NaturalLanguage.framework; sourceTree = SDKROOT; };
@@ -705,14 +705,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					7C0A0F217713BCEEDE032529 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					D19B5E2F93C0CE249A6DE4B2 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -839,6 +837,7 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -879,6 +878,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = PersonalShooperWidgets/PersonalShooperWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				INFOPLIST_FILE = PersonalShooperWidgets/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -896,6 +896,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -946,6 +947,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -958,6 +960,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1015,6 +1018,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1031,6 +1035,7 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
