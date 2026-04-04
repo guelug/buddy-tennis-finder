@@ -73,7 +73,13 @@ final class ChatViewModel {
         self.conversation = conversation
         self.messages = []
         appendAssistantMessage(welcomeMessage(for: appState), saveToModel: true, modelContext: modelContext)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = appState.preferredLanguage == .spanish
+                ? "No he podido iniciar la conversación: \(error.localizedDescription)"
+                : "I couldn't start the conversation: \(error.localizedDescription)"
+        }
     }
 
     func sendMessage(appState: AppState, modelContext: ModelContext) async {
@@ -137,12 +143,24 @@ final class ChatViewModel {
                 saveToModel: true,
                 modelContext: modelContext
             )
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                errorMessage = appState.preferredLanguage == .spanish
+                    ? "No he podido guardar la conversación: \(error.localizedDescription)"
+                    : "I couldn't save the conversation: \(error.localizedDescription)"
+            }
         } catch {
             let fallback = fallbackResponse(appState: appState, savedFacts: savedFacts, closetSummary: closetSummary)
             appendAssistantMessage(fallback, saveToModel: true, modelContext: modelContext)
             errorMessage = error.localizedDescription
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                errorMessage = appState.preferredLanguage == .spanish
+                    ? "No he podido guardar la conversación: \(error.localizedDescription)"
+                    : "I couldn't save the conversation: \(error.localizedDescription)"
+            }
         }
 
         isLoading = false
@@ -159,7 +177,13 @@ final class ChatViewModel {
 
         if saveToModel {
             conversation?.addMessage(assistantMessage)
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                errorMessage = context.language == .spanish
+                    ? "No he podido guardar el mensaje: \(error.localizedDescription)"
+                    : "I couldn't save the message: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -510,7 +534,14 @@ final class ChatViewModel {
         )
 
         modelContext.insert(item)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.delete(item)
+            return appState.preferredLanguage == .spanish
+                ? "He preparado la prenda, pero no he podido guardarla en tu armario: \(error.localizedDescription)"
+                : "I prepared the garment, but I couldn't save it to your closet: \(error.localizedDescription)"
+        }
 
         await appState.refreshStyleCompanionState(closetItems: [item] + currentClosetItems)
 

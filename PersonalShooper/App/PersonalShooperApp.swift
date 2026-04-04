@@ -101,8 +101,12 @@ struct ContentView: View {
             preferredLanguage: appState.preferredLanguage
         )
         modelContext.insert(newUser)
-        try? modelContext.save()
-        appState.updateUser(newUser)
+        do {
+            try modelContext.save()
+            appState.updateUser(newUser)
+        } catch {
+            modelContext.delete(newUser)
+        }
     }
 }
 

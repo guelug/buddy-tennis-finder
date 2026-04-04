@@ -160,7 +160,22 @@ final class ChatWorkspaceService {
             resultImage: generated
         )
         modelContext.insert(result)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            modelContext.delete(result)
+            return ChatToolResult(
+                assistantText: generatedResultMessage(for: closetItem, language: language),
+                image: generated,
+                linkedClosetItemID: closetItem.id,
+                linkedTryOnResultID: nil,
+                metadata: ChatMessageMetadata(
+                    assetSource: .generatedTryOn,
+                    toolIdentifier: ChatToolKind.tryOnGenerate.rawValue,
+                    cacheKey: cacheKey
+                )
+            )
+        }
 
         return ChatToolResult(
             assistantText: generatedResultMessage(for: closetItem, language: language),

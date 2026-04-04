@@ -430,7 +430,15 @@ struct ClothingCaptureView: View {
         )
 
         modelContext.insert(item)
-        dismiss()
+        do {
+            try modelContext.save()
+            dismiss()
+        } catch {
+            modelContext.delete(item)
+            errorMessage = lang == .spanish
+                ? "No he podido guardar la prenda: \(error.localizedDescription)"
+                : "I couldn't save the garment: \(error.localizedDescription)"
+        }
     }
 }
 

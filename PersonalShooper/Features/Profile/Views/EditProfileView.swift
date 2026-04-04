@@ -426,9 +426,13 @@ struct EditProfileView: View {
         }
 
         user.updatedAt = Date()
-        try? modelContext.save()
-        appState.updateUser(user)
-        dismiss()
+        do {
+            try modelContext.save()
+            appState.updateUser(user)
+            dismiss()
+        } catch {
+            errorMessage = lang == .spanish ? "No he podido guardar tu perfil: \(error.localizedDescription)" : "I couldn't save your profile: \(error.localizedDescription)"
+        }
     }
 
     private func parseTags(from rawText: String) -> [String] {

@@ -159,8 +159,15 @@ final class TryOnViewModel {
                 resultImage: generated
             )
             modelContext.insert(result)
-            try? modelContext.save()
-
+            do {
+                try modelContext.save()
+            } catch {
+                modelContext.delete(result)
+                errorMessage = language == .spanish
+                    ? "He generado la imagen, pero no he podido guardarla en caché: \(error.localizedDescription)"
+                    : "I generated the image, but I couldn't cache it: \(error.localizedDescription)"
+            }
+ 
             generatedImage = generated
         } catch {
             errorMessage = localizedErrorMessage(error, language: language)

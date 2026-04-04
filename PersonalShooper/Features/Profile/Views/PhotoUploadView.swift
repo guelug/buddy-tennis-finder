@@ -320,10 +320,20 @@ struct PhotoUploadView: View {
                     user.skinAnalysis = analysisResult
                     user.personalPalette = palette
                     user.profilePhotos = updatedPhotos
-                }
 
-                isAnalyzing = false
-                dismiss()
+                    do {
+                        try modelContext.save()
+                        appState.updateUser(user)
+                        isAnalyzing = false
+                        dismiss()
+                    } catch {
+                        errorMessage = isSpanish ? "No he podido guardar tu perfil: \(error.localizedDescription)" : "I couldn't save your profile: \(error.localizedDescription)"
+                        isAnalyzing = false
+                    }
+                } else {
+                    errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
+                    isAnalyzing = false
+                }
             }
         } catch {
             await MainActor.run {
