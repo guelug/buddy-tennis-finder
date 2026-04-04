@@ -68,51 +68,6 @@ targets:
       - sdk: WidgetKit.framework
       - target: PersonalShooperWidgets
 
-  PersonalShooperLocalDebug:
-    type: application
-    platform: iOS
-    attributes:
-      SystemCapabilities:
-        com.apple.InAppPurchase:
-          enabled: 0
-    sources:
-      - path: PersonalShooper
-        excludes:
-          - "**/*.md"
-          - "**/*.xcloc"
-    settings:
-      base:
-        INFOPLIST_FILE: PersonalShooper/Info.plist
-        CODE_SIGN_ENTITLEMENTS: PersonalShooper/PersonalShooper.entitlements
-        PRODUCT_BUNDLE_IDENTIFIER: com.personalshooper.app.localdebug
-        PRODUCT_NAME: PersonalShooper Debug
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_STYLE: Automatic
-        SWIFT_EMIT_LOC_STRINGS: true
-        ENABLE_PREVIEWS: YES
-      configs:
-        Debug:
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SIMPLE_DEBUG_MODE"
-    entitlements:
-      path: PersonalShooper/PersonalShooper.entitlements
-    dependencies:
-      - sdk: FoundationModels.framework
-        weak: true
-      - sdk: ARKit.framework
-      - sdk: RealityKit.framework
-      - sdk: Vision.framework
-      - sdk: CoreML.framework
-      - sdk: NaturalLanguage.framework
-      - sdk: StoreKit.framework
-      - sdk: AVFoundation.framework
-      - sdk: Photos.framework
-      - sdk: Speech.framework
-      - sdk: ImageIO.framework
-      - sdk: EventKit.framework
-      - sdk: AppIntents.framework
-      - sdk: WidgetKit.framework
-
   PersonalShooperWidgets:
     type: app-extension
     platform: iOS
@@ -153,22 +108,6 @@ schemes:
       gatherCoverageData: true
     profile:
       config: Release
-    analyze:
-      config: Debug
-    archive:
-      config: Release
-
-  PersonalShooperLocalDebug:
-    build:
-      targets:
-        PersonalShooperLocalDebug: all
-    run:
-      config: Debug
-      environmentVariables:
-        GEMINI_API_KEY: ""
-    test:
-      config: Debug
-      gatherCoverageData: false
     analyze:
       config: Debug
     archive:
