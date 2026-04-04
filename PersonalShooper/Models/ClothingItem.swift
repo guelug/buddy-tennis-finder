@@ -65,7 +65,7 @@ final class ClothingItem {
             return UIImage(data: data)
         }
         set {
-            imageData = newValue?.jpegData(compressionQuality: 0.8)
+            imageData = StorageBudgetManager.normalizedImageData(newValue)
         }
     }
 
@@ -82,7 +82,7 @@ final class ClothingItem {
         self.id = id
         self.name = name
         self.categoryRaw = category.rawValue
-        self.imageData = image?.jpegData(compressionQuality: 0.8)
+        self.imageData = StorageBudgetManager.normalizedImageData(image)
         self.colorTags = colorTags
         self.styleTags = styleTags
         self.brandName = brandName
@@ -126,17 +126,17 @@ final class TryOnResult {
 
     var clothingImage: UIImage? {
         get { UIImage(data: clothingImageData) }
-        set { clothingImageData = newValue?.jpegData(compressionQuality: 0.8) ?? Data() }
+        set { clothingImageData = StorageBudgetManager.normalizedImageData(newValue) ?? Data() }
     }
 
     var userPhoto: UIImage? {
         get { UIImage(data: userPhotoData) }
-        set { userPhotoData = newValue?.jpegData(compressionQuality: 0.8) ?? Data() }
+        set { userPhotoData = StorageBudgetManager.normalizedImageData(newValue) ?? Data() }
     }
 
     var resultImage: UIImage? {
         get { UIImage(data: resultImageData) }
-        set { resultImageData = newValue?.jpegData(compressionQuality: 0.8) ?? Data() }
+        set { resultImageData = StorageBudgetManager.normalizedImageData(newValue) ?? Data() }
     }
 
     var editHistory: [ImageEdit] {
@@ -169,9 +169,9 @@ final class TryOnResult {
         self.clothingCategoryRaw = clothingCategory?.rawValue
         self.closetItemIDString = closetItemID?.uuidString
         self.referenceDescriptor = referenceDescriptor
-        self.clothingImageData = clothingImage.jpegData(compressionQuality: 0.8) ?? Data()
-        self.userPhotoData = userPhoto.jpegData(compressionQuality: 0.8) ?? Data()
-        self.resultImageData = resultImage.jpegData(compressionQuality: 0.8) ?? Data()
+        self.clothingImageData = StorageBudgetManager.normalizedImageData(clothingImage) ?? Data()
+        self.userPhotoData = StorageBudgetManager.normalizedImageData(userPhoto) ?? Data()
+        self.resultImageData = StorageBudgetManager.normalizedImageData(resultImage) ?? Data()
         self.editHistoryData = try? JSONEncoder().encode(editHistory)
         self.createdAt = Date()
     }
@@ -192,8 +192,8 @@ struct ImageEdit: Codable, Identifiable {
     ) {
         self.id = id
         self.instruction = instruction
-        self.previousImageData = previousImage.jpegData(compressionQuality: 0.8) ?? Data()
-        self.newImageData = newImage.jpegData(compressionQuality: 0.8) ?? Data()
+        self.previousImageData = StorageBudgetManager.normalizedImageData(previousImage) ?? Data()
+        self.newImageData = StorageBudgetManager.normalizedImageData(newImage) ?? Data()
         self.timestamp = Date()
     }
 }

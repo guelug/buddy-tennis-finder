@@ -77,6 +77,7 @@
 		EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */; };
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
 		FB12C3559703A574FB6795C1 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */; };
+		FD6C8B36F65BFF1147894411 /* StorageBudgetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */; };
 		FE40DCAE3F3B3D8F14E1E2CF /* TryOnView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C09A315901B54622384FDF8 /* TryOnView.swift */; };
 /* End PBXBuildFile section */
 
@@ -175,6 +176,7 @@
 		F8B211635931589A61159A50 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F8D383BDD5CF127A217023EF /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		FAC8515ECFA5F640EACA07DA /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
+		FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBudgetManager.swift; sourceTree = "<group>"; };
 		FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = LocalSecrets.plist; sourceTree = "<group>"; };
 		FBABC5D5EE29FF5A45A135E0 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItem.swift; sourceTree = "<group>"; };
@@ -475,6 +477,7 @@
 			isa = PBXGroup;
 			children = (
 				8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */,
+				FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -802,6 +805,7 @@
 				76E4D05EC2F43CEC9F73D905 /* ProfileView.swift in Sources */,
 				449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */,
 				5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */,
+				FD6C8B36F65BFF1147894411 /* StorageBudgetManager.swift in Sources */,
 				00F8CB3BC698C971123A0C0E /* StoreKitManager.swift in Sources */,
 				53DF86C0D2C0D34D009D4EAB /* Strings.swift in Sources */,
 				96BB5EE762B7AA2D96BC261E /* StyleCompanionSharedModels.swift in Sources */,

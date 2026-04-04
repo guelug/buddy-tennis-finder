@@ -21,6 +21,7 @@ struct EditProfileView: View {
     @State private var additionalNotes: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var profileImage: UIImage?
+    @State private var errorMessage: String?
 
     private var lang: Language {
         appState.preferredLanguage
@@ -69,11 +70,21 @@ struct EditProfileView: View {
                     }
                 }
             }
+            .alert(text("No he podido guardar", "I couldn't save"), isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    errorMessage = nil
+                }
+            } message: {
+                Text(errorMessage ?? "")
+            }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let image = UIImage(data: data) {
-                        profileImage = image
+                        profileImage = StorageBudgetManager.normalizedImage(image) ?? image
                     }
                 }
             }
@@ -384,16 +395,34 @@ struct EditProfileView: View {
     private func saveProfile() {
         guard let user = appState.currentUser else { return }
 
+        let updatedPhotos = ProfilePhotos(
+            faceCloseUp: profileImage ?? user.profilePhotos.faceCloseUp,
+            faceProfile: user.profilePhotos.faceProfile,
+            fullBodyFront: user.profilePhotos.fullBodyFront,
+            fullBodyBack: user.profilePhotos.fullBodyBack
+        )
+
+        let additionalBytes = StorageBudgetManager.incrementalBytesForProfileUpdate(
+            currentUser: user,
+            profilePhotos: updatedPhotos,
+            skinAnalysis: user.skinAnalysis,
+            personalPalette: user.personalPalette
+        )
+
+        guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
+            errorMessage = StorageBudgetManager.overflowMessage(
+                language: lang,
+                modelContext: modelContext,
+                additionalBytes: additionalBytes
+            )
+            return
+        }
+
         user.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         user.updateStylingProfile(draftProfile)
 
         if let profileImage {
-            user.profilePhotos = ProfilePhotos(
-                faceCloseUp: profileImage,
-                faceProfile: user.profilePhotos.faceProfile,
-                fullBodyFront: user.profilePhotos.fullBodyFront,
-                fullBodyBack: user.profilePhotos.fullBodyBack
-            )
+            user.profilePhotos = updatedPhotos
         }
 
         user.updatedAt = Date()

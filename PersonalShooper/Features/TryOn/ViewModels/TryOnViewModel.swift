@@ -125,6 +125,28 @@ final class TryOnViewModel {
                 userImage: referencePlan.image
             )
 
+            let additionalBytes = StorageBudgetManager.incrementalBytesForTryOnResult(
+                cacheKey: cacheKey,
+                provider: selectedProvider,
+                clothingName: selectedClothingLabel(language: language),
+                clothingCategory: selectedClothingCategory,
+                closetItemID: selectedClosetItemID,
+                referenceDescriptor: referencePlan.descriptor,
+                clothingImage: clothingImage,
+                userPhoto: referencePlan.image,
+                resultImage: generated
+            )
+
+            guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
+                errorMessage = StorageBudgetManager.overflowMessage(
+                    language: language,
+                    modelContext: modelContext,
+                    additionalBytes: additionalBytes
+                )
+                isGenerating = false
+                return
+            }
+
             let result = TryOnResult(
                 cacheKey: cacheKey,
                 provider: selectedProvider,

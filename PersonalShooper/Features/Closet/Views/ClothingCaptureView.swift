@@ -406,6 +406,22 @@ struct ClothingCaptureView: View {
             return
         }
 
+        let additionalBytes = StorageBudgetManager.incrementalBytesForClothingItem(
+            name: itemName.isEmpty ? "Prenda sin nombre" : itemName,
+            category: detectedCategory ?? .tops,
+            image: image,
+            colorTags: detectedColors
+        )
+
+        guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
+            errorMessage = StorageBudgetManager.overflowMessage(
+                language: lang,
+                modelContext: modelContext,
+                additionalBytes: additionalBytes
+            )
+            return
+        }
+
         let item = ClothingItem(
             name: itemName.isEmpty ? "Prenda sin nombre" : itemName,
             category: detectedCategory ?? .tops,

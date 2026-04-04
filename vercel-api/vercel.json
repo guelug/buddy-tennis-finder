@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/api/try-on", "dest": "/api/try-on/route.ts" },
+    { "src": "/api/sync-credits", "dest": "/api/sync-credits/route.ts" }
+  ],
+  "crons": [
+    {
+      "path": "/api/reset-monthly",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}

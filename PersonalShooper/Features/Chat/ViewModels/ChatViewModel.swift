@@ -487,6 +487,21 @@ final class ChatViewModel {
         let colors = classification?.colors ?? []
         let itemName = extractClothingNameForCloset(from: message, category: category, language: appState.preferredLanguage)
 
+        let additionalBytes = StorageBudgetManager.incrementalBytesForClothingItem(
+            name: itemName,
+            category: category,
+            image: compressedImage,
+            colorTags: colors
+        )
+
+        guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
+            return StorageBudgetManager.overflowMessage(
+                language: appState.preferredLanguage,
+                modelContext: modelContext,
+                additionalBytes: additionalBytes
+            )
+        }
+
         let item = ClothingItem(
             name: itemName,
             category: category,

@@ -29,10 +29,10 @@ final class User {
             )
         }
         set {
-            faceCloseUpData = newValue.faceCloseUp?.jpegData(compressionQuality: 0.8)
-            faceProfileData = newValue.faceProfile?.jpegData(compressionQuality: 0.8)
-            fullBodyFrontData = newValue.fullBodyFront?.jpegData(compressionQuality: 0.8)
-            fullBodyBackData = newValue.fullBodyBack?.jpegData(compressionQuality: 0.8)
+            faceCloseUpData = StorageBudgetManager.normalizedImageData(newValue.faceCloseUp)
+            faceProfileData = StorageBudgetManager.normalizedImageData(newValue.faceProfile)
+            fullBodyFrontData = StorageBudgetManager.normalizedImageData(newValue.fullBodyFront)
+            fullBodyBackData = StorageBudgetManager.normalizedImageData(newValue.fullBodyBack)
         }
     }
 
@@ -92,10 +92,10 @@ final class User {
     ) {
         self.id = id
         self.displayName = displayName
-        self.faceCloseUpData = profilePhotos.faceCloseUp?.jpegData(compressionQuality: 0.8)
-        self.faceProfileData = profilePhotos.faceProfile?.jpegData(compressionQuality: 0.8)
-        self.fullBodyFrontData = profilePhotos.fullBodyFront?.jpegData(compressionQuality: 0.8)
-        self.fullBodyBackData = profilePhotos.fullBodyBack?.jpegData(compressionQuality: 0.8)
+        self.faceCloseUpData = StorageBudgetManager.normalizedImageData(profilePhotos.faceCloseUp)
+        self.faceProfileData = StorageBudgetManager.normalizedImageData(profilePhotos.faceProfile)
+        self.fullBodyFrontData = StorageBudgetManager.normalizedImageData(profilePhotos.fullBodyFront)
+        self.fullBodyBackData = StorageBudgetManager.normalizedImageData(profilePhotos.fullBodyBack)
         self.skinAnalysisData = try? JSONEncoder().encode(skinAnalysis)
         self.personalPaletteData = try? JSONEncoder().encode(personalPalette)
         self.personalStylingProfileData = try? JSONEncoder().encode(personalStylingProfile)

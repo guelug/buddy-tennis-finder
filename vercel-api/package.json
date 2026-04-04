@@ -1,0 +1,13 @@
+{
+  "name": "personal-shooper-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@vercel/kv": "^1.0.0",
+    "typescript": "^5.0.0"
+  }
+}

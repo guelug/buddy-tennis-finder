@@ -253,7 +253,7 @@ struct PhotoUploadView: View {
 
     private func handleImageSelection(_ image: UIImage?) {
         guard let image = image else { return }
-        currentImage.wrappedValue = image
+        currentImage.wrappedValue = StorageBudgetManager.normalizedImage(image) ?? image
     }
 
     private func moveToNextStep() {
@@ -288,17 +288,38 @@ struct PhotoUploadView: View {
                 skinTone: analysisResult.skinToneCategory
             )
 
+            let updatedPhotos = ProfilePhotos(
+                faceCloseUp: faceCloseUp,
+                faceProfile: faceProfile,
+                fullBodyFront: fullBodyFront,
+                fullBodyBack: fullBodyBack
+            )
+
+            let additionalBytes = StorageBudgetManager.incrementalBytesForProfileUpdate(
+                currentUser: appState.currentUser,
+                profilePhotos: updatedPhotos,
+                skinAnalysis: analysisResult,
+                personalPalette: palette
+            )
+
+            guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
+                await MainActor.run {
+                    errorMessage = StorageBudgetManager.overflowMessage(
+                        language: appState.preferredLanguage,
+                        modelContext: modelContext,
+                        additionalBytes: additionalBytes
+                    )
+                    isAnalyzing = false
+                }
+                return
+            }
+
             // Update user profile
             await MainActor.run {
                 if let user = appState.currentUser {
                     user.skinAnalysis = analysisResult
                     user.personalPalette = palette
-                    user.profilePhotos = ProfilePhotos(
-                        faceCloseUp: faceCloseUp,
-                        faceProfile: faceProfile,
-                        fullBodyFront: fullBodyFront,
-                        fullBodyBack: fullBodyBack
-                    )
+                    user.profilePhotos = updatedPhotos
                 }
 
                 isAnalyzing = false
