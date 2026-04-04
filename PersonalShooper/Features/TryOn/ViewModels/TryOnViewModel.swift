@@ -94,8 +94,8 @@ final class TryOnViewModel {
 
         referenceDescription = referencePlan.descriptor
 
-        guard let clothingData = clothingImage.jpegData(compressionQuality: 0.8),
-              let referenceData = referencePlan.image.jpegData(compressionQuality: 0.8) else {
+        guard let clothingData = StorageBudgetManager.normalizedImageData(clothingImage),
+              let referenceData = StorageBudgetManager.normalizedImageData(referencePlan.image) else {
             errorMessage = language == .spanish
                 ? "No he podido preparar las imágenes para el try-on."
                 : "I couldn't prepare the images for try-on."

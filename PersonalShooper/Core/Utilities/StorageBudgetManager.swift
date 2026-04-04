@@ -6,8 +6,8 @@ enum StorageBudgetManager {
     static let totalBudgetBytes: Int64 = 2_000_000_000
     private static let warningThresholdRatio: Double = 0.85
     private static let criticalThresholdRatio: Double = 0.95
-    private static let normalizedImageMaxDimension: CGFloat = 1600
-    private static let normalizedImageCompressionQuality: CGFloat = 0.78
+    private static let normalizedImageMaxDimension: CGFloat = 1280
+    private static let normalizedImageCompressionQuality: CGFloat = 0.76
 
     static func currentUsageBytes(modelContext: ModelContext) -> Int64 {
         let users = (try? modelContext.fetch(FetchDescriptor<User>())) ?? []

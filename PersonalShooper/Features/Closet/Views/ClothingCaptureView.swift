@@ -341,17 +341,7 @@ struct ClothingCaptureView: View {
     }
 
     private func compressImage(_ image: UIImage) -> UIImage {
-        let maxDimension: CGFloat = 800
-        let scale = min(maxDimension / image.size.width, maxDimension / image.size.height, 1.0)
-
-        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-
-        UIGraphicsBeginImageContextWithOptions(newSize, true, 1.0)
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        let resized = UIGraphicsGetImageFromCurrentImageContext() ?? image
-        UIGraphicsEndImageContext()
-
-        return resized
+        StorageBudgetManager.normalizedImage(image) ?? image
     }
 
     private func moveToNextStep() {

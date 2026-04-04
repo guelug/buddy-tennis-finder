@@ -98,8 +98,8 @@ final class ChatWorkspaceService {
             throw ChatWorkspaceError.missingProfilePhoto
         }
 
-        guard let clothingData = clothingImage.jpegData(compressionQuality: 0.8),
-              let referenceData = referencePlan.image.jpegData(compressionQuality: 0.8) else {
+        guard let clothingData = StorageBudgetManager.normalizedImageData(clothingImage),
+              let referenceData = StorageBudgetManager.normalizedImageData(referencePlan.image) else {
             throw ChatWorkspaceError.imagePreparationFailed
         }
 

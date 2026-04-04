@@ -80,7 +80,7 @@ final class TryOnService: ObservableObject {
             throw error
         }
 
-        // 3. Compress images (800px max)
+        // 3. Prepare normalized images
         guard let clothingData = compressImage(clothingImage),
               let personData = compressImage(personImage) else {
             let error = TryOnError.imageCompressionFailed
@@ -192,24 +192,8 @@ final class TryOnService: ObservableObject {
 
     // MARK: - Helpers
 
-    private func compressImage(_ image: UIImage, maxDimension: CGFloat = 800) -> Data? {
-        let maxDim = max(image.size.width, image.size.height)
-        guard maxDim > maxDimension else {
-            return image.jpegData(compressionQuality: 0.8)
-        }
-
-        let scale = maxDimension / maxDim
-        let newSize = CGSize(
-            width: image.size.width * scale,
-            height: image.size.height * scale
-        )
-
-        let renderer = UIGraphicsImageRenderer(size: newSize)
-        let resizedImage = renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-        }
-
-        return resizedImage.jpegData(compressionQuality: 0.8)
+    private func compressImage(_ image: UIImage) -> Data? {
+        StorageBudgetManager.normalizedImageData(image)
     }
 
     func refreshCredits() async {

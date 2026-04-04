@@ -10,6 +10,8 @@ struct ClosetView: View {
     @State private var showingAddItem = false
     @State private var showingSubscription = false
     @State private var searchText = ""
+    @State private var pendingDeletionItem: ClothingItem?
+    @State private var deletionErrorMessage: String?
 
     private var lang: Language {
         appState.preferredLanguage
@@ -78,9 +80,20 @@ struct ClosetView: View {
                         ], spacing: Theme.Spacing.sm) {
                             ForEach(filteredItems) { item in
                                 ClosetItemCard(item: item, lang: lang)
+                                    .overlay(alignment: .topTrailing) {
+                                        Button {
+                                            pendingDeletionItem = item
+                                        } label: {
+                                            Image(systemName: "trash.circle.fill")
+                                                .font(.title3)
+                                                .foregroundStyle(.white, .red)
+                                                .padding(6)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                     .contextMenu {
                                         Button(role: .destructive) {
-                                            deleteItem(item)
+                                            pendingDeletionItem = item
                                         } label: {
                                             Label(Strings.closetDelete(lang), systemImage: "trash")
                                         }
@@ -110,11 +123,68 @@ struct ClosetView: View {
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()
             }
+            .confirmationDialog(
+                lang == .spanish ? "Eliminar prenda" : "Delete garment",
+                isPresented: Binding(
+                    get: { pendingDeletionItem != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            pendingDeletionItem = nil
+                        }
+                    }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button(lang == .spanish ? "Eliminar" : "Delete", role: .destructive) {
+                    if let pendingDeletionItem {
+                        deleteItem(pendingDeletionItem)
+                    }
+                    pendingDeletionItem = nil
+                }
+
+                Button(lang == .spanish ? "Cancelar" : "Cancel", role: .cancel) {
+                    pendingDeletionItem = nil
+                }
+            } message: {
+                Text(lang == .spanish ? "También eliminaré los resultados de try-on guardados para esta prenda." : "I will also remove saved try-on results for this garment.")
+            }
+            .alert(
+                lang == .spanish ? "No he podido eliminar la prenda" : "I couldn't delete the garment",
+                isPresented: Binding(
+                    get: { deletionErrorMessage != nil },
+                    set: { isPresented in
+                        if !isPresented {
+                            deletionErrorMessage = nil
+                        }
+                    }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    deletionErrorMessage = nil
+                }
+            } message: {
+                Text(deletionErrorMessage ?? "")
+            }
         }
     }
 
     private func deleteItem(_ item: ClothingItem) {
+        let itemIDString = item.id.uuidString
+        let descriptor = FetchDescriptor<TryOnResult>(
+            predicate: #Predicate { result in
+                result.closetItemIDString == itemIDString
+            }
+        )
+        let relatedResults = (try? modelContext.fetch(descriptor)) ?? []
+
+        relatedResults.forEach { modelContext.delete($0) }
         modelContext.delete(item)
+
+        do {
+            try modelContext.save()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
     }
 
     private func startAddingItem() {
