@@ -192,7 +192,7 @@
 		5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
 		56173F3B4C47A44171AD4425 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
-		5F89890087A78DBC336E90DF /* TryOnView.swift.bak */ = {isa = PBXFileReference; path = TryOnView.swift.bak; sourceTree = "<group>"; };
+		5F89890087A78DBC336E90DF /* TryOnView.swift.bak */ = {isa = PBXFileReference; lastKnownFileType = text; path = TryOnView.swift.bak; sourceTree = "<group>"; };
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKSettingsView.swift; sourceTree = "<group>"; };
@@ -239,7 +239,7 @@
 		DEB55ADD2421C6AF55D2214F /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassifierService.swift; sourceTree = "<group>"; };
 		E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStorageService.swift; sourceTree = "<group>"; };
-		E5DA2B73780830BFB63B795E /* PersonalShooperLocalDebug.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PersonalShooperLocalDebug.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5DA2B73780830BFB63B795E /* PersonalShooper Debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "PersonalShooper Debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0193CFAD6A6CBFF02EB135C /* AppSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecrets.swift; sourceTree = "<group>"; };
 		F8B211635931589A61159A50 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F8D383BDD5CF127A217023EF /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
@@ -509,7 +509,7 @@
 			isa = PBXGroup;
 			children = (
 				73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */,
-				E5DA2B73780830BFB63B795E /* PersonalShooperLocalDebug.app */,
+				E5DA2B73780830BFB63B795E /* PersonalShooper Debug.app */,
 				D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */,
 			);
 			name = Products;
@@ -765,7 +765,7 @@
 			packageProductDependencies = (
 			);
 			productName = PersonalShooperLocalDebug;
-			productReference = E5DA2B73780830BFB63B795E /* PersonalShooperLocalDebug.app */;
+			productReference = E5DA2B73780830BFB63B795E /* PersonalShooper Debug.app */;
 			productType = "com.apple.product-type.application";
 		};
 		7C0A0F217713BCEEDE032529 /* PersonalShooper */ = {
@@ -817,7 +817,6 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					40C239001D7CCE8C6E068655 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					7C0A0F217713BCEEDE032529 = {
@@ -1041,8 +1040,10 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Personal Shopper";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1234,8 +1235,10 @@
 				CODE_SIGN_ENTITLEMENTS = PersonalShooper/PersonalShooper.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = PersonalShooper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Personal Shopper";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
