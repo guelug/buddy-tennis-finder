@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidad — LunaCycle</title>
+  <meta name="description" content="Política de Privacidad de LunaCycle. Conoce cómo protegemos tus datos personales, fotos y conversaciones.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z'/%3E%3Cpath d='M12 6v6l4 2'/%3E%3C/svg%3E">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            luna: {
+              50: '#f8f7fb', 100: '#f0eef5', 200: '#e2deed', 300: '#c9c2db',
+              400: '#a89bc4', 500: '#8b7ab0', 600: '#6e5c96', 700: '#584a78',
+              800: '#4a3f64', 900: '#3f3654', 950: '#282236',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 0.75rem; color: #1e293b; }
+    .prose h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #334155; }
+    .prose p { margin-bottom: 0.75rem; line-height: 1.7; color: #475569; }
+    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; color: #475569; }
+    .prose li { margin-bottom: 0.25rem; }
+    .lang-toggle button.active { background-color: #584a78; color: white; }
+  </style>
+</head>
+<body class="font-sans text-slate-800 antialiased bg-white">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-luna-700 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+        </div>
+        <span class="font-semibold text-lg tracking-tight">LunaCycle</span>
+      </a>
+      <div class="flex items-center gap-6 text-sm font-medium text-slate-600">
+        <a href="index.html" class="hover:text-luna-700 transition-colors">Home</a>
+        <a href="support.html" class="hover:text-luna-700 transition-colors">Support</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Language Toggle -->
+  <div class="pt-28 pb-4 max-w-3xl mx-auto px-6">
+    <div class="lang-toggle flex gap-2 bg-slate-100 rounded-full p-1 w-fit">
+      <button onclick="showLang('es')" id="btn-es" class="active px-5 py-2 rounded-full text-sm font-semibold transition-colors">Español</button>
+      <button onclick="showLang('en')" id="btn-en" class="px-5 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">English</button>
+    </div>
+  </div>
+
+  <!-- Spanish Content -->
+  <div id="content-es" class="max-w-3xl mx-auto px-6 pb-24 prose">
+    <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Política de Privacidad</h1>
+    <p class="text-sm text-slate-400 mb-8">Última actualización: 9 de mayo de 2025</p>
+
+    <p>En <strong>LunaCycle</strong>, tu privacidad es nuestra prioridad. Esta Política de Privacidad describe qué datos recopilamos, cómo los usamos, cómo los protegemos y qué derechos tienes sobre ellos. Al usar LunaCycle, aceptas los términos descritos en este documento.</p>
+
+    <h2>1. Datos que recopilamos</h2>
+    <h3>1.1 Fotos personales</h3>
+    <p>La app puede solicitar acceso a tu cámara o biblioteca de fotos para:</p>
+    <ul>
+      <li>Crear tu perfil de estilo (fotos de rostro y cuerpo completo).</li>
+      <li>Agregar prendas a tu armario virtual.</li>
+      <li>Usar la función de prueba virtual (Virtual Try-On).</li>
+    </ul>
+    <p><strong>Todas las fotos se almacenan localmente en tu dispositivo</strong> mediante SwiftData. No subimos tus fotos a ningún servidor propio ni las compartimos con terceros, salvo lo indicado en la sección de Try-On.</p>
+
+    <h3>1.2 Preferencias de estilo y perfil</h3>
+    <p>Recopilamos información que tú proporcionas voluntariamente, como:</p>
+    <ul>
+      <li>Preferencias de estilo, colores favoritos, tallas y presupuesto.</li>
+      <li>Resultados del análisis de tono de piel (realizado localmente con Vision).</li>
+      <li>Paleta personal de colores recomendada.</li>
+    </ul>
+    <p>Esta información se guarda exclusivamente en tu dispositivo.</p>
+
+    <h3>1.3 Conversaciones con el AI Stylist</h3>
+    <p>Las conversaciones con Luna (AI Stylist) se almacenan localmente en SwiftData para que puedas revisar tu historial. <strong>En iOS 26+, el procesamiento del chat es completamente local</strong> mediante Apple Foundation Models. En versiones anteriores, se utilizan respuestas contextuales locales sin enviar datos a la nube.</p>
+
+    <h3>1.4 Datos de uso anónimos</h3>
+    <p>Podemos recopilar métricas de uso anónimas (por ejemplo, frecuencia de uso de funciones) mediante herramientas de análisis de Apple (si están habilitadas) para mejorar la app. Estos datos no te identifican personalmente.</p>
+
+    <h2>2. Uso de datos y servicios de terceros</h2>
+    <h3>2.1 Gemini API (Virtual Try-On)</h3>
+    <p>La función de prueba virtual utiliza la API de Google Gemini para generar imágenes de ropa sobre tu foto. Al usar esta función:</p>
+    <ul>
+      <li>Tu foto de referencia y la imagen de la prenda se envían a los servidores de Google.</li>
+      <li>Google procesa estas imágenes según sus propios términos y políticas de privacidad.</li>
+      <li>Te recomendamos revisar la <a href="https://policies.google.com/privacy" class="text-luna-700 underline" target="_blank">Política de Privacidad de Google</a>.</li>
+    </ul>
+    <p>El uso de Virtual Try-On es opcional y requiere tu consentimiento explícito.</p>
+
+    <h3>2.2 StoreKit (suscripciones)</h3>
+    <p>Los pagos y suscripciones se gestionan directamente por Apple mediante StoreKit 2. LunaCycle no accede ni almacena información de pago (tarjetas, cuentas bancarias, etc.). Apple gestiona todos los datos de facturación según su política de privacidad.</p>
+
+    <h2>3. Almacenamiento y seguridad</h2>
+    <h3>3.1 Almacenamiento local</h3>
+    <p>Todos tus datos personales (fotos, conversaciones, preferencias, armario) se almacenan localmente en tu dispositivo usando <strong>SwiftData</strong>. No mantenemos servidores de backend ni bases de datos en la nube para tu contenido personal.</p>
+
+    <h3>3.2 Seguridad</h3>
+    <p>Aprovechamos las protecciones de iOS:</p>
+    <ul>
+      <li>Encriptación de datos en reposo proporcionada por el sistema operativo.</li>
+      <li>Acceso a fotos y cámara protegido por permisos explícitos del usuario.</li>
+      <li>Face ID / Touch ID pueden proteger el acceso a la app si lo configuras en iOS.</li>
+    </ul>
+
+    <h2>4. Tus derechos (GDPR / CCPA)</h2>
+    <p>Dependiendo de tu jurisdicción, tienes los siguientes derechos sobre tus datos:</p>
+    <ul>
+      <li><strong>Acceso:</strong> Puedes ver todos tus datos dentro de la app.</li>
+      <li><strong>Rectificación:</strong> Puedes editar tu perfil, preferencias y armario en cualquier momento.</li>
+      <li><strong>Eliminación (derecho al olvido):</strong> Puedes eliminar conversaciones individuales o toda tu cuenta (y sus datos asociados) desde la app. Al desinstalar la app, todos los datos locales se eliminan.</li>
+      <li><strong>Portabilidad:</strong> Tus datos se almacenan en formato SwiftData local; no ofrecemos exportación automática en la versión actual.</li>
+      <li><strong>Restricción de procesamiento:</strong> Puedes desactivar funciones específicas (como Try-On o análisis de fotos) en cualquier momento.</li>
+      <li><strong>Revocación de consentimiento:</strong> Puedes revocar permisos de cámara, fotos o notificaciones desde la configuración de iOS.</li>
+    </ul>
+
+    <h2>5. Retención de datos</h2>
+    <p>Los datos se retienen mientras tengas la app instalada y no los elimines manualmente. Si desinstalas LunaCycle, todos los datos locales se eliminan permanentemente. No conservamos copias en servidores propios.</p>
+
+    <h2>6. Menores de edad</h2>
+    <p>LunaCycle no está dirigida a menores de 13 años. No recopilamos intencionalmente datos de menores. Si descubrimos que hemos recopilado datos de un menor, los eliminaremos de inmediato.</p>
+
+    <h2>7. Cambios en esta política</h2>
+    <p>Podemos actualizar esta Política de Privacidad ocasionalmente. Te notificaremos dentro de la app o mediante la web si los cambios son significativos. La fecha de "última actualización" en la parte superior indica la versión vigente.</p>
+
+    <h2>8. Contacto</h2>
+    <p>Si tienes preguntas, dudas o solicitudes relacionadas con esta política o tus datos personales, contáctanos:</p>
+    <ul>
+      <li>Email: <a href="mailto:support@lunacycle.app" class="text-luna-700 underline">support@lunacycle.app</a></li>
+      <li>GitHub Issues: <a href="https://github.com/guelug/buddy-tennis-finder/issues" class="text-luna-700 underline" target="_blank">github.com/guelug/buddy-tennis-finder</a></li>
+    </ul>
+    <p>Responderemos en un plazo máximo de 30 días.</p>
+  </div>
+
+  <!-- English Content -->
+  <div id="content-en" class="max-w-3xl mx-auto px-6 pb-24 prose hidden">
+    <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-2">Privacy Policy</h1>
+    <p class="text-sm text-slate-400 mb-8">Last updated: May 9, 2025</p>
+
+    <p>At <strong>LunaCycle</strong>, your privacy is our top priority. This Privacy Policy describes what data we collect, how we use it, how we protect it, and what rights you have over it. By using LunaCycle, you agree to the terms described in this document.</p>
+
+    <h2>1. Data We Collect</h2>
+    <h3>1.1 Personal Photos</h3>
+    <p>The app may request access to your camera or photo library to:</p>
+    <ul>
+      <li>Create your style profile (face and full-body photos).</li>
+      <li>Add clothing items to your virtual closet.</li>
+      <li>Use the Virtual Try-On feature.</li>
+    </ul>
+    <p><strong>All photos are stored locally on your device</strong> using SwiftData. We do not upload your photos to any own server or share them with third parties, except as noted in the Try-On section.</p>
+
+    <h3>1.2 Style Preferences and Profile</h3>
+    <p>We collect information you voluntarily provide, such as:</p>
+    <ul>
+      <li>Style preferences, favorite colors, sizes, and budget.</li>
+      <li>Skin tone analysis results (performed locally using Vision).</li>
+      <li>Recommended personal color palette.</li>
+    </ul>
+    <p>This information is saved exclusively on your device.</p>
+
+    <h3>1.3 AI Stylist Conversations</h3>
+    <p>Conversations with Luna (AI Stylist) are stored locally in SwiftData so you can review your history. <strong>On iOS 26+, chat processing is fully local</strong> using Apple Foundation Models. On earlier versions, local contextual responses are used without sending data to the cloud.</p>
+
+    <h3>1.4 Anonymous Usage Data</h3>
+    <p>We may collect anonymous usage metrics (for example, feature usage frequency) via Apple's analytics tools (if enabled) to improve the app. This data does not personally identify you.</p>
+
+    <h2>2. Data Use and Third-Party Services</h2>
+    <h3>2.1 Gemini API (Virtual Try-On)</h3>
+    <p>The Virtual Try-On feature uses the Google Gemini API to generate clothing images on your photo. When using this feature:</p>
+    <ul>
+      <li>Your reference photo and the clothing image are sent to Google's servers.</li>
+      <li>Google processes these images according to its own terms and privacy policies.</li>
+      <li>We recommend reviewing <a href="https://policies.google.com/privacy" class="text-luna-700 underline" target="_blank">Google's Privacy Policy</a>.</li>
+    </ul>
+    <p>Use of Virtual Try-On is optional and requires your explicit consent.</p>
+
+    <h3>2.2 StoreKit (Subscriptions)</h3>
+    <p>Payments and subscriptions are managed directly by Apple via StoreKit 2. LunaCycle does not access or store payment information (cards, bank accounts, etc.). Apple handles all billing data according to its privacy policy.</p>
+
+    <h2>3. Storage and Security</h2>
+    <h3>3.1 Local Storage</h3>
+    <p>All your personal data (photos, conversations, preferences, closet) is stored locally on your device using <strong>SwiftData</strong>. We do not maintain backend servers or cloud databases for your personal content.</p>
+
+    <h3>3.2 Security</h3>
+    <p>We leverage iOS protections:</p>
+    <ul>
+      <li>Data-at-rest encryption provided by the operating system.</li>
+      <li>Photo and camera access protected by explicit user permissions.</li>
+      <li>Face ID / Touch ID can protect app access if configured in iOS.</li>
+    </ul>
+
+    <h2>4. Your Rights (GDPR / CCPA)</h2>
+    <p>Depending on your jurisdiction, you have the following rights over your data:</p>
+    <ul>
+      <li><strong>Access:</strong> You can view all your data within the app.</li>
+      <li><strong>Rectification:</strong> You can edit your profile, preferences, and closet at any time.</li>
+      <li><strong>Erasure (right to be forgotten):</strong> You can delete individual conversations or your entire account (and associated data) from the app. Uninstalling the app removes all local data permanently.</li>
+      <li><strong>Portability:</strong> Your data is stored in local SwiftData format; automatic export is not offered in the current version.</li>
+      <li><strong>Restriction of processing:</strong> You can disable specific features (such as Try-On or photo analysis) at any time.</li>
+      <li><strong>Withdrawal of consent:</strong> You can revoke camera, photo, or notification permissions from iOS Settings.</li>
+    </ul>
+
+    <h2>5. Data Retention</h2>
+    <p>Data is retained while you have the app installed and do not manually delete it. If you uninstall LunaCycle, all local data is permanently deleted. We do not keep copies on our own servers.</p>
+
+    <h2>6. Children</h2>
+    <p>LunaCycle is not directed at children under 13. We do not knowingly collect data from children. If we discover we have collected data from a child, we will delete it immediately.</p>
+
+    <h2>7. Changes to This Policy</h2>
+    <p>We may update this Privacy Policy occasionally. We will notify you within the app or via the website if changes are significant. The "last updated" date at the top indicates the current version.</p>
+
+    <h2>8. Contact</h2>
+    <p>If you have questions, concerns, or requests regarding this policy or your personal data, contact us:</p>
+    <ul>
+      <li>Email: <a href="mailto:support@lunacycle.app" class="text-luna-700 underline">support@lunacycle.app</a></li>
+      <li>GitHub Issues: <a href="https://github.com/guelug/buddy-tennis-finder/issues" class="text-luna-700 underline" target="_blank">github.com/guelug/buddy-tennis-finder</a></li>
+    </ul>
+    <p>We will respond within 30 days.</p>
+  </div>
+
+  <script>
+    function showLang(lang) {
+      document.getElementById('content-es').classList.toggle('hidden', lang !== 'es');
+      document.getElementById('content-en').classList.toggle('hidden', lang !== 'en');
+      document.getElementById('btn-es').classList.toggle('active', lang === 'es');
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+      document.documentElement.lang = lang;
+    }
+  </script>
+</body>
+</html>
