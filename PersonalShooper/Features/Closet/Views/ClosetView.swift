@@ -23,7 +23,7 @@ struct ClosetView: View {
             result = result.filter { $0.category == category }
         }
         if !searchText.isEmpty {
-            result = result.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+            result = result.filter { $0.matches(searchText: searchText) }
         }
         return result
     }
@@ -225,7 +225,7 @@ struct ClosetItemCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if let image = item.image {
+            if let image = item.displayImage {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -250,6 +250,13 @@ struct ClosetItemCard: View {
             Text(Strings.categoryDisplayName(item.category, lang))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+
+            if !item.searchHighlightLine.isEmpty {
+                Text(item.searchHighlightLine)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
         .padding(Theme.Spacing.xs)
         .background(Theme.Colors.cardBackground)
@@ -261,4 +268,27 @@ struct ClosetItemCard: View {
 #Preview {
     ClosetView()
         .modelContainer(for: ClothingItem.self, inMemory: true)
+}
+
+private extension ClothingItem {
+    func matches(searchText: String) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+
+        let searchableValues =
+            [name, category.displayName]
+            + colorTags
+            + styleTags
+            + materialTags
+            + occasionTags
+            + detailTags
+            + [metadataSummary, notes].compactMap { $0 }
+
+        return searchableValues.contains { $0.localizedCaseInsensitiveContains(query) }
+    }
+
+    var searchHighlightLine: String {
+        let highlights = Array((colorTags + styleTags + materialTags + occasionTags + detailTags).prefix(3))
+        return highlights.joined(separator: " · ")
+    }
 }

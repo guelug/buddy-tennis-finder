@@ -45,14 +45,25 @@ final class ClothingItem {
     var name: String
     var categoryRaw: String
     var imageData: Data?
+    var realReferenceImageData: Data?
     var colorTags: [String]
     var styleTags: [String]
+    var materialTags: [String]
+    var occasionTags: [String]
+    var detailTags: [String]
     var brandName: String?
     var notes: String?
+    var metadataSummary: String?
     var createdAt: Date
     var isFavorite: Bool
     var timesWorn: Int
     var lastWornAt: Date?
+    var recommendationAppearanceCount: Int
+    var recommendationSuccessfulWearCount: Int
+    var recommendationIgnoredCount: Int
+    var hiddenUsageScore: Double
+    var lastRecommendedAt: Date?
+    var lastConfirmedWearAt: Date?
 
     var category: ClothingCategory {
         get { ClothingCategory(rawValue: categoryRaw) ?? .tops }
@@ -69,6 +80,34 @@ final class ClothingItem {
         }
     }
 
+    var realReferenceImage: UIImage? {
+        get {
+            guard let data = realReferenceImageData else { return nil }
+            return UIImage(data: data)
+        }
+        set {
+            realReferenceImageData = StorageBudgetManager.normalizedImageData(newValue)
+        }
+    }
+
+    var displayImage: UIImage? {
+        realReferenceImage ?? image
+    }
+
+    var hiddenUsagePercentage: Int {
+        Int(hiddenUsageScore.rounded())
+    }
+
+    var hasRealReferenceImage: Bool {
+        realReferenceImageData != nil
+    }
+
+    var shouldSuggestSelling: Bool {
+        recommendationAppearanceCount >= 3
+            && recommendationSuccessfulWearCount == 0
+            && recommendationIgnoredCount >= 2
+    }
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -76,21 +115,168 @@ final class ClothingItem {
         image: UIImage? = nil,
         colorTags: [String] = [],
         styleTags: [String] = [],
+        materialTags: [String] = [],
+        occasionTags: [String] = [],
+        detailTags: [String] = [],
         brandName: String? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        metadataSummary: String? = nil
     ) {
         self.id = id
         self.name = name
         self.categoryRaw = category.rawValue
         self.imageData = StorageBudgetManager.normalizedClothingImageData(image)
+        self.realReferenceImageData = nil
         self.colorTags = colorTags
         self.styleTags = styleTags
+        self.materialTags = materialTags
+        self.occasionTags = occasionTags
+        self.detailTags = detailTags
         self.brandName = brandName
         self.notes = notes
+        self.metadataSummary = metadataSummary
         self.createdAt = Date()
         self.isFavorite = false
         self.timesWorn = 0
         self.lastWornAt = nil
+        self.recommendationAppearanceCount = 0
+        self.recommendationSuccessfulWearCount = 0
+        self.recommendationIgnoredCount = 0
+        self.hiddenUsageScore = 0
+        self.lastRecommendedAt = nil
+        self.lastConfirmedWearAt = nil
+    }
+
+    func registerRecommendationAppearance(at date: Date = Date()) {
+        recommendationAppearanceCount += 1
+        lastRecommendedAt = date
+        recalculateHiddenUsageScore()
+    }
+
+    func registerConfirmedWear(at date: Date = Date(), afterRecommendation: Bool = false) {
+        timesWorn += 1
+        lastWornAt = date
+        lastConfirmedWearAt = date
+
+        if afterRecommendation {
+            recommendationSuccessfulWearCount += 1
+        }
+
+        recalculateHiddenUsageScore()
+    }
+
+    func registerIgnoredRecommendation() {
+        recommendationIgnoredCount += 1
+        recalculateHiddenUsageScore()
+    }
+
+    func makeProgressMission(
+        title: String? = nil,
+        baselineImage: UIImage?,
+        targetMonths: Int,
+        notes: String? = nil
+    ) -> StyleProgressMission {
+        StyleProgressMission(
+            title: title ?? name,
+            linkedItemIDs: [id],
+            baselineImage: baselineImage,
+            targetMonths: targetMonths,
+            notes: notes
+        )
+    }
+
+    func recalculateHiddenUsageScore() {
+        guard recommendationAppearanceCount > 0 else {
+            hiddenUsageScore = min(Double(timesWorn) * 12, 100)
+            return
+        }
+
+        let successRatio = Double(recommendationSuccessfulWearCount) / Double(max(recommendationAppearanceCount, 1))
+        let ignorePenalty = min(Double(recommendationIgnoredCount) * 0.12, 0.4)
+        let wearBonus = min(Double(timesWorn) * 0.03, 0.25)
+        hiddenUsageScore = max(0, min((successRatio + wearBonus - ignorePenalty) * 100, 100))
+    }
+}
+
+@Model
+final class StyleProgressMission {
+    var id: UUID
+    var title: String
+    var linkedItemIDStrings: [String]
+    var baselineImageData: Data?
+    var followUpImageData: Data?
+    var detectedItemIDStrings: [String]
+    var notes: String?
+    var targetMonths: Int
+    var createdAt: Date
+    var dueAt: Date
+    var completedAt: Date?
+    var isActive: Bool
+    var reminderIdentifier: String?
+
+    var linkedItemIDs: [UUID] {
+        get { linkedItemIDStrings.compactMap(UUID.init(uuidString:)) }
+        set { linkedItemIDStrings = newValue.map(\.uuidString) }
+    }
+
+    var detectedItemIDs: [UUID] {
+        get { detectedItemIDStrings.compactMap(UUID.init(uuidString:)) }
+        set { detectedItemIDStrings = newValue.map(\.uuidString) }
+    }
+
+    var baselineImage: UIImage? {
+        get {
+            guard let baselineImageData else { return nil }
+            return UIImage(data: baselineImageData)
+        }
+        set {
+            baselineImageData = StorageBudgetManager.normalizedImageData(newValue)
+        }
+    }
+
+    var followUpImage: UIImage? {
+        get {
+            guard let followUpImageData else { return nil }
+            return UIImage(data: followUpImageData)
+        }
+        set {
+            followUpImageData = StorageBudgetManager.normalizedImageData(newValue)
+        }
+    }
+
+    var isDueForFollowUp: Bool {
+        isActive && Date() >= dueAt
+    }
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        linkedItemIDs: [UUID],
+        baselineImage: UIImage? = nil,
+        targetMonths: Int,
+        notes: String? = nil,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.linkedItemIDStrings = linkedItemIDs.map(\.uuidString)
+        self.baselineImageData = StorageBudgetManager.normalizedImageData(baselineImage)
+        self.followUpImageData = nil
+        self.detectedItemIDStrings = []
+        self.notes = notes
+        self.targetMonths = targetMonths
+        self.createdAt = createdAt
+        self.dueAt = Calendar.current.date(byAdding: .month, value: max(targetMonths, 1), to: createdAt) ?? createdAt
+        self.completedAt = nil
+        self.isActive = true
+        self.reminderIdentifier = nil
+    }
+
+    func complete(with image: UIImage?, detectedItemIDs: [UUID] = []) {
+        followUpImage = image
+        self.detectedItemIDs = detectedItemIDs
+        completedAt = Date()
+        isActive = false
     }
 }
 

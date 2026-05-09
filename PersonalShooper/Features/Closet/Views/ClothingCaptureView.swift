@@ -16,6 +16,11 @@ struct ClothingCaptureView: View {
     @State private var isPreparingImage = false
     @State private var detectedCategory: ClothingCategory?
     @State private var detectedColors: [String] = []
+    @State private var detectedStyleTags: [String] = []
+    @State private var detectedMaterialTags: [String] = []
+    @State private var detectedOccasionTags: [String] = []
+    @State private var detectedDetailTags: [String] = []
+    @State private var detectedSummary: String = ""
     @State private var showCamera = false
     @State private var showPhotoPicker = false
     @State private var photoPickerSource: UIImagePickerController.SourceType = .photoLibrary
@@ -176,27 +181,48 @@ struct ClothingCaptureView: View {
                     }
 
                 if currentStep == .details, let category = detectedCategory {
-                    VStack(spacing: Theme.Spacing.xs) {
-                        Text(text("Categoría detectada:", "Detected category:"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                        VStack(spacing: Theme.Spacing.xs) {
+                            Text(text("Categoría detectada:", "Detected category:"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
-                        HStack {
-                            Image(systemName: category.icon)
-                            Text(Strings.categoryDisplayName(category, lang))
+                            HStack {
+                                Image(systemName: category.icon)
+                                Text(Strings.categoryDisplayName(category, lang))
+                            }
+                            .font(.headline)
+                            .foregroundStyle(Theme.Colors.primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Theme.Colors.primary.opacity(0.1))
+                            .clipShape(Capsule())
                         }
-                        .font(.headline)
-                        .foregroundStyle(Theme.Colors.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Theme.Colors.primary.opacity(0.1))
-                        .clipShape(Capsule())
-                    }
 
-                    if !detectedColors.isEmpty {
-                        Text("\(text("Colores", "Colors")): \(detectedColors.joined(separator: ", "))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            Text(text("Nombre", "Name"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            TextField(text("Ej. Blazer azul marino", "Example: Navy blazer"), text: $itemName)
+                                .textInputAutocapitalization(.words)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        }
+
+                        if !detectedSummary.isEmpty {
+                            Text(detectedSummary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        tagSection(title: text("Colores", "Colors"), tags: detectedColors)
+                        tagSection(title: text("Estilo", "Style"), tags: detectedStyleTags)
+                        tagSection(title: text("Materiales", "Materials"), tags: detectedMaterialTags)
+                        tagSection(title: text("Ocasiones", "Occasions"), tags: detectedOccasionTags)
+                        tagSection(title: text("Detalles", "Details"), tags: detectedDetailTags)
                     }
                 }
             }
@@ -296,6 +322,19 @@ struct ClothingCaptureView: View {
             }
         }
         .disabled(isPreparingImage || isAnalyzing)
+    }
+
+    @ViewBuilder
+    private func tagSection(title: String, tags: [String]) -> some View {
+        if !tags.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                FlexibleTagLayout(tags: tags)
+            }
+        }
     }
 
     private func text(_ spanish: String, _ english: String) -> String {
@@ -407,12 +446,26 @@ struct ClothingCaptureView: View {
             await MainActor.run {
                 detectedCategory = result.category
                 detectedColors = result.colors
+                detectedStyleTags = result.styleTags
+                detectedMaterialTags = result.materialTags
+                detectedOccasionTags = result.occasionTags
+                detectedDetailTags = result.detailTags
+                detectedSummary = result.summary
+                if itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    itemName = result.suggestedName
+                }
                 isAnalyzing = false
             }
         } catch {
             await MainActor.run {
                 errorMessage = "Error al analizar la imagen: \(error.localizedDescription)"
                 detectedCategory = .tops
+                detectedColors = []
+                detectedStyleTags = []
+                detectedMaterialTags = []
+                detectedOccasionTags = []
+                detectedDetailTags = []
+                detectedSummary = ""
                 isAnalyzing = false
             }
         }
@@ -432,7 +485,12 @@ struct ClothingCaptureView: View {
             name: itemName.isEmpty ? "Prenda sin nombre" : itemName,
             category: detectedCategory ?? .tops,
             image: image,
-            colorTags: detectedColors
+            colorTags: detectedColors,
+            styleTags: detectedStyleTags,
+            materialTags: detectedMaterialTags,
+            occasionTags: detectedOccasionTags,
+            detailTags: detectedDetailTags,
+            metadataSummary: detectedSummary.nilIfBlank
         )
 
         guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
@@ -448,7 +506,12 @@ struct ClothingCaptureView: View {
             name: itemName.isEmpty ? "Prenda sin nombre" : itemName,
             category: detectedCategory ?? .tops,
             image: image,
-            colorTags: detectedColors
+            colorTags: detectedColors,
+            styleTags: detectedStyleTags,
+            materialTags: detectedMaterialTags,
+            occasionTags: detectedOccasionTags,
+            detailTags: detectedDetailTags,
+            metadataSummary: detectedSummary.nilIfBlank
         )
 
         modelContext.insert(item)
@@ -461,6 +524,33 @@ struct ClothingCaptureView: View {
                 ? "No he podido guardar la prenda: \(error.localizedDescription)"
                 : "I couldn't save the garment: \(error.localizedDescription)"
         }
+    }
+}
+
+private struct FlexibleTagLayout: View {
+    let tags: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.xs) {
+                ForEach(tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.caption)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

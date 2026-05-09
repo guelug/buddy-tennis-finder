@@ -509,13 +509,23 @@ final class ChatViewModel {
         let classification = try? await classificationService.classifyClothing(image: compressedImage)
         let category = classification?.category ?? detectCategoryFromText(message) ?? .tops
         let colors = classification?.colors ?? []
+        let styleTags = classification?.styleTags ?? []
+        let materialTags = classification?.materialTags ?? []
+        let occasionTags = classification?.occasionTags ?? []
+        let detailTags = classification?.detailTags ?? []
+        let metadataSummary = classification?.summary
         let itemName = extractClothingNameForCloset(from: message, category: category, language: appState.preferredLanguage)
 
         let additionalBytes = StorageBudgetManager.incrementalBytesForClothingItem(
             name: itemName,
             category: category,
             image: compressedImage,
-            colorTags: colors
+            colorTags: colors,
+            styleTags: styleTags,
+            materialTags: materialTags,
+            occasionTags: occasionTags,
+            detailTags: detailTags,
+            metadataSummary: metadataSummary
         )
 
         guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
@@ -530,7 +540,12 @@ final class ChatViewModel {
             name: itemName,
             category: category,
             image: compressedImage,
-            colorTags: colors
+            colorTags: colors,
+            styleTags: styleTags,
+            materialTags: materialTags,
+            occasionTags: occasionTags,
+            detailTags: detailTags,
+            metadataSummary: metadataSummary
         )
 
         modelContext.insert(item)

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct PersonalShooperApp: App {
@@ -11,7 +12,8 @@ struct PersonalShooperApp: App {
             Conversation.self,
             Message.self,
             ClothingItem.self,
-            TryOnResult.self
+            TryOnResult.self,
+            StyleProgressMission.self
         ])
         
         do {
@@ -41,6 +43,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \User.createdAt) private var users: [User]
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
+    @Query(sort: \StyleProgressMission.createdAt, order: .reverse) private var progressMissions: [StyleProgressMission]
 
     private var preferredColorScheme: ColorScheme? {
         switch AppTheme(rawValue: storedTheme) ?? .system {
@@ -75,11 +78,15 @@ struct ContentView: View {
             Task {
                 await appState.refreshPremiumStatus()
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
+                await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 applyPendingLaunchDestinationIfNeeded()
+                Task {
+                    await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
+                }
             }
         }
         .onChange(of: isReady) { _, ready in
@@ -96,6 +103,11 @@ struct ContentView: View {
         .onChange(of: clothingItems.count) { _, _ in
             Task {
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
+            }
+        }
+        .onChange(of: progressMissions.count) { _, _ in
+            Task {
+                await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
             }
         }
     }
@@ -133,6 +145,63 @@ struct ContentView: View {
             selectedTab = 2
         case .tryOn:
             selectedTab = 3
+        }
+    }
+}
+
+@MainActor
+private final class StyleProgressReminderCoordinator {
+    static let shared = StyleProgressReminderCoordinator()
+
+    private let center = UNUserNotificationCenter.current()
+
+    func sync(missions: [StyleProgressMission]) async {
+        let activeMissions = missions.filter(\.isActive)
+        let activeIdentifiers = Set(activeMissions.compactMap(\.reminderIdentifier))
+
+        let pending = await center.pendingNotificationRequests()
+        let staleIdentifiers = pending
+            .map(\.identifier)
+            .filter { $0.hasPrefix("style-progress-") && !activeIdentifiers.contains($0) }
+
+        for identifier in staleIdentifiers {
+            center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        }
+
+        guard !activeMissions.isEmpty else { return }
+
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            break
+        case .denied:
+            return
+        case .notDetermined:
+            let granted = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+            guard granted == true else { return }
+        @unknown default:
+            return
+        }
+
+        for mission in activeMissions where mission.reminderIdentifier == nil {
+            let identifier = "style-progress-\(mission.id.uuidString)"
+            let content = UNMutableNotificationContent()
+            content.title = "Comparativa lista"
+            content.body = "Ya puedes subir la nueva foto para comparar tu evolución con \(mission.title)."
+            content.sound = .default
+
+            let interval = max(mission.dueAt.timeIntervalSinceNow, 60)
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+            do {
+                try await center.add(request)
+                mission.reminderIdentifier = identifier
+            } catch {
+                #if DEBUG
+                print("StyleProgressReminderCoordinator failed to schedule reminder: \(error.localizedDescription)")
+                #endif
+            }
         }
     }
 }

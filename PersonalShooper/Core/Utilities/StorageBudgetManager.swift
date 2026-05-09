@@ -13,6 +13,7 @@ enum StorageBudgetManager {
         let users = (try? modelContext.fetch(FetchDescriptor<User>())) ?? []
         let clothingItems = (try? modelContext.fetch(FetchDescriptor<ClothingItem>())) ?? []
         let tryOnResults = (try? modelContext.fetch(FetchDescriptor<TryOnResult>())) ?? []
+        let progressMissions = (try? modelContext.fetch(FetchDescriptor<StyleProgressMission>())) ?? []
 
         let userUsage = users.reduce(into: Int64.zero) { partialResult, user in
             partialResult += estimatedSize(of: user)
@@ -23,8 +24,11 @@ enum StorageBudgetManager {
         let tryOnUsage = tryOnResults.reduce(into: Int64.zero) { partialResult, result in
             partialResult += estimatedSize(of: result)
         }
+        let missionUsage = progressMissions.reduce(into: Int64.zero) { partialResult, mission in
+            partialResult += estimatedSize(of: mission)
+        }
 
-        return userUsage + clothingUsage + tryOnUsage
+        return userUsage + clothingUsage + tryOnUsage + missionUsage
     }
 
     static func projectedUsageBytes(modelContext: ModelContext, additionalBytes: Int64) -> Int64 {
@@ -84,13 +88,24 @@ enum StorageBudgetManager {
 
     static func estimatedSize(of item: ClothingItem) -> Int64 {
         Int64(item.imageData?.count ?? 0)
+            + Int64(item.realReferenceImageData?.count ?? 0)
             + stringBytes(item.id.uuidString)
             + stringBytes(item.name)
             + stringBytes(item.categoryRaw)
             + collectionBytes(item.colorTags)
             + collectionBytes(item.styleTags)
+            + collectionBytes(item.materialTags)
+            + collectionBytes(item.occasionTags)
+            + collectionBytes(item.detailTags)
             + stringBytes(item.brandName)
             + stringBytes(item.notes)
+            + stringBytes(item.metadataSummary)
+            + intBytes(item.recommendationAppearanceCount)
+            + intBytes(item.recommendationSuccessfulWearCount)
+            + intBytes(item.recommendationIgnoredCount)
+            + doubleBytes(item.hiddenUsageScore)
+            + dateBytes(item.lastRecommendedAt)
+            + dateBytes(item.lastConfirmedWearAt)
     }
 
     static func estimatedSize(of result: TryOnResult) -> Int64 {
@@ -103,6 +118,21 @@ enum StorageBudgetManager {
             + stringBytes(result.clothingCategoryRaw)
             + stringBytes(result.closetItemIDString)
             + stringBytes(result.referenceDescriptor)
+    }
+
+    static func estimatedSize(of mission: StyleProgressMission) -> Int64 {
+        Int64(mission.baselineImageData?.count ?? 0)
+            + Int64(mission.followUpImageData?.count ?? 0)
+            + stringBytes(mission.id.uuidString)
+            + stringBytes(mission.title)
+            + collectionBytes(mission.linkedItemIDStrings)
+            + collectionBytes(mission.detectedItemIDStrings)
+            + stringBytes(mission.notes)
+            + intBytes(mission.targetMonths)
+            + dateBytes(mission.createdAt)
+            + dateBytes(mission.dueAt)
+            + dateBytes(mission.completedAt)
+            + stringBytes(mission.reminderIdentifier)
     }
 
     static func normalizedImageData(_ image: UIImage?) -> Data? {
@@ -178,18 +208,45 @@ enum StorageBudgetManager {
         name: String,
         category: ClothingCategory,
         image: UIImage?,
+        realReferenceImage: UIImage? = nil,
         colorTags: [String],
         styleTags: [String] = [],
+        materialTags: [String] = [],
+        occasionTags: [String] = [],
+        detailTags: [String] = [],
         brandName: String? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        metadataSummary: String? = nil
     ) -> Int64 {
         Int64(normalizedClothingImageData(image)?.count ?? 0)
+            + Int64(normalizedImageData(realReferenceImage)?.count ?? 0)
             + stringBytes(name)
             + stringBytes(category.rawValue)
             + collectionBytes(colorTags)
             + collectionBytes(styleTags)
+            + collectionBytes(materialTags)
+            + collectionBytes(occasionTags)
+            + collectionBytes(detailTags)
             + stringBytes(brandName)
             + stringBytes(notes)
+            + stringBytes(metadataSummary)
+            + 36
+    }
+
+    static func incrementalBytesForProgressMission(
+        title: String,
+        linkedItemIDs: [UUID],
+        baselineImage: UIImage?,
+        followUpImage: UIImage? = nil,
+        notes: String? = nil,
+        reminderIdentifier: String? = nil
+    ) -> Int64 {
+        Int64(normalizedImageData(baselineImage)?.count ?? 0)
+            + Int64(normalizedImageData(followUpImage)?.count ?? 0)
+            + stringBytes(title)
+            + collectionBytes(linkedItemIDs.map(\.uuidString))
+            + stringBytes(notes)
+            + stringBytes(reminderIdentifier)
             + 36
     }
 
@@ -226,6 +283,18 @@ enum StorageBudgetManager {
         values.reduce(into: Int64.zero) { partialResult, value in
             partialResult += Int64(value.utf8.count)
         }
+    }
+
+    private static func intBytes(_ value: Int) -> Int64 {
+        Int64(MemoryLayout<Int>.size)
+    }
+
+    private static func doubleBytes(_ value: Double) -> Int64 {
+        Int64(MemoryLayout<Double>.size)
+    }
+
+    private static func dateBytes(_ value: Date?) -> Int64 {
+        value == nil ? 0 : Int64(MemoryLayout<Double>.size)
     }
 
     private static func encodedData(for image: UIImage, preservesAlpha: Bool) -> Data? {
