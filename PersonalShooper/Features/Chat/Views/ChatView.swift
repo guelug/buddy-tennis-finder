@@ -99,6 +99,14 @@ struct ChatView: View {
                     .buttonStyle(.premiumPressable)
                     .accessibilityLabel(text("Nueva conversación", "New conversation"))
                 }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(text("Listo", "Done")) {
+                        isInputFocused = false
+                    }
+                    .fontWeight(.semibold)
+                }
             }
         }
         .task {

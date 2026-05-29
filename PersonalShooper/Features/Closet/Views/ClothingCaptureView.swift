@@ -117,11 +117,12 @@ struct ClothingCaptureView: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
 
-                    Button {
+                    // A plain text button renders as a normal keyboard-bar button. An icon-only
+                    // button renders as a detached floating circle on iOS 26, which felt awkward.
+                    Button(text("Listo", "Done")) {
                         dismissKeyboard()
-                    } label: {
-                        Label(text("Ocultar", "Hide"), systemImage: "keyboard.chevron.compact.down")
                     }
+                    .fontWeight(.semibold)
                 }
             }
             .sheet(isPresented: $showCamera) {
