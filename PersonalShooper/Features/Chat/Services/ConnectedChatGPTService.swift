@@ -3,8 +3,7 @@ import Foundation
 @MainActor
 final class ConnectedChatGPTService: AIChatServiceProtocol {
     private let session: URLSession
-    private let model = "gpt-4.1-mini"
-    private let endpoint = URL(string: "https://api.openai.com/v1/responses")!
+    private let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
 
     init(session: URLSession = .shared) {
         self.session = session
@@ -22,12 +21,17 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 45
 
-        let payload = ResponsesRequest(
-            model: model,
-            instructions: systemPrompt(for: context),
-            input: message
-        )
-        request.httpBody = try JSONEncoder().encode(payload)
+        let payload: [String: Any] = [
+            "model": "gpt-5.5-instant",
+            "messages": [
+                ["role": "system", "content": systemPrompt(for: context)],
+                ["role": "user", "content": message]
+            ],
+            "temperature": 0.35,
+            "max_tokens": 520
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -35,32 +39,20 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
         }
 
         guard (200..<300).contains(httpResponse.statusCode) else {
-            let apiError = try? JSONDecoder().decode(ResponsesErrorEnvelope.self, from: data)
-            throw AIError.responseFailed(apiError?.error.message ?? "HTTP \(httpResponse.statusCode)")
+            let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let errorMessage = (errorJson?["error"] as? [String: Any])?["message"] as? String ?? "HTTP \(httpResponse.statusCode)"
+            throw AIError.responseFailed(errorMessage)
         }
 
-        let decoded = try JSONDecoder().decode(ResponsesResponse.self, from: data)
-        if let outputText = decoded.outputText?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !outputText.isEmpty {
-            return outputText
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let choices = json?["choices"] as? [[String: Any]],
+           let first = choices.first,
+           let message = first["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        let fallbackText = decoded.output
-            .flatMap(\.content)
-            .compactMap { item in
-                if case .outputText(let text) = item {
-                    return text.text
-                }
-                return nil
-            }
-            .joined(separator: "\n")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !fallbackText.isEmpty else {
-            throw AIError.responseFailed("Empty response")
-        }
-
-        return fallbackText
+        throw AIError.responseFailed("Empty response")
     }
 
     private func systemPrompt(for context: ChatContext) -> String {

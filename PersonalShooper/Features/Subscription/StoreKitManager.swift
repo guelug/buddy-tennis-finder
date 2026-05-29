@@ -379,7 +379,7 @@ final class StoreKitManager: ObservableLike {
     }
 
     var isBYOKActive: Bool {
-        (currentTier.hasBYOK || hasLifetimePurchase) && isBYOKConfigured
+        hasBYOKPurchase && isBYOKConfigured
     }
 
     var hasLifetimePurchase: Bool {

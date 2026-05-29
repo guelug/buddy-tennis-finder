@@ -615,11 +615,48 @@ final class ChatViewModel {
     }
 
     private func activeAIService(for appState: AppState) -> AIChatServiceProtocol {
+        // Check if BYOK is enabled and has a preferred provider
+        if appState.isBYOKEnabled {
+            if let preferredProvider = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
+               let provider = BYOKChatService.BYOKProvider(rawValue: preferredProvider) {
+                // Verify the key exists for this provider
+                if hasAPIKey(for: provider) {
+                    return BYOKChatService(provider: provider)
+                }
+            }
+            // Fallback to any configured provider
+            if let provider = firstAvailableBYOKProvider() {
+                return BYOKChatService(provider: provider)
+            }
+        }
+
+        // Legacy ChatGPT connection
         if appState.useConnectedChatGPTForChat && appState.isChatGPTConnected {
             return ConnectedChatGPTService()
         }
 
         return AIChatServiceFactory.createService()
+    }
+
+    private func hasAPIKey(for provider: BYOKChatService.BYOKProvider) -> Bool {
+        let key: String?
+        switch provider {
+        case .gemini: key = KeychainHelper.load(for: "gemini_api_key")
+        case .openai: key = KeychainHelper.load(for: "openai_api_key")
+        case .anthropic: key = KeychainHelper.load(for: "anthropic_api_key")
+        case .kimi: key = KeychainHelper.load(for: "kimi_api_key")
+        case .openrouter: key = KeychainHelper.load(for: "openrouter_api_key")
+        }
+        return key?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private func firstAvailableBYOKProvider() -> BYOKChatService.BYOKProvider? {
+        for provider in BYOKChatService.BYOKProvider.allCases {
+            if hasAPIKey(for: provider) {
+                return provider
+            }
+        }
+        return nil
     }
 
     private func fetchClosetSummaries(modelContext: ModelContext) -> [ClothingItemSummary] {

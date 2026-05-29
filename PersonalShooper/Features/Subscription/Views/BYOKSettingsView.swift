@@ -222,11 +222,11 @@ struct BYOKSettingsView: View {
                 // Info Section
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
-                        InfoRow(icon: "sparkles", title: "Google Gemini", description: text("Para try-ons realistas y chat.", "For realistic try-ons and chat."))
-                        InfoRow(icon: "brain.head.profile", title: "OpenAI", description: text("Para chat GPT-4 y generación de imágenes.", "For GPT-4 chat and image generation."))
-                        InfoRow(icon: "flame.fill", title: "Anthropic Claude", description: text("Para chat con Claude 3.", "For Claude 3 chat."))
-                        InfoRow(icon: "moon.fill", title: "Kimi", description: text("Para chat con Kimi k1.5.", "For Kimi k1.5 chat."))
-                        InfoRow(icon: "network", title: "OpenRouter", description: text("Acceso a múltiples modelos con una sola key.", "Access multiple models with one key."))
+                        InfoRow(icon: "sparkles", title: "Google Gemini", description: text("Chat inteligente y análisis de imágenes.", "Smart chat and image analysis."))
+                        InfoRow(icon: "brain.head.profile", title: "OpenAI", description: text("Chat avanzado y generación de imágenes.", "Advanced chat and image generation."))
+                        InfoRow(icon: "flame.fill", title: "Anthropic Claude", description: text("Chat con razonamiento profundo.", "Deep reasoning chat."))
+                        InfoRow(icon: "moon.fill", title: "Kimi", description: text("Chat con contexto extendido.", "Extended context chat."))
+                        InfoRow(icon: "network", title: "OpenRouter", description: text("Acceso a múltiples proveedores con una sola key.", "Access multiple providers with one key."))
                         InfoRow(icon: "lock.shield", title: text("Seguro", "Secure"), description: text("Las claves se guardan en el Keychain de iOS.", "Keys are stored in iOS Keychain."))
                     }
                 } header: {

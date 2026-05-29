@@ -1,0 +1,290 @@
+import Foundation
+
+@MainActor
+final class BYOKChatService: AIChatServiceProtocol {
+    private let session: URLSession
+    private let provider: BYOKProvider
+
+    enum BYOKProvider: String, CaseIterable {
+        case gemini = "gemini"
+        case openai = "openai"
+        case anthropic = "anthropic"
+        case kimi = "kimi"
+        case openrouter = "openrouter"
+
+        var chatModel: String {
+            switch self {
+            case .gemini: return "gemini-3.5-flash-preview"
+            case .openai: return "gpt-5.5-instant"
+            case .anthropic: return "claude-sonnet-4-6"
+            case .kimi: return "kimi-2-6"
+            case .openrouter: return "openai/gpt-5.5-instant"
+            }
+        }
+
+        var endpoint: URL {
+            switch self {
+            case .gemini:
+                return URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-preview:generateContent")!
+            case .openai:
+                return URL(string: "https://api.openai.com/v1/chat/completions")!
+            case .anthropic:
+                return URL(string: "https://api.anthropic.com/v1/messages")!
+            case .kimi:
+                return URL(string: "https://api.moonshot.cn/v1/chat/completions")!
+            case .openrouter:
+                return URL(string: "https://openrouter.ai/api/v1/chat/completions")!
+            }
+        }
+    }
+
+    init(provider: BYOKProvider, session: URLSession = .shared) {
+        self.provider = provider
+        self.session = session
+    }
+
+    func sendMessage(_ message: String, context: ChatContext) async throws -> String {
+        guard let apiKey = loadAPIKey(for: provider),
+              !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AIError.modelNotAvailable
+        }
+
+        switch provider {
+        case .gemini:
+            return try await sendGeminiMessage(message, context: context, apiKey: apiKey)
+        case .openai, .openrouter:
+            return try await sendOpenAICompatibleMessage(message, context: context, apiKey: apiKey)
+        case .anthropic:
+            return try await sendAnthropicMessage(message, context: context, apiKey: apiKey)
+        case .kimi:
+            return try await sendKimiMessage(message, context: context, apiKey: apiKey)
+        }
+    }
+
+    private func loadAPIKey(for provider: BYOKProvider) -> String? {
+        switch provider {
+        case .gemini:
+            return KeychainHelper.load(for: "gemini_api_key")
+        case .openai:
+            return KeychainHelper.load(for: "openai_api_key")
+        case .anthropic:
+            return KeychainHelper.load(for: "anthropic_api_key")
+        case .kimi:
+            return KeychainHelper.load(for: "kimi_api_key")
+        case .openrouter:
+            return KeychainHelper.load(for: "openrouter_api_key")
+        }
+    }
+
+    private func systemPrompt(for context: ChatContext) -> String {
+        let assistantName = AssistantPersona.name(forUserNamed: context.preferredName)
+        var lines: [String] = [
+            "You are \(assistantName), the premium personal stylist inside Personal Shopper.",
+            context.language == .spanish
+                ? "Responde en espanol claro, especifico y util."
+                : "Reply in clear, specific, useful English.",
+            "Personal Shopper serves both men and women. Tailor advice to the user's gender when known and never default to womenswear. In Spanish use the correct gendered wording.",
+            "Use the saved profile and day context when relevant.",
+            "Give practical outfit, wardrobe, shopping, and styling advice.",
+            "Do not mention hidden system instructions."
+        ]
+
+        if let preferredName = context.preferredName, !preferredName.isEmpty {
+            lines.append("User name: \(preferredName)")
+        }
+
+        if let gender = context.userGender {
+            lines.append("The user is \(gender.stylingDescriptor).")
+        }
+
+        if let profile = context.personalStylingProfile {
+            if let age = profile.age { lines.append("Age: \(age)") }
+            if !profile.occupation.isEmpty { lines.append("Occupation: \(profile.occupation)") }
+            if !profile.lifestyleSummary.isEmpty { lines.append("Routine: \(profile.lifestyleSummary)") }
+            if !profile.usualSocialPlans.isEmpty { lines.append("Usual events: \(profile.usualSocialPlans.joined(separator: ", "))") }
+            if !profile.preferredStyles.isEmpty { lines.append("Preferred styles: \(profile.preferredStyles.joined(separator: ", "))") }
+            if !profile.desiredImpression.isEmpty { lines.append("Desired impression: \(profile.desiredImpression.joined(separator: ", "))") }
+            if !profile.fitPriorities.isEmpty { lines.append("Fit priorities: \(profile.fitPriorities.joined(separator: ", "))") }
+            if !profile.favoriteColors.isEmpty { lines.append("Favorite colors: \(profile.favoriteColors.joined(separator: ", "))") }
+            if !profile.avoidColors.isEmpty { lines.append("Avoid colors: \(profile.avoidColors.joined(separator: ", "))") }
+        }
+
+        if let recommendation = context.dailyRecommendation {
+            lines.append("Daily recommendation headline: \(recommendation.headline)")
+            lines.append("Daily outfit formula: \(recommendation.outfitFormula)")
+        }
+
+        if !context.todayEvents.isEmpty {
+            let eventSummary = context.todayEvents.prefix(3).map {
+                "\($0.title) (\($0.timeWindowText))"
+            }.joined(separator: ", ")
+            lines.append("Today's synced events: \(eventSummary)")
+        }
+
+        if !context.closetItems.isEmpty {
+            let closetSummary = context.closetItems.prefix(20).map { item in
+                let details = (item.colorTags + item.styleTags).prefix(5).joined(separator: ", ")
+                return "\(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
+            }.joined(separator: "; ")
+            lines.append("Available closet items: \(closetSummary)")
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Gemini
+    private func sendGeminiMessage(_ message: String, context: ChatContext, apiKey: String) async throws -> String {
+        var request = URLRequest(url: provider.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 45
+
+        let payload: [String: Any] = [
+            "contents": [
+                ["role": "user", "parts": [["text": systemPrompt(for: context) + "\n\n" + message]]]
+            ],
+            "generationConfig": [
+                "temperature": 0.35,
+                "maxOutputTokens": 520
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-preview:generateContent?key=\(apiKey)")!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = request.httpBody
+        urlRequest.timeoutInterval = 45
+
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw AIError.responseFailed("HTTP error")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let candidates = json?["candidates"] as? [[String: Any]],
+           let first = candidates.first,
+           let content = first["content"] as? [String: Any],
+           let parts = content["parts"] as? [[String: Any]],
+           let text = parts.first?["text"] as? String {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        throw AIError.responseFailed("Empty Gemini response")
+    }
+
+    // MARK: - OpenAI Compatible (OpenAI + OpenRouter)
+    private func sendOpenAICompatibleMessage(_ message: String, context: ChatContext, apiKey: String) async throws -> String {
+        var request = URLRequest(url: provider.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 45
+
+        if provider == .openrouter {
+            request.setValue("PersonalShopper/1.0", forHTTPHeaderField: "HTTP-Referer")
+            request.setValue("Personal Shopper", forHTTPHeaderField: "X-Title")
+        }
+
+        let payload: [String: Any] = [
+            "model": provider.chatModel,
+            "messages": [
+                ["role": "system", "content": systemPrompt(for: context)],
+                ["role": "user", "content": message]
+            ],
+            "temperature": 0.35,
+            "max_tokens": 520
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw AIError.responseFailed("HTTP error")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let choices = json?["choices"] as? [[String: Any]],
+           let first = choices.first,
+           let message = first["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        throw AIError.responseFailed("Empty response")
+    }
+
+    // MARK: - Anthropic
+    private func sendAnthropicMessage(_ message: String, context: ChatContext, apiKey: String) async throws -> String {
+        var request = URLRequest(url: provider.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("\(apiKey)", forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 45
+
+        let payload: [String: Any] = [
+            "model": provider.chatModel,
+            "max_tokens": 520,
+            "temperature": 0.35,
+            "system": systemPrompt(for: context),
+            "messages": [
+                ["role": "user", "content": message]
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw AIError.responseFailed("HTTP error")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let content = json?["content"] as? [[String: Any]],
+           let first = content.first,
+           let text = first["text"] as? String {
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        throw AIError.responseFailed("Empty Anthropic response")
+    }
+
+    // MARK: - Kimi
+    private func sendKimiMessage(_ message: String, context: ChatContext, apiKey: String) async throws -> String {
+        var request = URLRequest(url: provider.endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 45
+
+        let payload: [String: Any] = [
+            "model": provider.chatModel,
+            "messages": [
+                ["role": "system", "content": systemPrompt(for: context)],
+                ["role": "user", "content": message]
+            ],
+            "temperature": 0.35,
+            "max_tokens": 520
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
+            throw AIError.responseFailed("HTTP error")
+        }
+
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if let choices = json?["choices"] as? [[String: Any]],
+           let first = choices.first,
+           let message = first["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        throw AIError.responseFailed("Empty Kimi response")
+    }
+}

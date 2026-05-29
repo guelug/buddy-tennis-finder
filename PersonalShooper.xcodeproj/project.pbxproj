@@ -50,6 +50,7 @@
 		795D5E329C4DD71E97A844AD /* ClothingClassifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */; };
 		79782D3867F585D71C8ACCBB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A108E1DDE75B55664093E03 /* Theme.swift */; };
 		82F3DCCBCF8B11A65CF252F1 /* ClothingCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */; };
+		84916E8331EBF2BF1D33E101 /* BYOKChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */; };
 		899E324BD2572DE2E6C5CB92 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4089E6DAF71F0651193DF6A /* ChatView.swift */; };
 		8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */; };
 		8EF22799197289A77575D099 /* PhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A1849B39FF49CF07703B97 /* PhotoUploadView.swift */; };
@@ -153,6 +154,7 @@
 		75191249CD415955E041E75E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		75FF91397AF47465ED682DC4 /* ARViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewModel.swift; sourceTree = "<group>"; };
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
+		790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKChatService.swift; sourceTree = "<group>"; };
 		7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingCaptureView.swift; sourceTree = "<group>"; };
 		7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationService.swift; sourceTree = "<group>"; };
@@ -606,6 +608,7 @@
 			isa = PBXGroup;
 			children = (
 				6E7DD8E4BD58EFE0B4841017 /* AppleIntelligenceService.swift */,
+				790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */,
 				22B513CBC4BAB4CB39A8A5F4 /* ChatWorkspaceService.swift */,
 				A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */,
 			);
@@ -820,6 +823,7 @@
 				B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */,
 				C442FDDA7CC335E1B4B9160D /* AppleIntelligenceService.swift in Sources */,
 				32F6DAE2B60659CF83F0372E /* AssistantPersona.swift in Sources */,
+				84916E8331EBF2BF1D33E101 /* BYOKChatService.swift in Sources */,
 				7738B61295ADFDC8C677D569 /* BYOKSettingsView.swift in Sources */,
 				6A26344F10768112364C94EB /* CalendarSyncService.swift in Sources */,
 				899E324BD2572DE2E6C5CB92 /* ChatView.swift in Sources */,
