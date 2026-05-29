@@ -345,7 +345,24 @@ final class StoreKitManager: ObservableLike {
     }
 
     var hasBYOKPurchase: Bool {
-        purchasedProductIDs.contains(StoreProduct.lifetime.productID) || AppSecrets.internalBYOKTestingEnabled
+        // Always enable BYOK for TestFlight and Debug builds
+        #if DEBUG
+        return true
+        #else
+        // Check if running TestFlight build (has embedded.mobileprovision but not App Store)
+        if isTestFlightBuild {
+            return true
+        }
+        return purchasedProductIDs.contains(StoreProduct.lifetime.productID) || AppSecrets.internalBYOKTestingEnabled
+        #endif
+    }
+
+    private var isTestFlightBuild: Bool {
+        // TestFlight builds have a specific receipt URL pattern
+        guard let appStoreReceiptURL = Bundle.main.appStoreReceiptURL else { return false }
+        let receiptPath = appStoreReceiptURL.path
+        // Sandbox receipt indicates TestFlight or development
+        return receiptPath.contains("sandboxReceipt")
     }
 
     var isBYOKConfigured: Bool {
