@@ -5,6 +5,7 @@ import AVFoundation
 struct ChatView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+    var selectedTab: Binding<Int>? = nil
     @State private var viewModel = ChatViewModel()
     @State private var speechController = ChatSpeechController()
     @FocusState private var isInputFocused: Bool
@@ -18,6 +19,11 @@ struct ChatView: View {
 
     private var preparedFeatures: ChatPreparedFeatures {
         appState.chatPreparedFeatures
+    }
+
+    /// The assistant's name shown as the title — "Rebe" or "Peter" depending on the user's name.
+    private var assistantName: String {
+        AssistantPersona.name(forUserNamed: appState.currentUser?.displayName)
     }
 
     var body: some View {
@@ -44,6 +50,7 @@ struct ChatView: View {
                         }
                         .padding(.vertical)
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .animation(.snappy(duration: 0.28), value: viewModel.messages.count)
                     .onChange(of: viewModel.messages.count) { _, _ in
                         scrollToBottom(using: proxy)
@@ -56,15 +63,41 @@ struct ChatView: View {
                 chatInputBar
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(Strings.chatStyleAssistant(lang))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(Strings.chatNewConversation(lang)) {
-                        viewModel.startNewConversation(appState: appState, modelContext: modelContext)
+                if let selectedTab {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            isInputFocused = false
+                            selectedTab.wrappedValue = 0
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.body.weight(.semibold))
+                        }
+                        .buttonStyle(.premiumPressable)
+                        .accessibilityLabel(text("Atrás", "Back"))
                     }
-                    .font(.subheadline)
+                }
+
+                ToolbarItem(placement: .principal) {
+                    Text(assistantName)
+                        .font(.headline)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isInputFocused = false
+                        viewModel.startNewConversation(appState: appState, modelContext: modelContext)
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Theme.Colors.primary)
+                            .frame(width: 34, height: 34)
+                            .background(Theme.Colors.primary.opacity(0.12))
+                            .clipShape(Circle())
+                    }
                     .buttonStyle(.premiumPressable)
+                    .accessibilityLabel(text("Nueva conversación", "New conversation"))
                 }
             }
         }

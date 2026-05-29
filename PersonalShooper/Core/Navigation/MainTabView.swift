@@ -16,7 +16,7 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-            ChatView()
+            ChatView(selectedTab: $selectedTab)
                 .tabItem {
                     Label(Strings.tabChat(lang), systemImage: "bubble.left.and.bubble.right.fill")
                 }
