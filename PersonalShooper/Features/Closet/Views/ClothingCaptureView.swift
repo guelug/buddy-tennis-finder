@@ -517,7 +517,7 @@ struct ClothingCaptureView: View {
         }
 
         do {
-            let result = try await classificationService.classifyClothing(image: image)
+            let result = try await classificationService.classifyClothing(image: image, prepareForAnalysis: false)
 
             await MainActor.run {
                 detectedCategory = result.category

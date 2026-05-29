@@ -32,8 +32,12 @@ enum ClassificationError: LocalizedError {
 }
 
 final class ClothingClassificationService: @unchecked Sendable {
-    func classifyClothing(image: UIImage) async throws -> ClothingClassificationResult {
-        guard let cgImage = image.cgImage else {
+    func classifyClothing(image: UIImage, prepareForAnalysis: Bool = true) async throws -> ClothingClassificationResult {
+        let analysisImage = prepareForAnalysis
+            ? await GarmentBackgroundRemovalService.prepareImage(image)
+            : image
+
+        guard let cgImage = analysisImage.cgImage else {
             throw ClassificationError.invalidImage
         }
 
@@ -43,7 +47,7 @@ final class ClothingClassificationService: @unchecked Sendable {
         let (identifiers, confidence) = await observationsResult
         let colors = await colorsResult
 
-        return Self.buildResult(from: identifiers, colors: colors, imageSize: image.size, confidence: confidence)
+        return Self.buildResult(from: identifiers, colors: colors, imageSize: analysisImage.size, confidence: confidence)
     }
 
     func detectClosetMatches(in image: UIImage, against items: [ClothingItem]) async -> [ClosetPhotoMatch] {
@@ -433,11 +437,11 @@ final class ClothingClassificationService: @unchecked Sendable {
     private static func extractColors(from cgImage: CGImage) async -> [String] {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                // Mayor resolución para mejor precisión de color
-                let targetSize: CGFloat = 400
-                let scale = min(targetSize / CGFloat(cgImage.width), targetSize / CGFloat(cgImage.height))
-                let width = max(Int(CGFloat(cgImage.width) * scale), 200)
-                let height = max(Int(CGFloat(cgImage.height) * scale), 200)
+                let targetLongestSide: CGFloat = 360
+                let longestSide = CGFloat(max(cgImage.width, cgImage.height))
+                let scale = longestSide > 0 ? targetLongestSide / longestSide : 1
+                let width = max(Int(CGFloat(cgImage.width) * scale), 180)
+                let height = max(Int(CGFloat(cgImage.height) * scale), 180)
 
                 guard let context = CGContext(
                     data: nil,
@@ -461,11 +465,10 @@ final class ClothingClassificationService: @unchecked Sendable {
 
                 let pointer = data.bindMemory(to: UInt8.self, capacity: width * height * 4)
 
-                // Centro de la imagen con peso mayor (donde suele estar la prenda)
-                let centerX = width / 2
-                let centerY = height / 2
+                let centerX = Double(width) / 2
+                let centerY = Double(height) / 2
+                let maxDistance = hypot(centerX, centerY)
 
-                // Recolectar colores con muestreo más fino
                 var rawColors: [(r: Int, g: Int, b: Int, weight: Double)] = []
 
                 for y in stride(from: 0, to: height, by: 2) {
@@ -477,30 +480,25 @@ final class ClothingClassificationService: @unchecked Sendable {
                         let alpha = Int(pointer[offset + 3])
 
                         guard alpha > 60 else { continue }
+                        guard !isProbableBackgroundPixel(r: r, g: g, b: b, x: x, y: y, width: width, height: height) else { continue }
 
-                        // Descartar píxeles muy cercanos al blanco puro (probable fondo)
-                        if r > 240 && g > 240 && b > 240 { continue }
+                        let distanceFromCenter = hypot(Double(x) - centerX, Double(y) - centerY) / max(maxDistance, 1)
+                        let centerWeight = 1.0 + max(0, 1.0 - distanceFromCenter) * 1.8
+                        let saturationWeight = 1.0 + colorSaturation(r: r, g: g, b: b) * 1.6
+                        let edgePenalty = isNearImageEdge(x: x, y: y, width: width, height: height) ? 0.45 : 1.0
 
-                        // Peso según distancia al centro (prenda suele estar centrada)
-                        let dx = Double(x - centerX) / Double(width)
-                        let dy = Double(y - centerY) / Double(height)
-                        let distanceFromCenter = sqrt(dx * dx + dy * dy)
-                        let centerWeight = 1.0 + max(0, 1.0 - distanceFromCenter * 2.0)
-
-                        rawColors.append((r, g, b, centerWeight))
+                        rawColors.append((r, g, b, centerWeight * saturationWeight * edgePenalty))
                     }
                 }
 
-                // Clustering: agrupar colores similares
                 let clusters = clusterColors(rawColors, maxClusters: 6)
 
-                // Convertir clusters a nombres de color
                 let colorNames = clusters
                     .sorted { $0.weight > $1.weight }
-                    .prefix(4)
+                    .filter { !isWeakNeutralCluster($0) || clusters.count <= 2 }
+                    .prefix(5)
                     .map { classifyColorImproved(r: $0.r, g: $0.g, b: $0.b) }
 
-                // Eliminar duplicados consecutivos manteniendo orden
                 var uniqueNames: [String] = []
                 for name in colorNames {
                     if !uniqueNames.contains(name) {
@@ -511,6 +509,41 @@ final class ClothingClassificationService: @unchecked Sendable {
                 continuation.resume(returning: uniqueNames.isEmpty ? ["Multicolor"] : uniqueNames)
             }
         }
+    }
+
+    private static func isProbableBackgroundPixel(r: Int, g: Int, b: Int, x: Int, y: Int, width: Int, height: Int) -> Bool {
+        let brightness = Double(max(r, g, b)) / 255.0
+        let sat = colorSaturation(r: r, g: g, b: b)
+
+        if brightness > 0.9 && sat < 0.16 { return true }
+        if brightness > 0.78 && sat < 0.07 { return true }
+
+        if isNearImageEdge(x: x, y: y, width: width, height: height),
+           brightness > 0.62,
+           sat < 0.12 {
+            return true
+        }
+
+        return false
+    }
+
+    private static func isNearImageEdge(x: Int, y: Int, width: Int, height: Int) -> Bool {
+        let marginX = max(12, Int(Double(width) * 0.08))
+        let marginY = max(12, Int(Double(height) * 0.08))
+        return x < marginX || x > width - marginX || y < marginY || y > height - marginY
+    }
+
+    private static func colorSaturation(r: Int, g: Int, b: Int) -> Double {
+        let maxComponent = Double(max(r, g, b))
+        let minComponent = Double(min(r, g, b))
+        guard maxComponent > 0 else { return 0 }
+        return (maxComponent - minComponent) / maxComponent
+    }
+
+    private static func isWeakNeutralCluster(_ cluster: (r: Int, g: Int, b: Int, weight: Double)) -> Bool {
+        let brightness = Double(max(cluster.r, cluster.g, cluster.b)) / 255.0
+        let sat = colorSaturation(r: cluster.r, g: cluster.g, b: cluster.b)
+        return brightness > 0.68 && sat < 0.1
     }
 
     private static func clusterColors(
