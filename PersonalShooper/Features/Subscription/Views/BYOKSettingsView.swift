@@ -7,9 +7,23 @@ struct BYOKSettingsView: View {
     @State private var isTesting: Bool = false
     @State private var testResult: TestResult?
     @State private var showConfirmation: Bool = false
+    @State private var hasStoredKeys: Bool = false
 
     private var hasAccess: Bool {
         appState.hasBYOKAccess
+    }
+
+    private var lang: Language {
+        appState.preferredLanguage
+    }
+
+    private var canSave: Bool {
+        hasStoredKeys || hasEnteredKeys
+    }
+
+    private var hasEnteredKeys: Bool {
+        !geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     enum TestResult {
@@ -25,7 +39,7 @@ struct BYOKSettingsView: View {
                         Label("Bring Your Own Key", systemImage: "lock.fill")
                             .font(.headline)
 
-                        Text("BYOK is only available after unlocking the full purchase.")
+                        Text(text("BYOK solo está disponible después de desbloquear la compra completa.", "BYOK is only available after unlocking the full purchase."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -38,7 +52,7 @@ struct BYOKSettingsView: View {
                         Label("Bring Your Own Key", systemImage: "key.fill")
                             .font(.headline)
 
-                        Text("Purchased the lifetime plan? Add your own API keys for unlimited try-ons.")
+                        Text(text("Añade tus claves de Gemini u OpenAI para usar proveedores externos con tus propias credenciales.", "Add your Gemini or OpenAI keys to use external providers with your own credentials."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -48,27 +62,27 @@ struct BYOKSettingsView: View {
                 // Status Section
                 Section {
                     HStack {
-                        Text("Status")
+                        Text(text("Estado", "Status"))
                         Spacer()
                         if appState.isBYOKEnabled {
-                            Label("Active", systemImage: "checkmark.circle.fill")
+                            Label(text("Activo", "Active"), systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                         } else {
-                            Label("Not Active", systemImage: "xmark.circle.fill")
+                            Label(text("Inactivo", "Not Active"), systemImage: "xmark.circle.fill")
                                 .foregroundStyle(.secondary)
                         }
                     }
 
                     if appState.isBYOKEnabled {
                         HStack {
-                            Text("Tier")
+                            Text(text("Plan", "Tier"))
                             Spacer()
                             Text("BYOK - Unlimited")
                                 .foregroundStyle(.green)
                         }
                     }
                 } header: {
-                    Text("BYOK Status")
+                    Text(text("Estado BYOK", "BYOK Status"))
                 }
 
                 // API Keys Section
@@ -78,14 +92,14 @@ struct BYOKSettingsView: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
 
-                    SecureField("OpenAI API Key (Optional)", text: $openAIAPIKey)
+                    SecureField(text("OpenAI API Key (opcional)", "OpenAI API Key (Optional)"), text: $openAIAPIKey)
                         .textContentType(.password)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                 } header: {
-                    Text("API Keys")
+                    Text(text("Claves API", "API Keys"))
                 } footer: {
-                    Text("Your keys are stored securely in the iOS Keychain and never sent to our servers.")
+                    Text(text("Tus claves se guardan en el Keychain de iOS y no se envían a nuestros servidores.", "Your keys are stored securely in the iOS Keychain and never sent to our servers."))
                 }
 
                 // Test Section
@@ -98,10 +112,10 @@ struct BYOKSettingsView: View {
                                 ProgressView()
                                     .padding(.trailing, 4)
                             }
-                            Text("Test Keys")
+                            Text(text("Probar claves", "Test Keys"))
                         }
                     }
-                    .disabled(isTesting || geminiAPIKey.isEmpty)
+                    .disabled(isTesting || !canSave)
 
                     if let result = testResult {
                         switch result {
@@ -122,32 +136,47 @@ struct BYOKSettingsView: View {
                     } label: {
                         HStack {
                             Spacer()
-                            Text("Save API Keys")
+                            Text(text("Guardar claves API", "Save API Keys"))
                                 .fontWeight(.semibold)
                             Spacer()
                         }
                     }
-                    .disabled(geminiAPIKey.isEmpty)
+                    .disabled(!canSave)
+
+                    if hasStoredKeys {
+                        Button(role: .destructive) {
+                            clearAPIKeys()
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text(text("Eliminar claves guardadas", "Remove Saved Keys"))
+                                Spacer()
+                            }
+                        }
+                    }
                 }
 
                 // Info Section
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
-                        InfoRow(icon: "brain", title: "Gemini", description: "Use your own Gemini API key for try-on generation")
-                        InfoRow(icon: "dollarsign.circle", title: "No Credits", description: "With BYOK, you pay for API usage directly")
-                        InfoRow(icon: "lock.shield", title: "Secure", description: "Keys stored in iOS Keychain")
+                        InfoRow(icon: "sparkles", title: "Gemini", description: text("Activa el proveedor Google Gemini para try-ons realistas.", "Enables the Google Gemini provider for realistic try-ons."))
+                        InfoRow(icon: "brain.head.profile", title: "OpenAI", description: text("Activa el proveedor OpenAI y puede usarse también para el chat si lo habilitas.", "Enables the OpenAI provider and can also be used for chat when enabled."))
+                        InfoRow(icon: "lock.shield", title: text("Seguro", "Secure"), description: text("Las claves se guardan en el Keychain de iOS.", "Keys are stored in iOS Keychain."))
                     }
                 } header: {
-                    Text("How BYOK Works")
+                    Text(text("Cómo funciona BYOK", "How BYOK Works"))
                 }
             }
         }
-        .navigationTitle("BYOK Settings")
+        .navigationTitle(text("Ajustes BYOK", "BYOK Settings"))
         .navigationBarTitleDisplayMode(.inline)
-        .alert("API Keys Saved", isPresented: $showConfirmation) {
+        .alert(text("Claves guardadas", "API Keys Saved"), isPresented: $showConfirmation) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Your API keys have been securely saved to your device.")
+            Text(text("Tus claves API se han guardado de forma segura en este dispositivo.", "Your API keys have been securely saved to your device."))
+        }
+        .task {
+            loadStoredKeys()
         }
     }
 
@@ -157,47 +186,122 @@ struct BYOKSettingsView: View {
         isTesting = true
         testResult = nil
 
-        // Test Gemini key
-        let result = await testGeminiKey(geminiAPIKey)
+        var messages: [String] = []
+        let trimmedGeminiKey = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedOpenAIKey = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        self.testResult = result
+        if !trimmedGeminiKey.isEmpty {
+            switch await testGeminiKey(trimmedGeminiKey) {
+            case .success(let message): messages.append(message)
+            case .failure(let message):
+                testResult = .failure(message)
+                isTesting = false
+                return
+            }
+        }
+
+        if !trimmedOpenAIKey.isEmpty {
+            switch await testOpenAIKey(trimmedOpenAIKey) {
+            case .success(let message): messages.append(message)
+            case .failure(let message):
+                testResult = .failure(message)
+                isTesting = false
+                return
+            }
+        }
+
+        testResult = .success(messages.joined(separator: " · "))
         isTesting = false
     }
 
     private func testGeminiKey(_ key: String) async -> TestResult {
-        // Simple test: call Gemini API to list models
         guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models?key=\(key)") else {
-            return .failure("Invalid URL")
+            return .failure(text("URL inválida para Gemini", "Invalid Gemini URL"))
         }
 
         do {
             let (_, response) = try await URLSession.shared.data(from: url)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                return .success("Gemini key is valid!")
+                return .success(text("Gemini válida", "Gemini key valid"))
             } else {
-                return .failure("Invalid API key")
+                return .failure(text("Clave Gemini inválida", "Invalid Gemini API key"))
             }
         } catch {
-            return .failure("Connection failed: \(error.localizedDescription)")
+            return .failure(text("Falló la conexión con Gemini: \(error.localizedDescription)", "Gemini connection failed: \(error.localizedDescription)"))
+        }
+    }
+
+    private func testOpenAIKey(_ key: String) async -> TestResult {
+        guard let url = URL(string: "https://api.openai.com/v1/models") else {
+            return .failure(text("URL inválida para OpenAI", "Invalid OpenAI URL"))
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                return .success(text("OpenAI válida", "OpenAI key valid"))
+            } else {
+                return .failure(text("Clave OpenAI inválida", "Invalid OpenAI API key"))
+            }
+        } catch {
+            return .failure(text("Falló la conexión con OpenAI: \(error.localizedDescription)", "OpenAI connection failed: \(error.localizedDescription)"))
         }
     }
 
     private func saveAPIKeys() {
         guard hasAccess else { return }
 
-        // Guardar en Keychain
-        KeychainHelper.save(geminiAPIKey, for: "gemini_api_key")
-        if !openAIAPIKey.isEmpty {
-            KeychainHelper.save(openAIAPIKey, for: "openai_api_key")
+        let trimmedGeminiKey = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedOpenAIKey = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedGeminiKey.isEmpty {
+            KeychainHelper.delete(for: "gemini_api_key")
+        } else {
+            KeychainHelper.save(trimmedGeminiKey, for: "gemini_api_key")
         }
 
-        appState.isBYOKEnabled = true
+        if trimmedOpenAIKey.isEmpty {
+            KeychainHelper.delete(for: "openai_api_key")
+        } else {
+            KeychainHelper.save(trimmedOpenAIKey, for: "openai_api_key")
+        }
+
+        appState.isBYOKEnabled = hasEnteredKeys
+        if trimmedOpenAIKey.isEmpty {
+            UserDefaults.standard.removeObject(forKey: "chatgpt_access_token")
+            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
+            appState.useConnectedChatGPTForChat = false
+            appState.isChatGPTConnected = AppSecrets.openAIAPIKey != nil
+        } else {
+            appState.isChatGPTConnected = true
+        }
+
+        hasStoredKeys = hasEnteredKeys
 
         showConfirmation = true
 
         Task {
             await appState.refreshPremiumStatus()
         }
+    }
+
+    private func loadStoredKeys() {
+        geminiAPIKey = KeychainHelper.load(for: "gemini_api_key") ?? ""
+        openAIAPIKey = KeychainHelper.load(for: "openai_api_key") ?? ""
+        hasStoredKeys = !geminiAPIKey.isEmpty || !openAIAPIKey.isEmpty
+    }
+
+    private func clearAPIKeys() {
+        geminiAPIKey = ""
+        openAIAPIKey = ""
+        saveAPIKeys()
+    }
+
+    private func text(_ spanish: String, _ english: String) -> String {
+        lang == .spanish ? spanish : english
     }
 }
 

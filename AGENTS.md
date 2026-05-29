@@ -166,6 +166,21 @@ Key protocols:
 GEMINI_API_KEY = your_api_key
 ```
 
+### App Store Connect / TestFlight
+Local App Store Connect API configuration is stored in `.env.appstoreconnect` and ignored by git.
+
+```bash
+ASC_KEY_ID=Q2FTX4KKUY
+ASC_ISSUER_ID=1d27a2f2-265a-4650-a4a7-84929712d622
+ASC_KEY_PATH=/Users/guelug/.appstoreconnect/private_keys/AuthKey_Q2FTX4KKUY.p8
+```
+
+Current App Store Connect state:
+- Bundle ID exists: `com.personalshooper.app`
+- App record exists: `Personal Shooper`, App Store Connect ID `6774502051`, primary locale `es-ES`.
+- Latest uploaded TestFlight build: version `1.0.0`, build `2`, state `VALID`, uploaded on 2026-05-29.
+- Use `scripts/upload-testflight.sh` for the same Xcode archive/export/upload flow used by `girls_calendar`.
+
 ### SDK Dependencies (weakly linked for graceful fallback)
 - `FoundationModels.framework` (iOS 26+)
 - `Playgrounds.framework` (iOS 26+)

@@ -61,19 +61,15 @@ export async function POST(request: NextRequest) {
 }
 
 async function verifyCloudKitToken(token: string): Promise<boolean> {
-  // Placeholder for CloudKit JWT verification
-  // In production, implement proper JWT verification with CloudKit's public key
-  // For now, accept any non-empty token in development
+  const configuredSecret = process.env.CLOUDKIT_SYNC_SECRET;
+
   if (process.env.NODE_ENV === 'development') {
-    return token.length > 0;
+    return token.length > 0 && (!configuredSecret || token === configuredSecret);
   }
 
-  try {
-    // In production, verify JWT signature
-    // const decoded = jwt.verify(token, cloudKitPublicKey);
-    // return decoded.type === 'cloudkit';
-    return token.length > 0;
-  } catch {
+  if (!configuredSecret) {
     return false;
   }
+
+  return token === configuredSecret;
 }

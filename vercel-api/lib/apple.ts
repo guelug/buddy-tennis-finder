@@ -9,15 +9,15 @@ export interface ReceiptData {
 }
 
 const TIER_MAP: Record<string, 'free' | 'premium' | 'pro'> = {
-  'com.personal.shooper.free': 'free',
-  'com.personal.shooper.premium': 'premium',
-  'com.personal.shooper.pro': 'pro',
+  'com.personalshooper.free': 'free',
+  'com.personalshooper.premium.monthly': 'premium',
+  'com.personalshooper.pro.monthly': 'pro',
 };
 
 const CREDITS_MAP: Record<string, number> = {
-  free: 3,
-  premium: 10,
-  pro: 30,
+  free: 5,
+  premium: 50,
+  pro: 200,
 };
 
 export function hashReceipt(receipt: string): string {

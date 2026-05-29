@@ -13,7 +13,9 @@ struct TryOnView: View {
     @State private var hasAcceptedPrivacy = false
     @State private var showingImagePicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
+    @State private var pendingImagePickerSource: UIImagePickerController.SourceType?
     @State private var showingDownloadSuccess = false
+    @State private var photoSaveErrorMessage: String?
     @State private var showingProviderPicker = false
     @State private var showingClosetPicker = false
     @State private var resultRevealProgress: CGFloat = 1
@@ -27,16 +29,23 @@ struct TryOnView: View {
             VStack(spacing: Theme.Spacing.lg) {
                 if let generatedImage = viewModel.generatedImage {
                     resultView(generatedImage)
+                        .transition(.scale(scale: 0.98).combined(with: .opacity))
                 } else if viewModel.isGenerating {
                     processingView
+                        .transition(.opacity)
                 } else if viewModel.selectedClothingImage == nil {
                     sourceSelectionView
+                        .transition(.move(edge: .leading).combined(with: .opacity))
                 } else {
                     garmentPreviewView
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
             .padding(.bottom, Theme.Spacing.md)
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
+            .animation(.snappy(duration: 0.28), value: viewModel.generatedImage != nil)
+            .animation(.snappy(duration: 0.28), value: viewModel.selectedClothingImage != nil)
+            .sensoryFeedback(.success, trigger: viewModel.generatedImage != nil)
             .navigationTitle(Strings.tryOnTitle(lang))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -53,6 +62,7 @@ struct TryOnView: View {
                         .background(Theme.Colors.primary.opacity(0.1))
                         .clipShape(Capsule())
                     }
+                    .buttonStyle(.premiumPressable)
                 }
             }
             .sheet(isPresented: $showingSubscription) {
@@ -61,6 +71,12 @@ struct TryOnView: View {
             .sheet(isPresented: $showingPrivacyNotice) {
                 PrivacyNoticeView {
                     hasAcceptedPrivacy = true
+                    showingPrivacyNotice = false
+                    if let pendingImagePickerSource {
+                        self.pendingImagePickerSource = nil
+                        imagePickerSource = pendingImagePickerSource
+                        showingImagePicker = true
+                    }
                 }
             }
             .sheet(isPresented: $showingImagePicker) {
@@ -74,7 +90,7 @@ struct TryOnView: View {
             .sheet(isPresented: $showingClosetPicker) {
                 ClosetPickerSheet(items: closetItems, language: lang) { item in
                     Task {
-                        guard let image = item.image else { return }
+                        guard let image = item.displayImage else { return }
                         await viewModel.setSelectedClothingImage(image, source: .closet, closetItem: item)
                     }
                 }
@@ -83,6 +99,19 @@ struct TryOnView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(text("La imagen se ha guardado en Fotos.", "The image was saved to Photos."))
+            }
+            .alert(
+                text("No se pudo guardar", "Couldn't save"),
+                isPresented: Binding(
+                    get: { photoSaveErrorMessage != nil },
+                    set: { if !$0 { photoSaveErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    photoSaveErrorMessage = nil
+                }
+            } message: {
+                Text(photoSaveErrorMessage ?? "")
             }
             .alert(
                 text("No he podido continuar", "I couldn't continue"),
@@ -165,8 +194,6 @@ struct TryOnView: View {
                     ) {
                         showingClosetPicker = true
                     }
-                    .disabled(closetItems.isEmpty)
-                    .opacity(closetItems.isEmpty ? 0.5 : 1)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
 
@@ -237,6 +264,7 @@ struct TryOnView: View {
                         .primaryButtonStyle()
                     }
                     .disabled(viewModel.isAnalyzingClothing)
+                    .buttonStyle(.premiumPressable)
 
                     Button {
                         viewModel.resetSelection()
@@ -249,6 +277,7 @@ struct TryOnView: View {
                             .background(Color.gray.opacity(0.12))
                             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                     }
+                    .buttonStyle(.premiumPressable)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
 
@@ -320,6 +349,7 @@ struct TryOnView: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(.premiumPressable)
 
                     Button {
                         viewModel.resetSelection()
@@ -332,6 +362,7 @@ struct TryOnView: View {
                             .foregroundStyle(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(.premiumPressable)
                 }
             }
             .padding(.horizontal, Theme.Spacing.lg)
@@ -402,7 +433,7 @@ struct TryOnView: View {
             .background(Theme.Colors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premiumPressable)
     }
 
     private func referenceStatusChip(title: String, isReady: Bool) -> some View {
@@ -434,6 +465,7 @@ struct TryOnView: View {
 
     private func startSourceSelection(_ sourceType: UIImagePickerController.SourceType) {
         if !hasAcceptedPrivacy {
+            pendingImagePickerSource = sourceType
             showingPrivacyNotice = true
             return
         }
@@ -458,6 +490,13 @@ struct TryOnView: View {
                 DispatchQueue.main.async {
                     showingDownloadSuccess = true
                 }
+            } else {
+                DispatchQueue.main.async {
+                    photoSaveErrorMessage = text(
+                        "Activa el permiso para añadir fotos en Ajustes para poder guardar el resultado.",
+                        "Enable add-only Photos access in Settings to save this result."
+                    )
+                }
             }
         }
     }
@@ -476,39 +515,49 @@ private struct ClosetPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            List(items) { item in
-                Button {
-                    onSelect(item)
-                    dismiss()
-                } label: {
-                    HStack(spacing: Theme.Spacing.md) {
-                        if let image = item.image {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 56, height: 72)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                        } else {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 56, height: 72)
-                                .overlay {
-                                    Image(systemName: item.category.icon)
+            Group {
+                if items.isEmpty {
+                    ContentUnavailableView(
+                        language == .spanish ? "Armario vacío" : "Empty closet",
+                        systemImage: "cabinet",
+                        description: Text(language == .spanish ? "Guarda prendas en el armario para reutilizarlas en try-on." : "Save garments in your closet to reuse them in try-on.")
+                    )
+                } else {
+                    List(items) { item in
+                        Button {
+                            onSelect(item)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: Theme.Spacing.md) {
+                                if let image = item.displayImage {
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 56, height: 72)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                } else {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color.gray.opacity(0.15))
+                                        .frame(width: 56, height: 72)
+                                        .overlay {
+                                            Image(systemName: item.category.icon)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.name)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text(Strings.categoryDisplayName(item.category, language))
+                                        .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
+                            }
                         }
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.name)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text(Strings.categoryDisplayName(item.category, language))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        .buttonStyle(.premiumPressable)
                     }
                 }
-                .buttonStyle(.plain)
             }
             .navigationTitle(language == .spanish ? "Elegir del armario" : "Choose from closet")
             .navigationBarTitleDisplayMode(.inline)
@@ -718,9 +767,9 @@ struct ProviderPickerSheet: View {
 
     private var providerFooterText: String {
         if appState.hasBYOKAccess {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style. BYOK uses your own OpenAI API key."
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Vista local es gratis y hace una composición rápida en el dispositivo. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Local Preview is free and makes a quick on-device composition. BYOK uses your own OpenAI API key."
         } else {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Playground es gratis y genera estilo cartoon." : "Google Gemini provides the most accurate results. Apple Playground is free with cartoon style."
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Vista local es gratis y hace una composición rápida en el dispositivo." : "Google Gemini provides the most accurate results. Local Preview is free and makes a quick on-device composition."
         }
     }
 

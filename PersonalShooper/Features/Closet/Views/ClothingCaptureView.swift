@@ -25,6 +25,8 @@ struct ClothingCaptureView: View {
     @State private var showPhotoPicker = false
     @State private var photoPickerSource: UIImagePickerController.SourceType = .photoLibrary
     @State private var itemName = ""
+    @State private var brandName = ""
+    @State private var itemNotes = ""
     @State private var errorMessage: String?
 
     private let classificationService = ClothingClassificationService()
@@ -180,23 +182,22 @@ struct ClothingCaptureView: View {
                         }
                     }
 
-                if currentStep == .details, let category = detectedCategory {
+                if currentStep == .details, detectedCategory != nil {
                     VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-                        VStack(spacing: Theme.Spacing.xs) {
-                            Text(text("Categoría detectada:", "Detected category:"))
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            Text(text("Categoría", "Category"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            HStack {
-                                Image(systemName: category.icon)
-                                Text(Strings.categoryDisplayName(category, lang))
+                            Picker(text("Categoría", "Category"), selection: Binding(
+                                get: { detectedCategory ?? .tops },
+                                set: { detectedCategory = $0 }
+                            )) {
+                                ForEach(ClothingCategory.allCases, id: \.self) { category in
+                                    Label(Strings.categoryDisplayName(category, lang), systemImage: category.icon)
+                                        .tag(category)
+                                }
                             }
-                            .font(.headline)
-                            .foregroundStyle(Theme.Colors.primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Theme.Colors.primary.opacity(0.1))
-                            .clipShape(Capsule())
                         }
 
                         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -206,6 +207,32 @@ struct ClothingCaptureView: View {
 
                             TextField(text("Ej. Blazer azul marino", "Example: Navy blazer"), text: $itemName)
                                 .textInputAutocapitalization(.words)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        }
+
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            Text(text("Marca (opcional)", "Brand (optional)"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            TextField(text("Ej. COS, Zara, vintage", "Example: COS, Zara, vintage"), text: $brandName)
+                                .textInputAutocapitalization(.words)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        }
+
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                            Text(text("Notas (opcional)", "Notes (optional)"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            TextField(text("Ej. va bien con pantalón negro", "Example: works with black trousers"), text: $itemNotes, axis: .vertical)
+                                .lineLimit(2...4)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(.white)
@@ -490,6 +517,8 @@ struct ClothingCaptureView: View {
             materialTags: detectedMaterialTags,
             occasionTags: detectedOccasionTags,
             detailTags: detectedDetailTags,
+            brandName: brandName.nilIfBlank,
+            notes: itemNotes.nilIfBlank,
             metadataSummary: detectedSummary.nilIfBlank
         )
 
@@ -511,6 +540,8 @@ struct ClothingCaptureView: View {
             materialTags: detectedMaterialTags,
             occasionTags: detectedOccasionTags,
             detailTags: detectedDetailTags,
+            brandName: brandName.nilIfBlank,
+            notes: itemNotes.nilIfBlank,
             metadataSummary: detectedSummary.nilIfBlank
         )
 

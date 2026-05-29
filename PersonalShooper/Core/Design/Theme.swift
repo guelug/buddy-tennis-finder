@@ -4,6 +4,7 @@ import UIKit
 enum Theme {
     // MARK: - Dark Mode Support
 
+    @MainActor
     static var isDarkMode: Bool {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
@@ -117,6 +118,21 @@ extension View {
             .padding(.vertical, Theme.Spacing.sm)
             .background(Theme.Colors.primary)
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+    }
+}
+
+struct PremiumPressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .brightness(configuration.isPressed ? -0.025 : 0)
+            .animation(.snappy(duration: 0.16), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == PremiumPressableButtonStyle {
+    static var premiumPressable: PremiumPressableButtonStyle {
+        PremiumPressableButtonStyle()
     }
 }
 

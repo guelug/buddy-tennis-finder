@@ -1,12 +1,20 @@
 import SwiftUI
 import CloudKit
+import SwiftData
 
 struct PrivacySettingsView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \User.createdAt) private var users: [User]
+    @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
+    @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
+    @Query(sort: \TryOnResult.createdAt, order: .reverse) private var tryOnResults: [TryOnResult]
+    @Query(sort: \StyleProgressMission.createdAt, order: .reverse) private var progressMissions: [StyleProgressMission]
     @State private var showingDeleteConfirmation = false
     @State private var isExporting = false
     @State private var isDeleting = false
     @State private var exportResult: ExportResult?
+    @State private var deleteResultMessage: String?
     @State private var storageUsed: String = "Calculating..."
     @State private var itemsInCloset: Int = 0
 
@@ -15,32 +23,36 @@ struct PrivacySettingsView: View {
         case failure(String)
     }
 
+    private var lang: Language {
+        appState.preferredLanguage
+    }
+
     var body: some View {
         List {
             // Data Usage Section
             Section {
                 HStack {
-                    Text("Storage Used")
+                    Text(text("Almacenamiento usado", "Storage Used"))
                     Spacer()
                     Text(storageUsed)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text("Closet Items")
+                    Text(text("Prendas en el armario", "Closet Items"))
                     Spacer()
                     Text("\(itemsInCloset)")
                         .foregroundStyle(.secondary)
                 }
 
                 HStack {
-                    Text("Current Tier")
+                    Text(text("Plan actual", "Current Tier"))
                     Spacer()
                     Text(appState.currentTier.rawValue.capitalized)
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Your Data")
+                Text(text("Tus datos", "Your Data"))
             }
 
             // Privacy Info Section
@@ -48,31 +60,31 @@ struct PrivacySettingsView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     PrivacyInfoRow(
                         icon: "iphone",
-                        title: "On-Device AI",
-                        description: "Chat uses Apple Foundation Models. Your conversations never leave your device."
+                        title: text("IA en el dispositivo", "On-Device AI"),
+                        description: text("El chat usa Apple Foundation Models cuando está disponible. Tus conversaciones se guardan localmente.", "Chat uses Apple Foundation Models when available. Your conversations are stored locally.")
                     )
 
                     PrivacyInfoRow(
                         icon: "icloud",
-                        title: "iCloud Sync",
-                        description: "Your profile, closet, and credits are encrypted and synced via iCloud."
+                        title: text("Sincronización iCloud", "iCloud Sync"),
+                        description: text("Los datos preparados para sincronización usan CloudKit/iCloud cuando la cuenta y capacidades están activas.", "Sync-ready data uses CloudKit/iCloud when the account and capabilities are active.")
                     )
 
                     PrivacyInfoRow(
                         icon: "photo",
-                        title: "Photos Stay Local",
-                        description: "Profile photos are analyzed on-device and never uploaded to external servers."
+                        title: text("Fotos locales", "Photos Stay Local"),
+                        description: text("Las fotos del perfil se analizan en el dispositivo y no se suben a proveedores externos.", "Profile photos are analyzed on-device and never uploaded to external providers.")
                     )
 
                     PrivacyInfoRow(
                         icon: "creditcard",
-                        title: "Payments by Apple",
-                        description: "All subscriptions are handled by Apple. We never see your payment info."
+                        title: text("Pagos con Apple", "Payments by Apple"),
+                        description: text("Las suscripciones las gestiona Apple. La app no recibe tus datos de pago.", "All subscriptions are handled by Apple. The app never sees your payment info.")
                     )
                 }
                 .padding(.vertical, 8)
             } header: {
-                Text("Privacy")
+                Text(text("Privacidad", "Privacy"))
             }
 
             // Export Section
@@ -85,7 +97,7 @@ struct PrivacySettingsView: View {
                             ProgressView()
                                 .padding(.trailing, 4)
                         }
-                        Text("Export My Data")
+                        Text(text("Exportar mis datos", "Export My Data"))
                     }
                 }
                 .disabled(isExporting)
@@ -94,7 +106,7 @@ struct PrivacySettingsView: View {
                     switch result {
                     case .success(let url):
                         ShareLink(item: url) {
-                            Label("Share Export", systemImage: "square.and.arrow.up")
+                            Label(text("Compartir exportación", "Share Export"), systemImage: "square.and.arrow.up")
                         }
                     case .failure(let error):
                         Text(error)
@@ -103,9 +115,9 @@ struct PrivacySettingsView: View {
                     }
                 }
             } header: {
-                Text("Data Portability")
+                Text(text("Portabilidad", "Data Portability"))
             } footer: {
-                Text("Export all your data as JSON including profile, palette, and closet items.")
+                Text(text("Exporta un JSON con perfil, paleta, armario, conversaciones, try-ons y misiones de progreso.", "Export JSON with profile, palette, closet, conversations, try-ons, and progress missions."))
             }
 
             // Delete Section
@@ -118,29 +130,39 @@ struct PrivacySettingsView: View {
                             ProgressView()
                                 .padding(.trailing, 4)
                         }
-                        Text("Delete All My Data")
+                        Text(text("Eliminar todos mis datos", "Delete All My Data"))
                     }
                 }
                 .disabled(isDeleting)
             } header: {
-                Text("Danger Zone")
+                Text(text("Zona de riesgo", "Danger Zone"))
             } footer: {
-                Text("This will permanently delete all your data from iCloud and any configured remote integration. This action cannot be undone.")
+                Text(text("Esto elimina los datos locales y pide borrar los registros remotos configurados. No cancela suscripciones de App Store.", "This deletes local data and asks configured remote services to remove records. It does not cancel App Store subscriptions."))
             }
         }
-        .navigationTitle("Privacy")
+        .navigationTitle(text("Privacidad", "Privacy"))
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
-            "Delete All Data?",
+            text("¿Eliminar todos los datos?", "Delete All Data?"),
             isPresented: $showingDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete Everything", role: .destructive) {
+            Button(text("Eliminar todo", "Delete Everything"), role: .destructive) {
                 Task { await deleteAllUserData() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(text("Cancelar", "Cancel"), role: .cancel) {}
         } message: {
-            Text("This will permanently delete your profile, closet items, color palette, and sync data. Subscriptions must be cancelled separately in Settings > App Store.")
+            Text(text("Se eliminarán perfil, armario, paleta, conversaciones, try-ons y datos de sincronización. Las suscripciones se cancelan aparte en Ajustes > App Store.", "This will delete your profile, closet, palette, conversations, try-ons, and sync data. Subscriptions must be cancelled separately in Settings > App Store."))
+        }
+        .alert(text("Datos eliminados", "Data Deleted"), isPresented: Binding(
+            get: { deleteResultMessage != nil },
+            set: { if !$0 { deleteResultMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                deleteResultMessage = nil
+            }
+        } message: {
+            Text(deleteResultMessage ?? "")
         }
         .task {
             await loadStorageInfo()
@@ -150,13 +172,11 @@ struct PrivacySettingsView: View {
     // MARK: - Methods
 
     private func loadStorageInfo() async {
-        // Calcular storage usado aproximádamente
-        // Por ahora mostrar valores placeholder
-        storageUsed = "~2.3 MB"
+        let bytes = StorageBudgetManager.currentUsageBytes(modelContext: modelContext)
+        storageUsed = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
 
-        // Contar items del armario
         do {
-            itemsInCloset = try await CloudKitManager.shared.clothingItemCount()
+            itemsInCloset = try modelContext.fetchCount(FetchDescriptor<ClothingItem>())
         } catch {
             itemsInCloset = 0
         }
@@ -167,28 +187,39 @@ struct PrivacySettingsView: View {
         exportResult = nil
 
         do {
-            // Recoger datos de CloudKit
             var exportData: [String: Any] = [:]
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
 
-            // User profile
             if let user = appState.currentUser {
                 exportData["displayName"] = user.displayName
                 exportData["preferredLanguage"] = user.preferredLanguage.rawValue
                 exportData["createdAt"] = user.createdAt.description
+                exportData["updatedAt"] = user.updatedAt.description
+                exportData["stylePreferences"] = user.stylePreferences
+                exportData["profilePhotoBytes"] = [
+                    "faceCloseUp": user.faceCloseUpData?.count ?? 0,
+                    "faceProfile": user.faceProfileData?.count ?? 0,
+                    "fullBodyFront": user.fullBodyFrontData?.count ?? 0,
+                    "fullBodyBack": user.fullBodyBackData?.count ?? 0
+                ]
+                exportData["personalPalette"] = user.personalPaletteData.flatMap { String(data: $0, encoding: .utf8) }
+                if let profileData = try? encoder.encode(user.personalStylingProfile),
+                   let profileJSON = String(data: profileData, encoding: .utf8) {
+                    exportData["personalStylingProfile"] = profileJSON
+                }
             }
 
-            // Credits info
             exportData["currentTier"] = appState.currentTier.rawValue
             exportData["isPremium"] = appState.isPremium
             exportData["exportedAt"] = Date().description
+            exportData["storageUsedBytes"] = StorageBudgetManager.currentUsageBytes(modelContext: modelContext)
+            exportData["closetItems"] = clothingItems.map(exportDictionary(for:))
+            exportData["conversations"] = conversations.map(exportDictionary(for:))
+            exportData["tryOnResults"] = tryOnResults.map(exportDictionary(for:))
+            exportData["styleProgressMissions"] = progressMissions.map(exportDictionary(for:))
 
-            // Closet items (simplificado)
-            exportData["closetItemCount"] = itemsInCloset
-
-            // Convertir a JSON
             let jsonData = try JSONSerialization.data(withJSONObject: exportData, options: .prettyPrinted)
-
-            // Guardar temporalmente
             let tempURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent("personal_shooper_export.json")
             try jsonData.write(to: tempURL)
@@ -205,12 +236,10 @@ struct PrivacySettingsView: View {
         isDeleting = true
 
         do {
-            // 1. Eliminar de CloudKit
-            try await CloudKitManager.shared.deleteAllRecords()
+            try? await CloudKitManager.shared.deleteAllRecords()
 
-            // 2. Eliminar localmente (SwiftData se maneja solo con cascade)
+            try deleteAllLocalRecords()
 
-            // 3. Llamar a Vercel para eliminar de Redis (si hay receipt hash y URL configurada)
             if let receiptHash = UserDefaults.standard.string(forKey: "receipt_hash"),
                let baseURL = AppSecrets.vercelAPIBaseURL {
                 let url = URL(string: "\(baseURL.absoluteString)/api/delete-user")!
@@ -220,25 +249,125 @@ struct PrivacySettingsView: View {
                 let _ = try? await URLSession.shared.data(for: request)
             }
 
-            // 4. Limpiar UserDefaults
             UserDefaults.standard.removeObject(forKey: "receipt_hash")
             UserDefaults.standard.removeObject(forKey: "tryon_provider")
+            UserDefaults.standard.removeObject(forKey: "chatgpt_access_token")
+            UserDefaults.standard.removeObject(forKey: "chatgpt_chat_enabled")
 
-            // 5. Limpiar Keychain
             KeychainHelper.delete(for: "gemini_api_key")
             KeychainHelper.delete(for: "openai_api_key")
 
-            // 6. Reset AppState
             appState.currentUser = nil
             appState.isPremium = false
             appState.isBYOKEnabled = false
+            appState.isChatGPTConnected = false
+            appState.useConnectedChatGPTForChat = false
+
+            await loadStorageInfo()
+            deleteResultMessage = text("Tus datos locales se han eliminado. Si tenías datos en servicios remotos configurados, también se solicitó su borrado.", "Your local data has been deleted. If configured remote services had data, deletion was also requested.")
 
         } catch {
-            // Log error pero continuar con limpieza local
-            print("Error deleting cloud data: \(error)")
+            deleteResultMessage = text("No se pudieron eliminar todos los datos: \(error.localizedDescription)", "Could not delete all data: \(error.localizedDescription)")
         }
 
         isDeleting = false
+    }
+
+    private func deleteAllLocalRecords() throws {
+        try modelContext.fetch(FetchDescriptor<Message>()).forEach { modelContext.delete($0) }
+        try modelContext.fetch(FetchDescriptor<Conversation>()).forEach { modelContext.delete($0) }
+        try modelContext.fetch(FetchDescriptor<TryOnResult>()).forEach { modelContext.delete($0) }
+        try modelContext.fetch(FetchDescriptor<StyleProgressMission>()).forEach { modelContext.delete($0) }
+        try modelContext.fetch(FetchDescriptor<ClothingItem>()).forEach { modelContext.delete($0) }
+        try modelContext.fetch(FetchDescriptor<User>()).forEach { modelContext.delete($0) }
+        try modelContext.save()
+    }
+
+    private func exportDictionary(for item: ClothingItem) -> [String: Any] {
+        [
+            "id": item.id.uuidString,
+            "name": item.name,
+            "category": item.category.rawValue,
+            "brandName": jsonValue(item.brandName),
+            "notes": jsonValue(item.notes),
+            "colorTags": item.colorTags,
+            "styleTags": item.styleTags,
+            "materialTags": item.materialTags,
+            "occasionTags": item.occasionTags,
+            "detailTags": item.detailTags,
+            "isFavorite": item.isFavorite,
+            "timesWorn": item.timesWorn,
+            "lastWornAt": jsonValue(item.lastWornAt?.description),
+            "hiddenUsageScore": item.hiddenUsageScore,
+            "recommendationAppearanceCount": item.recommendationAppearanceCount,
+            "recommendationSuccessfulWearCount": item.recommendationSuccessfulWearCount,
+            "recommendationIgnoredCount": item.recommendationIgnoredCount,
+            "createdAt": item.createdAt.description,
+            "imageBytes": item.imageData?.count ?? 0,
+            "realReferenceImageBytes": item.realReferenceImageData?.count ?? 0
+        ]
+    }
+
+    private func exportDictionary(for conversation: Conversation) -> [String: Any] {
+        [
+            "id": conversation.id.uuidString,
+            "title": conversation.title,
+            "createdAt": conversation.createdAt.description,
+            "updatedAt": conversation.updatedAt.description,
+            "messages": conversation.messages
+                .sorted { $0.timestamp < $1.timestamp }
+                .map { message in
+                    [
+                        "id": message.id.uuidString,
+                        "role": message.role.rawValue,
+                        "content": message.content,
+                        "timestamp": message.timestamp.description,
+                        "hasImage": message.imageData != nil,
+                        "linkedClosetItemID": jsonValue(message.linkedClosetItemID?.uuidString),
+                        "linkedTryOnResultID": jsonValue(message.linkedTryOnResultID?.uuidString)
+                    ] as [String: Any]
+                }
+        ]
+    }
+
+    private func exportDictionary(for result: TryOnResult) -> [String: Any] {
+        [
+            "id": result.id.uuidString,
+            "provider": result.provider.rawValue,
+            "clothingName": result.clothingName,
+            "clothingCategory": jsonValue(result.clothingCategory?.rawValue),
+            "closetItemID": jsonValue(result.closetItemID?.uuidString),
+            "referenceDescriptor": result.referenceDescriptor,
+            "createdAt": result.createdAt.description,
+            "clothingImageBytes": result.clothingImageData.count,
+            "userPhotoBytes": result.userPhotoData.count,
+            "resultImageBytes": result.resultImageData.count,
+            "editCount": result.editHistory.count
+        ]
+    }
+
+    private func exportDictionary(for mission: StyleProgressMission) -> [String: Any] {
+        [
+            "id": mission.id.uuidString,
+            "title": mission.title,
+            "linkedItemIDs": mission.linkedItemIDStrings,
+            "targetMonths": mission.targetMonths,
+            "createdAt": mission.createdAt.description,
+            "dueAt": mission.dueAt.description,
+            "completedAt": jsonValue(mission.completedAt?.description),
+            "isActive": mission.isActive,
+            "notes": jsonValue(mission.notes),
+            "hasBaselineImage": mission.baselineImageData != nil,
+            "hasFollowUpImage": mission.followUpImageData != nil
+        ]
+    }
+
+    private func text(_ spanish: String, _ english: String) -> String {
+        lang == .spanish ? spanish : english
+    }
+
+    private func jsonValue(_ value: Any?) -> Any {
+        value ?? NSNull()
     }
 }
 

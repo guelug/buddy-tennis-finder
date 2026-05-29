@@ -92,7 +92,7 @@ struct TryOnProviderSelectorView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(lang == .spanish ? "**Google Gemini**: mejor calidad y realismo. Requiere uso de API o premium." : "**Google Gemini**: Best quality and realism. Requires API usage or premium.")
 
-                        Text(lang == .spanish ? "**Apple Playground**: generación gratuita en el dispositivo. Crea imágenes estilo cartoon." : "**Apple Playground**: Free on-device generation. Creates cartoon-style images, fun for kids!")
+                        Text(lang == .spanish ? "**Vista local**: composición gratuita en el dispositivo. Sirve como previsualización rápida, no como try-on realista." : "**Local Preview**: Free on-device composition. Useful as a quick preview, not a realistic try-on.")
 
                         if appState.hasBYOKAccess {
                             Text(lang == .spanish ? "**BYOK**: usa tu propia clave de OpenAI si quieres este proveedor disponible." : "**BYOK**: Use your own OpenAI API key if you want this provider available.")

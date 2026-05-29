@@ -9,6 +9,8 @@ struct SubscriptionView: View {
     @State private var isPurchasing = false
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var headerPulse = false
+    @State private var purchaseFeedbackCounter = 0
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
@@ -42,11 +44,13 @@ struct SubscriptionView: View {
             .background(Theme.Colors.groupedBackground)
             .navigationTitle(isSpanish ? "Hazte premium" : "Go Premium")
             .navigationBarTitleDisplayMode(.inline)
+            .sensoryFeedback(.success, trigger: purchaseFeedbackCounter)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(isSpanish ? "Cerrar" : "Close") {
                         dismiss()
                     }
+                    .buttonStyle(.premiumPressable)
                 }
             }
             .alert(isSpanish ? "Error" : "Error", isPresented: $showError) {
@@ -66,6 +70,11 @@ struct SubscriptionView: View {
             Image(systemName: "crown.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(Theme.Colors.premiumGold)
+                .symbolEffect(.pulse, options: .repeating.speed(0.35), value: headerPulse)
+                .shadow(color: Theme.Colors.premiumGold.opacity(headerPulse ? 0.42 : 0.18), radius: headerPulse ? 18 : 8, y: 4)
+                .onAppear {
+                    headerPulse = true
+                }
 
             Text(isSpanish ? "Desbloquea todo tu potencial" : "Unlock Your Full Potential")
                 .font(.title2)
@@ -149,10 +158,13 @@ struct SubscriptionView: View {
             if visibleProducts.isEmpty {
                 ProgressView()
                     .padding()
+                    .transition(.opacity)
             } else {
                 ForEach(visibleProducts, id: \.id) { product in
                     Button {
-                        selectedProduct = product
+                        withAnimation(.snappy(duration: 0.22)) {
+                            selectedProduct = product
+                        }
                         Task {
                             await purchase(product)
                         }
@@ -187,11 +199,22 @@ struct SubscriptionView: View {
                                 : Theme.Colors.cardBackground
                         )
                         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
+                                .stroke(
+                                    selectedProduct?.id == product.id ? Theme.Colors.primary.opacity(0.35) : Color.clear,
+                                    lineWidth: 1
+                                )
+                        }
                     }
                     .disabled(isPurchasing)
+                    .buttonStyle(.premiumPressable)
+                    .transition(.scale(scale: 0.98).combined(with: .opacity))
                 }
             }
         }
+        .animation(.snappy(duration: 0.25), value: visibleProducts.map(\.id))
+        .animation(.snappy(duration: 0.2), value: selectedProduct?.id)
     }
 
     private var restoreSection: some View {
@@ -203,6 +226,7 @@ struct SubscriptionView: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.Colors.primary)
             }
+            .buttonStyle(.premiumPressable)
 
             Text(isSpanish ? "¿Ya estás suscrito? Restaura aquí tus compras." : "Already subscribed? Restore your purchases here.")
                 .font(.caption)
@@ -218,6 +242,7 @@ struct SubscriptionView: View {
             await appState.refreshPremiumStatus()
             await MainActor.run {
                 isPurchasing = false
+                purchaseFeedbackCounter += 1
                 dismiss()
             }
         } catch {
@@ -236,6 +261,9 @@ struct SubscriptionView: View {
     private func restorePurchases() async {
         await storeKitManager.restorePurchases()
         await appState.refreshPremiumStatus()
+        await MainActor.run {
+            purchaseFeedbackCounter += 1
+        }
     }
 }
 

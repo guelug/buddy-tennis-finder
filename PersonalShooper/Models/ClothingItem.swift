@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import UIKit
 
-enum ClothingCategory: String, Codable, CaseIterable {
+enum ClothingCategory: String, Codable, CaseIterable, Sendable {
     case tops
     case bottoms
     case dresses

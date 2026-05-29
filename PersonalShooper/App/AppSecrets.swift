@@ -28,10 +28,13 @@ enum AppSecrets {
 
     static var openAIAPIKey: String? {
         stringValue(for: openAIKeyName)
+            ?? KeychainHelper.load(for: "openai_api_key")
+            ?? UserDefaults.standard.string(forKey: storedOpenAIKey)
     }
 
     static var geminiAPIKey: String? {
         stringValue(for: geminiKeyName)
+            ?? KeychainHelper.load(for: "gemini_api_key")
     }
 
     static var vercelAPIBaseURL: URL? {

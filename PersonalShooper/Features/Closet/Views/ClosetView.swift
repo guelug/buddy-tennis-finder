@@ -12,6 +12,9 @@ struct ClosetView: View {
     @State private var searchText = ""
     @State private var pendingDeletionItem: ClothingItem?
     @State private var deletionErrorMessage: String?
+    @State private var selectedItem: ClothingItem?
+    @State private var sortMode: ClosetSortMode = .recent
+    @State private var closetFeedbackCounter = 0
 
     private var lang: Language {
         appState.preferredLanguage
@@ -25,7 +28,11 @@ struct ClosetView: View {
         if !searchText.isEmpty {
             result = result.filter { $0.matches(searchText: searchText) }
         }
-        return result
+        return result.sorted(using: sortMode)
+    }
+
+    private var closetStats: ClosetStats {
+        ClosetStats(items: items)
     }
 
     var body: some View {
@@ -34,7 +41,9 @@ struct ClosetView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Theme.Spacing.xs) {
                         CategoryChip(title: Strings.closetAll(lang), icon: "square.grid.2x2", isSelected: selectedCategory == nil) {
-                            selectedCategory = nil
+                            withAnimation(.snappy(duration: 0.22)) {
+                                selectedCategory = nil
+                            }
                         }
 
                         ForEach(ClothingCategory.allCases, id: \.self) { category in
@@ -43,7 +52,9 @@ struct ClosetView: View {
                                 icon: category.icon,
                                 isSelected: selectedCategory == category
                             ) {
-                                selectedCategory = category
+                                withAnimation(.snappy(duration: 0.22)) {
+                                    selectedCategory = category
+                                }
                             }
                         }
                     }
@@ -73,35 +84,68 @@ struct ClosetView: View {
                     .background(Theme.Colors.groupedBackground)
                 } else {
                     ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: Theme.Spacing.sm) {
-                            ForEach(filteredItems) { item in
-                                ClosetItemCard(item: item, lang: lang)
-                                    .overlay(alignment: .topTrailing) {
-                                        Button {
-                                            pendingDeletionItem = item
-                                        } label: {
-                                            Image(systemName: "trash.circle.fill")
-                                                .font(.title3)
-                                                .foregroundStyle(.white, .red)
-                                                .padding(6)
+                        VStack(spacing: Theme.Spacing.md) {
+                            ClosetStatsStrip(stats: closetStats, lang: lang)
+
+                            Picker("", selection: $sortMode) {
+                                ForEach(ClosetSortMode.allCases) { mode in
+                                    Text(mode.title(lang)).tag(mode)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .animation(.snappy(duration: 0.22), value: sortMode)
+
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: Theme.Spacing.sm) {
+                                ForEach(filteredItems) { item in
+                                    ClosetItemCard(item: item, lang: lang)
+                                        .transition(.scale(scale: 0.96).combined(with: .opacity))
+                                        .onTapGesture {
+                                            selectedItem = item
                                         }
-                                        .buttonStyle(.plain)
-                                    }
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            pendingDeletionItem = item
-                                        } label: {
-                                            Label(Strings.closetDelete(lang), systemImage: "trash")
+                                        .overlay(alignment: .topTrailing) {
+                                            if item.isFavorite {
+                                                Image(systemName: "heart.fill")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.white)
+                                                    .padding(7)
+                                                    .background(.red)
+                                                    .clipShape(Circle())
+                                                    .padding(6)
+                                            }
                                         }
-                                    }
+                                        .contextMenu {
+                                            Button {
+                                                markWorn(item)
+                                            } label: {
+                                                Label(lang == .spanish ? "Usada hoy" : "Worn today", systemImage: "checkmark.circle")
+                                            }
+
+                                            Button {
+                                                toggleFavorite(item)
+                                            } label: {
+                                                Label(
+                                                    item.isFavorite
+                                                        ? (lang == .spanish ? "Quitar favorito" : "Remove favorite")
+                                                        : (lang == .spanish ? "Marcar favorito" : "Mark favorite"),
+                                                    systemImage: item.isFavorite ? "heart.slash" : "heart"
+                                                )
+                                            }
+
+                                            Button(role: .destructive) {
+                                                pendingDeletionItem = item
+                                            } label: {
+                                                Label(Strings.closetDelete(lang), systemImage: "trash")
+                                            }
+                                        }
+                                }
                             }
                         }
                         .padding()
                     }
+                    .animation(.snappy(duration: 0.25), value: filteredItems.map(\.id))
                     .background(Theme.Colors.groupedBackground)
                 }
             }
@@ -122,6 +166,16 @@ struct ClosetView: View {
             }
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()
+            }
+            .sheet(item: $selectedItem) { item in
+                ClosetItemDetailView(
+                    item: item,
+                    lang: lang,
+                    onDelete: {
+                        selectedItem = nil
+                        pendingDeletionItem = item
+                    }
+                )
             }
             .confirmationDialog(
                 lang == .spanish ? "Eliminar prenda" : "Delete garment",
@@ -165,6 +219,7 @@ struct ClosetView: View {
             } message: {
                 Text(deletionErrorMessage ?? "")
             }
+            .sensoryFeedback(.success, trigger: closetFeedbackCounter)
         }
     }
 
@@ -194,6 +249,98 @@ struct ClosetView: View {
             showingAddItem = true
         }
     }
+
+    private func markWorn(_ item: ClothingItem) {
+        withAnimation(.snappy(duration: 0.22)) {
+            item.registerConfirmedWear()
+        }
+        closetFeedbackCounter += 1
+        saveClosetChange()
+    }
+
+    private func toggleFavorite(_ item: ClothingItem) {
+        withAnimation(.snappy(duration: 0.22)) {
+            item.isFavorite.toggle()
+        }
+        closetFeedbackCounter += 1
+        saveClosetChange()
+    }
+
+    private func saveClosetChange() {
+        do {
+            try modelContext.save()
+        } catch {
+            deletionErrorMessage = error.localizedDescription
+        }
+    }
+}
+
+private enum ClosetSortMode: String, CaseIterable, Identifiable {
+    case recent
+    case leastWorn
+    case mostWorn
+    case favorites
+
+    var id: String { rawValue }
+
+    func title(_ lang: Language) -> String {
+        switch self {
+        case .recent:
+            return lang == .spanish ? "Recientes" : "Recent"
+        case .leastWorn:
+            return lang == .spanish ? "Menos uso" : "Least worn"
+        case .mostWorn:
+            return lang == .spanish ? "Más uso" : "Most worn"
+        case .favorites:
+            return lang == .spanish ? "Favoritas" : "Favorites"
+        }
+    }
+}
+
+private struct ClosetStats {
+    let total: Int
+    let worn: Int
+    let averageUsage: Int
+    let underused: Int
+
+    init(items: [ClothingItem]) {
+        total = items.count
+        worn = items.filter { $0.timesWorn > 0 }.count
+        averageUsage = items.isEmpty ? 0 : Int((items.map(\.hiddenUsageScore).reduce(0, +) / Double(items.count)).rounded())
+        underused = items.filter { $0.timesWorn == 0 || $0.hiddenUsagePercentage < 25 }.count
+    }
+}
+
+private struct ClosetStatsStrip: View {
+    let stats: ClosetStats
+    let lang: Language
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            stat(title: lang == .spanish ? "Prendas" : "Items", value: "\(stats.total)")
+            stat(title: lang == .spanish ? "Usadas" : "Worn", value: "\(stats.worn)")
+            stat(title: lang == .spanish ? "Uso medio" : "Avg use", value: "\(stats.averageUsage)%")
+            stat(title: lang == .spanish ? "Por rotar" : "Rotate", value: "\(stats.underused)")
+        }
+    }
+
+    private func stat(title: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .contentTransition(.numericText())
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Theme.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+    }
 }
 
 struct CategoryChip: View {
@@ -216,6 +363,7 @@ struct CategoryChip: View {
             .foregroundStyle(isSelected ? .white : .primary)
             .clipShape(Capsule())
         }
+        .buttonStyle(.premiumPressable)
     }
 }
 
@@ -257,11 +405,277 @@ struct ClosetItemCard: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
             }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Label("\(item.timesWorn)", systemImage: "checkmark.circle")
+                        .contentTransition(.numericText())
+                    Spacer(minLength: 4)
+                    Text("\(item.hiddenUsagePercentage)%")
+                        .contentTransition(.numericText())
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+                ProgressView(value: Double(item.hiddenUsagePercentage), total: 100)
+                    .tint(usageTint(for: item.hiddenUsagePercentage))
+            }
         }
         .padding(Theme.Spacing.xs)
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
         .shadow(color: .black.opacity(0.05), radius: 2)
+    }
+
+    private func usageTint(for percentage: Int) -> Color {
+        if percentage < 25 { return .orange }
+        if percentage < 60 { return Theme.Colors.primary }
+        return .green
+    }
+}
+
+private struct ClosetItemDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var item: ClothingItem
+    let lang: Language
+    let onDelete: () -> Void
+
+    @State private var errorMessage: String?
+    @State private var detailFeedbackCounter = 0
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
+                    if let image = item.displayImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+                    }
+
+                    VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                        TextField(lang == .spanish ? "Nombre" : "Name", text: $item.name)
+                            .font(.title2.weight(.semibold))
+
+                        Picker(lang == .spanish ? "Categoría" : "Category", selection: $item.category) {
+                            ForEach(ClothingCategory.allCases, id: \.self) { category in
+                                Label(Strings.categoryDisplayName(category, lang), systemImage: category.icon)
+                                    .tag(category)
+                            }
+                        }
+
+                        Toggle(isOn: $item.isFavorite) {
+                            Label(lang == .spanish ? "Favorita" : "Favorite", systemImage: "heart")
+                        }
+                    }
+                    .padding()
+                    .background(Theme.Colors.cardBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+
+                    usageSection
+                    tagsSection
+
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        Text(lang == .spanish ? "Notas" : "Notes")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        TextField(
+                            lang == .spanish ? "Ej. combinar con denim oscuro" : "Example: pair with dark denim",
+                            text: Binding(
+                                get: { item.notes ?? "" },
+                                set: { item.notes = $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+                            ),
+                            axis: .vertical
+                        )
+                        .lineLimit(3...6)
+                        .padding(12)
+                        .background(Theme.Colors.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                    }
+                }
+                .padding()
+            }
+            .background(Theme.Colors.groupedBackground)
+            .navigationTitle(lang == .spanish ? "Detalle" : "Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(lang == .spanish ? "Cerrar" : "Close") {
+                        saveAndDismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            markWorn()
+                        } label: {
+                            Label(lang == .spanish ? "Registrar uso hoy" : "Log worn today", systemImage: "checkmark.circle")
+                        }
+
+                        Button {
+                            item.registerIgnoredRecommendation()
+                            save()
+                        } label: {
+                            Label(lang == .spanish ? "No me apetece usarla" : "Not feeling it", systemImage: "minus.circle")
+                        }
+
+                        Button(role: .destructive) {
+                            onDelete()
+                            dismiss()
+                        } label: {
+                            Label(Strings.closetDelete(lang), systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+            .alert(lang == .spanish ? "No he podido guardar" : "Couldn't save", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "")
+            }
+            .sensoryFeedback(.success, trigger: detailFeedbackCounter)
+        }
+    }
+
+    private var usageSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            HStack {
+                Text(lang == .spanish ? "Uso de la prenda" : "Garment usage")
+                    .font(.headline)
+                Spacer()
+                Text("\(item.hiddenUsagePercentage)%")
+                    .font(.headline)
+                    .foregroundStyle(usageTint(for: item.hiddenUsagePercentage))
+            }
+
+            ProgressView(value: Double(item.hiddenUsagePercentage), total: 100)
+                .tint(usageTint(for: item.hiddenUsagePercentage))
+
+            HStack(spacing: Theme.Spacing.sm) {
+                metric(title: lang == .spanish ? "Usos" : "Wears", value: "\(item.timesWorn)")
+                metric(title: lang == .spanish ? "Sugerida" : "Suggested", value: "\(item.recommendationAppearanceCount)")
+                metric(title: lang == .spanish ? "Aceptada" : "Accepted", value: "\(item.recommendationSuccessfulWearCount)")
+            }
+
+            if let lastWornAt = item.lastWornAt {
+                Label(lastWornAt.formatted(date: .abbreviated, time: .omitted), systemImage: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Label(lang == .spanish ? "Aún no registrada como usada" : "Not logged as worn yet", systemImage: "calendar.badge.exclamationmark")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                markWorn()
+            } label: {
+                Label(lang == .spanish ? "Registrar uso hoy" : "Log worn today", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .sensoryFeedback(.success, trigger: item.timesWorn)
+        }
+        .padding()
+        .background(Theme.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+    }
+
+    @ViewBuilder
+    private var tagsSection: some View {
+        let tagGroups: [(String, [String])] = [
+            (lang == .spanish ? "Colores" : "Colors", item.colorTags),
+            (lang == .spanish ? "Estilo" : "Style", item.styleTags),
+            (lang == .spanish ? "Materiales" : "Materials", item.materialTags),
+            (lang == .spanish ? "Ocasiones" : "Occasions", item.occasionTags),
+            (lang == .spanish ? "Detalles" : "Details", item.detailTags)
+        ].filter { !$0.1.isEmpty }
+
+        if !tagGroups.isEmpty {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                ForEach(tagGroups, id: \.0) { title, tags in
+                    VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                        Text(title)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        FlexibleTagRow(tags: tags)
+                    }
+                }
+            }
+            .padding()
+            .background(Theme.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        }
+    }
+
+    private func metric(title: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.headline)
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.gray.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.small))
+    }
+
+    private func markWorn() {
+        withAnimation(.snappy(duration: 0.22)) {
+            item.registerConfirmedWear()
+        }
+        detailFeedbackCounter += 1
+        save()
+    }
+
+    private func saveAndDismiss() {
+        save()
+        dismiss()
+    }
+
+    private func save() {
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func usageTint(for percentage: Int) -> Color {
+        if percentage < 25 { return .orange }
+        if percentage < 60 { return Theme.Colors.primary }
+        return .green
+    }
+}
+
+private struct FlexibleTagRow: View {
+    let tags: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Spacing.xs) {
+                ForEach(tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.caption)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.gray.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+        }
     }
 }
 
@@ -290,5 +704,29 @@ private extension ClothingItem {
     var searchHighlightLine: String {
         let highlights = Array((colorTags + styleTags + materialTags + occasionTags + detailTags).prefix(3))
         return highlights.joined(separator: " · ")
+    }
+}
+
+private extension Array where Element == ClothingItem {
+    func sorted(using mode: ClosetSortMode) -> [ClothingItem] {
+        switch mode {
+        case .recent:
+            return sorted { $0.createdAt > $1.createdAt }
+        case .leastWorn:
+            return sorted {
+                ($0.timesWorn, $0.lastWornAt ?? .distantPast, $0.createdAt)
+                    < ($1.timesWorn, $1.lastWornAt ?? .distantPast, $1.createdAt)
+            }
+        case .mostWorn:
+            return sorted {
+                ($0.timesWorn, $0.lastWornAt ?? .distantPast, $0.createdAt)
+                    > ($1.timesWorn, $1.lastWornAt ?? .distantPast, $1.createdAt)
+            }
+        case .favorites:
+            return sorted {
+                ($0.isFavorite ? 1 : 0, $0.timesWorn, $0.createdAt)
+                    > ($1.isFavorite ? 1 : 0, $1.timesWorn, $1.createdAt)
+            }
+        }
     }
 }

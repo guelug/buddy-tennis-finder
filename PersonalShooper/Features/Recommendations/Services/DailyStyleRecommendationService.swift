@@ -229,10 +229,24 @@ struct DailyStyleRecommendationService {
 
         let sorted = (filtered.isEmpty ? items : filtered)
             .sorted {
-                ($0.isFavorite ? 1 : 0, $0.timesWorn) > ($1.isFavorite ? 1 : 0, $1.timesWorn)
+                rotationScore(for: $0) > rotationScore(for: $1)
             }
 
         return Array(sorted.prefix(3).map(\.name))
+    }
+
+    private func rotationScore(for item: ClothingItem) -> Double {
+        let favoriteBonus = item.isFavorite ? 0.35 : 0
+        let underusedBonus = max(0, 1 - (Double(item.hiddenUsagePercentage) / 100))
+        let staleBonus: Double
+
+        if let lastWornAt = item.lastWornAt {
+            staleBonus = min(Date().timeIntervalSince(lastWornAt) / (60 * 60 * 24 * 30), 0.5)
+        } else {
+            staleBonus = 0.5
+        }
+
+        return favoriteBonus + underusedBonus + staleBonus
     }
 
     private func targetCategories(for category: EventCategory) -> Set<ClothingCategory> {

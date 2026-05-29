@@ -15,7 +15,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     func displayName(language: Language) -> String {
         switch self {
         case .google: return "Google Gemini"
-        case .playground: return language == .spanish ? "Playground de Apple" : "Apple Playground"
+        case .playground: return language == .spanish ? "Vista local" : "Local Preview"
         case .chatgpt: return language == .spanish ? "Tu clave de OpenAI" : "BYOK"
         }
     }
@@ -27,7 +27,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     func subtitle(language: Language) -> String {
         switch self {
         case .google: return language == .spanish ? "Resultados más precisos" : "Most accurate results"
-        case .playground: return language == .spanish ? "Gratis, estilo cartoon" : "Free, cartoon style"
+        case .playground: return language == .spanish ? "Gratis, composición local" : "Free local composition"
         case .chatgpt: return language == .spanish ? "Usa tu propia clave de OpenAI" : "Bring your own OpenAI key"
         }
     }
@@ -115,11 +115,9 @@ final class TryOnProviderService {
         return try await service.generateTryOnImage(clothingImage: clothing, userImage: user, editHints: nil)
     }
 
-    // MARK: - Apple Playground (Cartoon Style)
+    // MARK: - Local Preview
 
     private func generateWithPlayground(clothing: UIImage, user: UIImage) async throws -> UIImage {
-        // Apple Playground generates cartoon-style images
-        // For now, we create a stylized cartoon version locally
         let playgroundImage = createCartoonStyleImage(clothing: clothing, user: user)
         return playgroundImage
     }
@@ -219,7 +217,7 @@ enum TryOnProviderError: Error, LocalizedError {
         case .authenticationRequired:
             return "OpenAI key not available"
         case .notYetImplemented:
-            return "BYOK image generation is coming soon"
+            return "This provider is not available"
         case .generationFailed(let message):
             return "Generation failed: \(message)"
         }

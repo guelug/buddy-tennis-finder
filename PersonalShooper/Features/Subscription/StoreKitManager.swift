@@ -284,6 +284,10 @@ final class StoreKitManager: ObservableLike {
     // MARK: - Receipt
 
     func fetchAppStoreReceipt() -> Data? {
+        guard #unavailable(iOS 18.0) else {
+            return nil
+        }
+
         // iOS 7+ receipt location
         let receiptURL = Bundle.main.appStoreReceiptURL
 
