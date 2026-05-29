@@ -184,20 +184,61 @@ final class ClothingClassificationService: @unchecked Sendable {
     }
 
     private static func mapObservationToCategory(_ identifiers: [String], imageSize: CGSize) -> ClothingCategory {
-        for identifier in identifiers {
-            if containsAny(identifier, ["dress", "gown"]) { return .dresses }
-            if containsAny(identifier, ["shoe", "sneaker", "boot", "sandal", "heel", "loafer"]) { return .shoes }
-            if containsAny(identifier, ["bag", "purse", "hat", "cap", "watch", "jewelry", "belt", "scarf", "tie", "sunglasses"]) { return .accessories }
-            if containsAny(identifier, ["coat", "jacket", "blazer", "parka", "trench", "windbreaker", "outerwear"]) { return .outerwear }
-            if containsAny(identifier, ["legging", "pant", "trouser", "jean", "short", "skirt"]) { return .bottoms }
-            if containsAny(identifier, ["hoodie", "sports bra", "track", "running", "gym", "athletic", "yoga", "workout"]) { return .activewear }
-            if containsAny(identifier, ["bikini", "swimsuit", "swimwear", "bathing"]) { return .swimwear }
-            if containsAny(identifier, ["shirt", "blouse", "top", "tee", "t-shirt", "polo", "tank", "sweater", "cardigan"]) { return .tops }
+        let weightedKeywords: [(category: ClothingCategory, keywords: [String])] = [
+            (.dresses, ["dress", "gown"]),
+            (.shoes, ["shoe", "sneaker", "boot", "sandal", "heel", "loafer"]),
+            (.accessories, ["bag", "purse", "hat", "cap", "watch", "jewelry", "belt", "scarf", "tie", "sunglasses"]),
+            (.tops, ["shirt", "blouse", "top", "tee", "t-shirt", "polo", "tank", "sweater", "cardigan", "jersey", "camisa"]),
+            (.outerwear, ["coat", "jacket", "blazer", "parka", "trench", "windbreaker", "outerwear"]),
+            (.bottoms, ["legging", "pant", "trouser", "jean", "short", "skirt"]),
+            (.activewear, ["hoodie", "sports bra", "track", "running", "gym", "athletic", "yoga", "workout"]),
+            (.swimwear, ["bikini", "swimsuit", "swimwear", "bathing"])
+        ]
+
+        var scores: [ClothingCategory: Double] = [:]
+        for (index, identifier) in identifiers.enumerated() {
+            let positionWeight = max(0.25, 1.0 - Double(index) * 0.08)
+            for rule in weightedKeywords where containsAny(identifier, rule.keywords) {
+                scores[rule.category, default: 0] += positionWeight
+            }
         }
 
         let aspectRatio = imageSize.height / max(imageSize.width, 1)
-        if aspectRatio > 1.35 { return .dresses }
-        return .tops
+        if aspectRatio > 1.55 {
+            scores[.dresses, default: 0] += 0.35
+        } else if aspectRatio < 1.45 {
+            scores[.tops, default: 0] += 0.2
+        }
+
+        let hasTopSignal = identifiers.contains { containsAny($0, ["shirt", "blouse", "top", "tee", "t-shirt", "polo", "tank", "sweater", "cardigan", "jersey"]) }
+        let hasHardOuterwearSignal = identifiers.contains { containsAny($0, ["coat", "parka", "trench", "windbreaker", "outerwear", "blazer"]) }
+
+        // Vision often labels laid-flat shirts as "jacket" because of sleeves/collar shape. Only
+        // keep outerwear if there is a stronger coat/blazer signal or no clear top signal.
+        if hasTopSignal && !hasHardOuterwearSignal {
+            scores[.outerwear, default: 0] *= 0.45
+            scores[.tops, default: 0] += 0.45
+        }
+
+        return scores.max { lhs, rhs in
+            if lhs.value == rhs.value {
+                return categoryTiePriority(lhs.key) < categoryTiePriority(rhs.key)
+            }
+            return lhs.value < rhs.value
+        }?.key ?? .tops
+    }
+
+    private static func categoryTiePriority(_ category: ClothingCategory) -> Int {
+        switch category {
+        case .tops: return 8
+        case .dresses: return 7
+        case .bottoms: return 6
+        case .shoes: return 5
+        case .accessories: return 4
+        case .activewear: return 3
+        case .swimwear: return 2
+        case .outerwear: return 1
+        }
     }
 
     private static func applyRuleSet(
@@ -392,8 +433,11 @@ final class ClothingClassificationService: @unchecked Sendable {
     private static func extractColors(from cgImage: CGImage) async -> [String] {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                let width = min(cgImage.width, 120)
-                let height = min(cgImage.height, 120)
+                // Mayor resolución para mejor precisión de color
+                let targetSize: CGFloat = 400
+                let scale = min(targetSize / CGFloat(cgImage.width), targetSize / CGFloat(cgImage.height))
+                let width = max(Int(CGFloat(cgImage.width) * scale), 200)
+                let height = max(Int(CGFloat(cgImage.height) * scale), 200)
 
                 guard let context = CGContext(
                     data: nil,
@@ -416,81 +460,314 @@ final class ClothingClassificationService: @unchecked Sendable {
                 }
 
                 let pointer = data.bindMemory(to: UInt8.self, capacity: width * height * 4)
-                var colorCounts: [String: Int] = [:]
 
-                for y in stride(from: 0, to: height, by: 4) {
-                    for x in stride(from: 0, to: width, by: 4) {
+                // Centro de la imagen con peso mayor (donde suele estar la prenda)
+                let centerX = width / 2
+                let centerY = height / 2
+
+                // Recolectar colores con muestreo más fino
+                var rawColors: [(r: Int, g: Int, b: Int, weight: Double)] = []
+
+                for y in stride(from: 0, to: height, by: 2) {
+                    for x in stride(from: 0, to: width, by: 2) {
                         let offset = (y * width + x) * 4
                         let r = Int(pointer[offset])
                         let g = Int(pointer[offset + 1])
                         let b = Int(pointer[offset + 2])
                         let alpha = Int(pointer[offset + 3])
 
-                        guard alpha > 35 else { continue }
+                        guard alpha > 60 else { continue }
 
-                        let colorName = classifyColor(r: r, g: g, b: b)
-                        colorCounts[colorName, default: 0] += 1
+                        // Descartar píxeles muy cercanos al blanco puro (probable fondo)
+                        if r > 240 && g > 240 && b > 240 { continue }
+
+                        // Peso según distancia al centro (prenda suele estar centrada)
+                        let dx = Double(x - centerX) / Double(width)
+                        let dy = Double(y - centerY) / Double(height)
+                        let distanceFromCenter = sqrt(dx * dx + dy * dy)
+                        let centerWeight = 1.0 + max(0, 1.0 - distanceFromCenter * 2.0)
+
+                        rawColors.append((r, g, b, centerWeight))
                     }
                 }
 
-                let sorted = colorCounts.sorted { $0.value > $1.value }
-                continuation.resume(returning: Array(sorted.prefix(4).map(\.key)))
+                // Clustering: agrupar colores similares
+                let clusters = clusterColors(rawColors, maxClusters: 6)
+
+                // Convertir clusters a nombres de color
+                let colorNames = clusters
+                    .sorted { $0.weight > $1.weight }
+                    .prefix(4)
+                    .map { classifyColorImproved(r: $0.r, g: $0.g, b: $0.b) }
+
+                // Eliminar duplicados consecutivos manteniendo orden
+                var uniqueNames: [String] = []
+                for name in colorNames {
+                    if !uniqueNames.contains(name) {
+                        uniqueNames.append(name)
+                    }
+                }
+
+                continuation.resume(returning: uniqueNames.isEmpty ? ["Multicolor"] : uniqueNames)
             }
         }
     }
 
-    private static func classifyColor(r: Int, g: Int, b: Int) -> String {
-        let maxComponent = Double(max(r, g, b))
-        let minComponent = Double(min(r, g, b))
-        let brightness = maxComponent / 255.0
-        let saturation = maxComponent == 0 ? 0 : (maxComponent - minComponent) / maxComponent
+    private static func clusterColors(
+        _ colors: [(r: Int, g: Int, b: Int, weight: Double)],
+        maxClusters: Int
+    ) -> [(r: Int, g: Int, b: Int, weight: Double)] {
+        guard !colors.isEmpty else { return [] }
 
-        if saturation < 0.12 {
-            if brightness < 0.18 { return "Negro" }
-            if brightness < 0.38 { return "Gris oscuro" }
-            if brightness < 0.7 { return "Gris" }
-            if brightness < 0.9 { return "Blanco roto" }
-            return "Blanco"
+        // Inicializar clusters con los colores más frecuentes (k-means++ aproximado)
+        var clusters: [(r: Double, g: Double, b: Double, weight: Double)] = []
+        var usedIndices = Set<Int>()
+
+        // Primer cluster: color con mayor peso
+        if let first = colors.enumerated().max(by: { $0.element.weight < $1.element.weight }) {
+            clusters.append((Double(first.element.r), Double(first.element.g), Double(first.element.b), first.element.weight))
+            usedIndices.insert(first.offset)
         }
 
-        let delta = maxComponent - minComponent
-        var hue: Double
+        // Siguientes clusters: color más lejano de los existentes
+        while clusters.count < maxClusters && usedIndices.count < colors.count {
+            var bestDistance: Double = -1
+            var bestIndex: Int = -1
 
-        if maxComponent == Double(r) {
-            hue = 60 * (((Double(g) - Double(b)) / delta).truncatingRemainder(dividingBy: 6))
-        } else if maxComponent == Double(g) {
-            hue = 60 * (((Double(b) - Double(r)) / delta) + 2)
-        } else {
-            hue = 60 * (((Double(r) - Double(g)) / delta) + 4)
+            for (index, color) in colors.enumerated() where !usedIndices.contains(index) {
+                let minDistance = clusters.map { cluster in
+                    colorDistance(
+                        r1: color.r, g1: color.g, b1: color.b,
+                        r2: Int(cluster.r), g2: Int(cluster.g), b2: Int(cluster.b)
+                    )
+                }.min() ?? 0
+
+                if minDistance > bestDistance {
+                    bestDistance = minDistance
+                    bestIndex = index
+                }
+            }
+
+            guard bestIndex >= 0, bestDistance > 30 else { break }
+
+            let color = colors[bestIndex]
+            clusters.append((Double(color.r), Double(color.g), Double(color.b), color.weight))
+            usedIndices.insert(bestIndex)
         }
 
-        if hue < 0 { hue += 360 }
+        // Asignar cada color al cluster más cercano y recalcular centroides
+        var assignments: [Int] = Array(repeating: 0, count: colors.count)
+        var changed = true
+        var iterations = 0
 
-        if brightness < 0.32 {
-            if hue < 25 || hue >= 345 { return "Burdeos" }
-            if hue < 55 { return "Marrón" }
-            if hue < 170 { return "Verde oscuro" }
-            if hue < 265 { return "Azul marino" }
-            return "Morado oscuro"
+        while changed && iterations < 20 {
+            changed = false
+            iterations += 1
+
+            // Asignar
+            for (index, color) in colors.enumerated() {
+                var bestCluster = 0
+                var bestDistance = colorDistance(
+                    r1: color.r, g1: color.g, b1: color.b,
+                    r2: Int(clusters[0].r), g2: Int(clusters[0].g), b2: Int(clusters[0].b)
+                )
+
+                for (clusterIndex, cluster) in clusters.enumerated().dropFirst() {
+                    let distance = colorDistance(
+                        r1: color.r, g1: color.g, b1: color.b,
+                        r2: Int(cluster.r), g2: Int(cluster.g), b2: Int(cluster.b)
+                    )
+                    if distance < bestDistance {
+                        bestDistance = distance
+                        bestCluster = clusterIndex
+                    }
+                }
+
+                if assignments[index] != bestCluster {
+                    assignments[index] = bestCluster
+                    changed = true
+                }
+            }
+
+            // Recalcular centroides ponderados
+            for clusterIndex in clusters.indices {
+                var totalR: Double = 0
+                var totalG: Double = 0
+                var totalB: Double = 0
+                var totalWeight: Double = 0
+
+                for (index, color) in colors.enumerated() {
+                    if assignments[index] == clusterIndex {
+                        totalR += Double(color.r) * color.weight
+                        totalG += Double(color.g) * color.weight
+                        totalB += Double(color.b) * color.weight
+                        totalWeight += color.weight
+                    }
+                }
+
+                if totalWeight > 0 {
+                    clusters[clusterIndex] = (
+                        totalR / totalWeight,
+                        totalG / totalWeight,
+                        totalB / totalWeight,
+                        totalWeight
+                    )
+                }
+            }
         }
 
-        if brightness > 0.78 && saturation < 0.35 {
-            if hue < 55 { return "Beige" }
-            if hue < 170 { return "Verde suave" }
-            if hue < 265 { return "Azul claro" }
-            return "Rosa claro"
+        return clusters.map { (
+            r: Int(round($0.r)),
+            g: Int(round($0.g)),
+            b: Int(round($0.b)),
+            weight: $0.weight
+        ) }
+    }
+
+    private static func colorDistance(r1: Int, g1: Int, b1: Int, r2: Int, g2: Int, b2: Int) -> Double {
+        // Distancia en espacio Lab aproximada (más perceptual que RGB simple)
+        let lr1 = linearize(Double(r1) / 255.0)
+        let lg1 = linearize(Double(g1) / 255.0)
+        let lb1 = linearize(Double(b1) / 255.0)
+        let lr2 = linearize(Double(r2) / 255.0)
+        let lg2 = linearize(Double(g2) / 255.0)
+        let lb2 = linearize(Double(b2) / 255.0)
+
+        let dl = (lr1 - lr2) * 100
+        let da = ((lg1 - lb1) - (lg2 - lb2)) * 100
+        let db = ((lr1 * 2 - lg1 - lb1) - (lr2 * 2 - lg2 - lb2)) * 50
+
+        return sqrt(dl * dl + da * da + db * db)
+    }
+
+    private static func linearize(_ c: Double) -> Double {
+        c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    private static func classifyColorImproved(r: Int, g: Int, b: Int) -> String {
+        let rf = Double(r) / 255.0
+        let gf = Double(g) / 255.0
+        let bf = Double(b) / 255.0
+
+        let maxC = max(rf, gf, bf)
+        let minC = min(rf, gf, bf)
+        let brightness = maxC
+        let saturation = maxC == 0 ? 0 : (maxC - minC) / maxC
+        let chroma = maxC - minC
+
+        // Colores muy poco saturados → grises
+        if saturation < 0.08 {
+            if brightness < 0.12 { return "Negro" }
+            if brightness < 0.30 { return "Gris oscuro" }
+            if brightness < 0.55 { return "Gris" }
+            if brightness < 0.82 { return "Gris claro" }
+            return "Blanco"  // Fondo ya filtrado, esto es blanco real de la prenda
         }
 
-        if hue < 15 || hue >= 345 { return "Rojo" }
-        if hue < 40 { return "Naranja" }
-        if hue < 60 { return "Mostaza" }
-        if hue < 85 { return "Amarillo" }
+        // Colores pastel / muy claros
+        if brightness > 0.85 && saturation < 0.25 {
+            if rf > gf && rf > bf && rf - minC > 0.05 { return "Rosa pálido" }
+            if gf > rf && gf > bf && gf - minC > 0.05 { return "Verde pálido" }
+            if bf > rf && bf > gf && bf - minC > 0.05 { return "Azul pálido" }
+            if rf > 0.9 && gf > 0.8 { return "Crema" }
+            return "Blanco roto"
+        }
+
+        // Calcular hue
+        var hue: Double = 0
+        if chroma > 0 {
+            if maxC == rf {
+                hue = ((gf - bf) / chroma).truncatingRemainder(dividingBy: 6)
+                if hue < 0 { hue += 6 }
+                hue *= 60
+            } else if maxC == gf {
+                hue = ((bf - rf) / chroma + 2) * 60
+            } else {
+                hue = ((rf - gf) / chroma + 4) * 60
+            }
+        }
+
+        // Colores oscuros (brightness < 0.35)
+        if brightness < 0.35 {
+            if hue >= 340 || hue < 15 { return "Burdeos" }
+            if hue < 35 { return "Marrón" }
+            if hue < 55 { return "Mostaza oscuro" }
+            if hue < 85 { return "Verde oliva" }
+            if hue < 165 { return "Verde oscuro" }
+            if hue < 200 { return "Verde petróleo" }
+            if hue < 255 { return "Azul marino" }
+            if hue < 290 { return "Morado oscuro" }
+            if hue < 330 { return "Fucsia oscuro" }
+            return "Burdeos"
+        }
+
+        // Colores medios-claros (brightness >= 0.35)
+        // Rojos y naranjas
+        if hue >= 340 || hue < 12 {
+            if saturation > 0.7 && brightness > 0.6 { return "Rojo" }
+            if brightness > 0.7 { return "Rojo coral" }
+            return "Rojo ladrillo"
+        }
+        if hue < 28 {
+            if brightness > 0.75 && saturation < 0.6 { return "Salmon" }
+            return "Coral"
+        }
+        if hue < 40 {
+            if brightness > 0.8 { return "Naranja claro" }
+            return "Naranja"
+        }
+        if hue < 52 {
+            if brightness > 0.8 { return "Amarillo claro" }
+            return "Mostaza"
+        }
+
+        // Amarillos y verdes
+        if hue < 68 { return "Amarillo" }
+        if hue < 85 {
+            if brightness > 0.7 { return "Verde lima" }
+            return "Verde manzana"
+        }
+        if hue < 105 { return "Verde menta" }
+        if hue < 135 {
+            if saturation < 0.5 { return "Verde agua" }
+            return "Verde esmeralda"
+        }
         if hue < 165 { return "Verde" }
-        if hue < 200 { return "Turquesa" }
-        if hue < 255 { return brightness < 0.55 ? "Azul" : "Azul claro" }
-        if hue < 290 { return "Morado" }
-        if hue < 330 { return "Rosa" }
-        return "Rojo"
+
+        // Turquesas y azules
+        if hue < 185 { return "Turquesa" }
+        if hue < 210 {
+            if brightness > 0.7 { return "Cyan" }
+            return "Turquesa oscuro"
+        }
+        if hue < 240 {
+            if brightness > 0.75 { return "Azul cielo" }
+            if brightness > 0.55 { return "Azul" }
+            return "Azul acero"
+        }
+        if hue < 265 {
+            if brightness > 0.75 { return "Azul claro" }
+            if brightness > 0.55 { return "Azul" }
+            return "Azul índigo"
+        }
+
+        // Morados y rosas
+        if hue < 285 {
+            if brightness > 0.7 { return "Lavanda" }
+            return "Morado"
+        }
+        if hue < 305 { return "Violeta" }
+        if hue < 325 {
+            if brightness > 0.75 { return "Rosa" }
+            if brightness > 0.55 { return "Rosa viejo" }
+            return "Malva"
+        }
+        if hue < 340 {
+            if brightness > 0.75 { return "Rosa" }
+            return "Rosa oscuro"
+        }
+
+        return "Multicolor"
     }
 
     private static func containsAny(_ source: String, _ keywords: [String]) -> Bool {

@@ -28,6 +28,7 @@ struct ClothingCaptureView: View {
     @State private var brandName = ""
     @State private var itemNotes = ""
     @State private var errorMessage: String?
+    @FocusState private var focusedField: DetailField?
 
     private let classificationService = ClothingClassificationService()
 
@@ -65,28 +66,61 @@ struct ClothingCaptureView: View {
         }
     }
 
+    private enum DetailField: Hashable {
+        case name
+        case brand
+        case notes
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: Theme.Spacing.lg) {
-                // Progress indicator
-                progressIndicator
-
-                // Step content
-                stepContent
-
-                Spacer()
-
-                // Action buttons
-                actionButtons
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: Theme.Spacing.lg) {
+                        progressIndicator
+                        stepContent
+                    }
+                    .padding(Theme.Spacing.screenPadding)
+                    .padding(.bottom, 120)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .background {
+                    Theme.Colors.groupedBackground
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            dismissKeyboard()
+                        }
+                }
+                .onChange(of: focusedField) { _, field in
+                    guard let field else { return }
+                    withAnimation(.snappy(duration: 0.24)) {
+                        proxy.scrollTo(field, anchor: .center)
+                    }
+                }
+                .safeAreaInset(edge: .bottom) {
+                    actionButtons
+                        .padding(.horizontal, Theme.Spacing.screenPadding)
+                        .padding(.top, Theme.Spacing.sm)
+                        .padding(.bottom, Theme.Spacing.sm)
+                        .background(.regularMaterial)
+                }
             }
-            .padding(Theme.Spacing.screenPadding)
-            .background(Theme.Colors.groupedBackground)
             .navigationTitle(text("Añadir prenda", "Add Garment"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(text("Cancelar", "Cancel")) {
                         dismiss()
+                    }
+                }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+
+                    Button {
+                        dismissKeyboard()
+                    } label: {
+                        Label(text("Ocultar", "Hide"), systemImage: "keyboard.chevron.compact.down")
                     }
                 }
             }
@@ -207,11 +241,15 @@ struct ClothingCaptureView: View {
 
                             TextField(text("Ej. Blazer azul marino", "Example: Navy blazer"), text: $itemName)
                                 .textInputAutocapitalization(.words)
+                                .submitLabel(.next)
+                                .focused($focusedField, equals: .name)
+                                .onSubmit { focusedField = .brand }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                         }
+                        .id(DetailField.name)
 
                         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                             Text(text("Marca (opcional)", "Brand (optional)"))
@@ -220,11 +258,15 @@ struct ClothingCaptureView: View {
 
                             TextField(text("Ej. COS, Zara, vintage", "Example: COS, Zara, vintage"), text: $brandName)
                                 .textInputAutocapitalization(.words)
+                                .submitLabel(.next)
+                                .focused($focusedField, equals: .brand)
+                                .onSubmit { focusedField = .notes }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                         }
+                        .id(DetailField.brand)
 
                         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                             Text(text("Notas (opcional)", "Notes (optional)"))
@@ -233,11 +275,13 @@ struct ClothingCaptureView: View {
 
                             TextField(text("Ej. va bien con pantalón negro", "Example: works with black trousers"), text: $itemNotes, axis: .vertical)
                                 .lineLimit(2...4)
+                                .focused($focusedField, equals: .notes)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                                 .background(.white)
                                 .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                         }
+                        .id(DetailField.notes)
 
                         if !detectedSummary.isEmpty {
                             Text(detectedSummary)
@@ -366,6 +410,11 @@ struct ClothingCaptureView: View {
 
     private func text(_ spanish: String, _ english: String) -> String {
         lang == .spanish ? spanish : english
+    }
+
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     private func stepTitle(_ step: CaptureStep) -> String {
