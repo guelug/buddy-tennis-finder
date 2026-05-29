@@ -13,6 +13,9 @@ struct PhotoUploadView: View {
     @State private var fullBodyFront: UIImage?
     @State private var fullBodyBack: UIImage?
     @State private var showPrivacyNotice = false
+    @State private var hasAcceptedPrivacy = false
+    @State private var pendingPhotoInput: PhotoInputSource?
+    @State private var didLoadExisting = false
 
     var startStep: UploadStep?
 
@@ -22,9 +25,10 @@ struct PhotoUploadView: View {
     @State private var showCamera = false
     @State private var showPhotoPicker = false
     @State private var isAnalyzing = false
-    @State private var analysisProgress = 0.0
     @State private var errorMessage: String?
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var cropItem: CropItem?
+    @State private var pendingCameraImage: UIImage?
 
     private let photoAnalysisService = PhotoAnalysisService()
 
@@ -38,24 +42,6 @@ struct PhotoUploadView: View {
         case fullBodyFront = 2
         case fullBodyBack = 3
 
-        var title: String {
-            switch self {
-            case .faceCloseUp: return "Primer Plano del Rostro"
-            case .faceProfile: return "Perfil del Rostro"
-            case .fullBodyFront: return "Cuerpo Completo Frontal"
-            case .fullBodyBack: return "Cuerpo Completo Posterior"
-            }
-        }
-
-        var description: String {
-            switch self {
-            case .faceCloseUp: return "Toma una foto clara de tu rostro de frente"
-            case .faceProfile: return "Toma una foto de tu rostro de perfil"
-            case .fullBodyFront: return "Toma una foto de cuerpo completo de frente"
-            case .fullBodyBack: return "Toma una foto de cuerpo completo de espalda"
-            }
-        }
-
         var icon: String {
             switch self {
             case .faceCloseUp: return "face.smiling"
@@ -64,6 +50,11 @@ struct PhotoUploadView: View {
             case .fullBodyBack: return "figure.stand.line.dotted.figure.stand"
             }
         }
+    }
+
+    private enum PhotoInputSource {
+        case camera
+        case library
     }
 
     var currentImage: Binding<UIImage?> {
@@ -75,66 +66,77 @@ struct PhotoUploadView: View {
         }
     }
 
+    /// Square crop for face shots, portrait for full-body shots.
+    private var cropAspectRatio: CGFloat {
+        switch currentStep {
+        case .faceCloseUp, .faceProfile: return 1
+        case .fullBodyFront, .fullBodyBack: return 3.0 / 4.0
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: Theme.Spacing.lg) {
-                // Progress indicator
                 progressIndicator
-
-                // Step content
                 stepContent
-
                 Spacer()
-
-                // Action buttons
                 actionButtons
             }
             .padding(Theme.Spacing.screenPadding)
-            .onAppear {
-                if let step = startStep {
-                    currentStep = step
-                }
-            }
+            .onAppear(perform: loadExistingIfNeeded)
             .background(Theme.Colors.groupedBackground)
             .navigationTitle(isSpanish ? "Subir fotos" : "Upload Photos")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(isSpanish ? "Cancelar" : "Cancel") {
+                    Button(isSpanish ? "Hecho" : "Done") {
                         dismiss()
                     }
                 }
             }
-            .sheet(isPresented: $showPrivacyNotice) {
+            // Present the picker/camera only after the privacy sheet has fully dismissed to avoid
+            // a present-while-dismissing crash.
+            .sheet(isPresented: $showPrivacyNotice, onDismiss: openPendingInputIfAccepted) {
                 PrivacyNoticeView {
+                    hasAcceptedPrivacy = true
                     showPrivacyNotice = false
                 }
             }
-            .sheet(isPresented: $showPhotoPicker) {
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Text(isSpanish ? "Seleccionar foto" : "Select Photo")
+            .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+            .fullScreenCover(isPresented: $showCamera, onDismiss: presentCropForCapturedImage) {
+                CameraView { image in
+                    pendingCameraImage = image
                 }
-                .onChange(of: selectedPhotoItem) { _, newItem in
-                    Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self),
-                           let image = UIImage(data: data) {
-                            handleImageSelection(image)
-                        }
-                        showPhotoPicker = false
+            }
+            .fullScreenCover(item: $cropItem) { item in
+                PhotoCropView(image: item.image, aspectRatio: cropAspectRatio, isSpanish: isSpanish) { cropped in
+                    applyCrop(cropped)
+                }
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    let data = try? await newItem.loadTransferable(type: Data.self)
+                    await MainActor.run {
                         selectedPhotoItem = nil
+                        // By the time the transfer resolves the picker has dismissed, so presenting
+                        // the crop cover here is safe.
+                        if let data, let image = UIImage(data: data) {
+                            cropItem = CropItem(image: image)
+                        }
                     }
                 }
             }
-            .fullScreenCover(isPresented: $showCamera) {
-                CameraView { image in
-                    handleImageSelection(image)
-                }
-            }
-            .alert(isSpanish ? "Error de análisis" : "Analysis Error", isPresented: .constant(errorMessage != nil)) {
-                Button("OK") { errorMessage = nil }
+            .alert(isSpanish ? "Error de análisis" : "Analysis Error", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "")
             }
+            .animation(.snappy(duration: 0.25), value: currentStep.rawValue)
+            .sensoryFeedback(.success, trigger: currentStep.rawValue)
         }
     }
 
@@ -143,8 +145,15 @@ struct PhotoUploadView: View {
             ForEach(UploadStep.allCases, id: \.rawValue) { step in
                 VStack(spacing: 4) {
                     Circle()
-                        .fill(step.rawValue <= currentStep.rawValue ? Theme.Colors.primary : Color.gray.opacity(0.3))
+                        .fill(circleColor(for: step))
                         .frame(width: 10, height: 10)
+                        .overlay {
+                            if image(for: step) != nil {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 6, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
 
                     Text(title(for: step))
                         .font(.caption2)
@@ -155,14 +164,18 @@ struct PhotoUploadView: View {
         }
     }
 
+    private func circleColor(for step: UploadStep) -> Color {
+        if image(for: step) != nil { return .green }
+        return step.rawValue <= currentStep.rawValue ? Theme.Colors.primary : Color.gray.opacity(0.3)
+    }
+
     private var stepContent: some View {
         VStack(spacing: Theme.Spacing.lg) {
-            // Icon
             Image(systemName: currentStep.icon)
                 .font(.system(size: 60))
                 .foregroundStyle(Theme.Colors.primary)
+                .symbolEffect(.bounce, value: currentStep.rawValue)
 
-            // Title and description
             VStack(spacing: Theme.Spacing.xs) {
                 Text(title(for: currentStep))
                     .font(.title2)
@@ -174,13 +187,13 @@ struct PhotoUploadView: View {
                     .multilineTextAlignment(.center)
             }
 
-            // Preview or placeholder
             if let image = currentImage.wrappedValue {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxHeight: 250)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+                    .transition(.scale(scale: 0.98).combined(with: .opacity))
                     .overlay {
                         if isAnalyzing {
                             RoundedRectangle(cornerRadius: Theme.CornerRadius.large)
@@ -210,23 +223,27 @@ struct PhotoUploadView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .transition(.opacity)
             }
         }
+        .id(currentStep.rawValue)
+        .transition(.move(edge: .trailing).combined(with: .opacity))
     }
 
     private var actionButtons: some View {
         VStack(spacing: Theme.Spacing.sm) {
             Button {
-                showCamera = true
+                startPhotoInput(.camera)
             } label: {
                 Label(isSpanish ? "Tomar foto" : "Take Photo", systemImage: "camera.fill")
                     .frame(maxWidth: .infinity)
                     .primaryButtonStyle()
             }
             .disabled(isAnalyzing)
+            .buttonStyle(.premiumPressable)
 
             Button {
-                showPhotoPicker = true
+                startPhotoInput(.library)
             } label: {
                 Label(isSpanish ? "Elegir de la biblioteca" : "Choose from Library", systemImage: "photo.on.rectangle")
                     .frame(maxWidth: .infinity)
@@ -237,31 +254,103 @@ struct PhotoUploadView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
             }
             .disabled(isAnalyzing)
+            .buttonStyle(.premiumPressable)
 
             if currentImage.wrappedValue != nil {
                 Button {
                     moveToNextStep()
                 } label: {
-                    Text(isSpanish ? "Continuar" : "Continue")
+                    Text(currentStep == .fullBodyBack
+                         ? (isSpanish ? "Finalizar y analizar" : "Finish & analyze")
+                         : (isSpanish ? "Continuar" : "Continue"))
                         .frame(maxWidth: .infinity)
                         .primaryButtonStyle()
                 }
                 .disabled(isAnalyzing)
+                .buttonStyle(.premiumPressable)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
     }
 
-    private func handleImageSelection(_ image: UIImage?) {
-        guard let image = image else { return }
-        currentImage.wrappedValue = StorageBudgetManager.normalizedImage(image) ?? image
+    // MARK: - Photo input
+
+    private func startPhotoInput(_ source: PhotoInputSource) {
+        guard hasAcceptedPrivacy else {
+            pendingPhotoInput = source
+            showPrivacyNotice = true
+            return
+        }
+        openPhotoInput(source)
+    }
+
+    private func openPhotoInput(_ source: PhotoInputSource) {
+        switch source {
+        case .camera:
+            showCamera = true
+        case .library:
+            showPhotoPicker = true
+        }
+    }
+
+    private func openPendingInputIfAccepted() {
+        let source = pendingPhotoInput
+        pendingPhotoInput = nil
+        if hasAcceptedPrivacy, let source {
+            openPhotoInput(source)
+        }
+    }
+
+    private func presentCropForCapturedImage() {
+        if let image = pendingCameraImage {
+            pendingCameraImage = nil
+            cropItem = CropItem(image: image)
+        }
+    }
+
+    private func applyCrop(_ image: UIImage) {
+        let normalized = StorageBudgetManager.normalizedImage(image) ?? image
+        withAnimation(.snappy(duration: 0.22)) {
+            currentImage.wrappedValue = normalized
+        }
+        persistPhotos()
+    }
+
+    // MARK: - Persistence
+
+    private func loadExistingIfNeeded() {
+        if let step = startStep {
+            currentStep = step
+        }
+
+        guard !didLoadExisting else { return }
+        didLoadExisting = true
+
+        if let photos = appState.currentUser?.profilePhotos {
+            faceCloseUp = photos.faceCloseUp
+            faceProfile = photos.faceProfile
+            fullBodyFront = photos.fullBodyFront
+            fullBodyBack = photos.fullBodyBack
+        }
+    }
+
+    /// Saves whatever photos exist so far, so the user keeps their progress if they exit.
+    private func persistPhotos() {
+        guard let user = appState.currentUser else { return }
+        user.profilePhotos = ProfilePhotos(
+            faceCloseUp: faceCloseUp,
+            faceProfile: faceProfile,
+            fullBodyFront: fullBodyFront,
+            fullBodyBack: fullBodyBack
+        )
+        user.updatedAt = Date()
+        try? modelContext.save()
+        appState.updateUser(user)
     }
 
     private func moveToNextStep() {
         if currentStep == .fullBodyBack {
-            // All photos taken, run analysis
-            Task {
-                await analyzePhotos()
-            }
+            Task { await analyzePhotos() }
         } else if let nextStep = UploadStep(rawValue: currentStep.rawValue + 1) {
             withAnimation {
                 currentStep = nextStep
@@ -278,10 +367,8 @@ struct PhotoUploadView: View {
         isAnalyzing = true
 
         do {
-            // Extract skin tone from face photo
             let analysisResult = try await photoAnalysisService.extractSkinTone(from: face)
 
-            // Generate palette
             let skinToneExtractor = SkinToneExtractor()
             let palette = skinToneExtractor.generatePalette(
                 undertone: analysisResult.undertone,
@@ -303,43 +390,55 @@ struct PhotoUploadView: View {
             )
 
             guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
-                await MainActor.run {
-                    errorMessage = StorageBudgetManager.overflowMessage(
-                        language: appState.preferredLanguage,
-                        modelContext: modelContext,
-                        additionalBytes: additionalBytes
-                    )
-                    isAnalyzing = false
-                }
+                errorMessage = StorageBudgetManager.overflowMessage(
+                    language: appState.preferredLanguage,
+                    modelContext: modelContext,
+                    additionalBytes: additionalBytes
+                )
+                isAnalyzing = false
                 return
             }
 
-            // Update user profile
-            await MainActor.run {
-                if let user = appState.currentUser {
-                    user.skinAnalysis = analysisResult
-                    user.personalPalette = palette
-                    user.profilePhotos = updatedPhotos
-
-                    do {
-                        try modelContext.save()
-                        appState.updateUser(user)
-                        isAnalyzing = false
-                        dismiss()
-                    } catch {
-                        errorMessage = isSpanish ? "No he podido guardar tu perfil: \(error.localizedDescription)" : "I couldn't save your profile: \(error.localizedDescription)"
-                        isAnalyzing = false
-                    }
-                } else {
-                    errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
-                    isAnalyzing = false
-                }
+            guard let user = appState.currentUser else {
+                errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
+                isAnalyzing = false
+                return
             }
-        } catch {
-            await MainActor.run {
-                errorMessage = isSpanish ? "Error en el análisis: \(error.localizedDescription)" : "Analysis error: \(error.localizedDescription)"
+
+            user.skinAnalysis = analysisResult
+            user.personalPalette = palette
+            user.profilePhotos = updatedPhotos
+
+            do {
+                try modelContext.save()
+                appState.updateUser(user)
+                isAnalyzing = false
+                dismiss()
+            } catch {
+                errorMessage = isSpanish ? "No he podido guardar tu perfil: \(error.localizedDescription)" : "I couldn't save your profile: \(error.localizedDescription)"
                 isAnalyzing = false
             }
+        } catch is AnalysisError {
+            // No face detected (or analysis failed): keep the photos saved and let the user finish
+            // without a palette rather than blocking them.
+            persistPhotos()
+            isAnalyzing = false
+            errorMessage = isSpanish
+                ? "No he podido detectar bien el rostro para la paleta, pero he guardado tus fotos. Puedes reintentar con una foto más clara del rostro."
+                : "I couldn't read your face clearly for the palette, but your photos are saved. You can retry with a clearer face photo."
+        } catch {
+            persistPhotos()
+            errorMessage = isSpanish ? "Error en el análisis: \(error.localizedDescription)" : "Analysis error: \(error.localizedDescription)"
+            isAnalyzing = false
+        }
+    }
+
+    private func image(for step: UploadStep) -> UIImage? {
+        switch step {
+        case .faceCloseUp: return faceCloseUp
+        case .faceProfile: return faceProfile
+        case .fullBodyFront: return fullBodyFront
+        case .fullBodyBack: return fullBodyBack
         }
     }
 
@@ -366,6 +465,149 @@ struct PhotoUploadView: View {
         case (.faceProfile, false): return "Take a side profile photo of your face"
         case (.fullBodyFront, false): return "Take a full-body front photo"
         case (.fullBodyBack, false): return "Take a full-body back photo"
+        }
+    }
+}
+
+// MARK: - Crop
+
+/// Wrapper so the crop screen can be presented via `.fullScreenCover(item:)`.
+struct CropItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+/// Pinch-to-zoom / pan crop screen. The garment-frame window defines the crop; "Accept" renders
+/// exactly what's visible inside the frame to a new image.
+struct PhotoCropView: View {
+    let image: UIImage
+    let aspectRatio: CGFloat   // width / height of the crop window
+    let isSpanish: Bool
+    let onCrop: (UIImage) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var scale: CGFloat = 1
+    @State private var lastScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        GeometryReader { geo in
+            let cropSize = cropSize(in: geo.size)
+
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: cropSize.width, height: cropSize.height)
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .frame(width: cropSize.width, height: cropSize.height)
+                    .clipped()
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(.white.opacity(0.9), lineWidth: 2)
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .gesture(
+                        SimultaneousGesture(
+                            MagnificationGesture()
+                                .onChanged { value in scale = min(max(1, lastScale * value), 6) }
+                                .onEnded { _ in lastScale = scale },
+                            DragGesture()
+                                .onChanged { value in
+                                    offset = CGSize(
+                                        width: lastOffset.width + value.translation.width,
+                                        height: lastOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in lastOffset = offset }
+                        )
+                    )
+
+                VStack {
+                    HStack {
+                        Text(isSpanish ? "Pellizca y arrastra para encuadrar" : "Pinch and drag to frame")
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .padding(.top, 60)
+
+                    Spacer()
+
+                    HStack {
+                        Button(isSpanish ? "Cancelar" : "Cancel") {
+                            dismiss()
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                        Spacer()
+
+                        Button(isSpanish ? "Aceptar" : "Accept") {
+                            onCrop(croppedImage(cropSize: cropSize) ?? image)
+                            dismiss()
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 12)
+                        .background(.white, in: Capsule())
+                    }
+                    .padding()
+                    .padding(.bottom, 20)
+                }
+            }
+        }
+    }
+
+    private func cropSize(in available: CGSize) -> CGSize {
+        let maxWidth = available.width - 32
+        let maxHeight = available.height - 220
+        var width = maxWidth
+        var height = width / aspectRatio
+        if height > maxHeight {
+            height = maxHeight
+            width = height * aspectRatio
+        }
+        return CGSize(width: max(80, width), height: max(80, height))
+    }
+
+    private func croppedImage(cropSize: CGSize) -> UIImage? {
+        let normalized = image.normalizedUp()
+        let imageSize = normalized.size
+        guard imageSize.width > 0, imageSize.height > 0 else { return nil }
+
+        // Base fill scale (matches scaledToFill into the crop window), times the user's zoom.
+        let fitScale = max(cropSize.width / imageSize.width, cropSize.height / imageSize.height)
+        let total = fitScale * scale
+        guard total > 0 else { return nil }
+
+        let centerX = imageSize.width / 2
+        let centerY = imageSize.height / 2
+        let rect = CGRect(
+            x: centerX + (-cropSize.width / 2 - offset.width) / total,
+            y: centerY + (-cropSize.height / 2 - offset.height) / total,
+            width: cropSize.width / total,
+            height: cropSize.height / total
+        ).intersection(CGRect(origin: .zero, size: imageSize))
+
+        guard !rect.isNull, rect.width > 1, rect.height > 1 else { return nil }
+        return normalized.cropped(to: rect)
+    }
+}
+
+extension UIImage {
+    /// Redraws the image with `.up` orientation so pixel cropping math is straightforward.
+    func normalizedUp() -> UIImage {
+        guard imageOrientation != .up else { return self }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }
@@ -410,4 +652,3 @@ struct CameraView: UIViewControllerRepresentable {
         }
     }
 }
-

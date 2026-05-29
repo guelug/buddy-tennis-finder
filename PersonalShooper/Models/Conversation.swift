@@ -121,8 +121,10 @@ struct ChatContext {
     var userStylePreferences: [String]
     var personalStylingProfile: PersonalStylingProfile?
     var preferredName: String?
+    var userGender: StyleGender?
     var todayEvents: [CalendarEventSnapshot]
     var dailyRecommendation: DailyStyleRecommendationSnapshot?
+    var closetItems: [ClothingItemSummary]
     var recentConversations: [ConversationSummary]
     var language: Language
 
@@ -131,8 +133,10 @@ struct ChatContext {
         userStylePreferences: [String] = [],
         personalStylingProfile: PersonalStylingProfile? = nil,
         preferredName: String? = nil,
+        userGender: StyleGender? = nil,
         todayEvents: [CalendarEventSnapshot] = [],
         dailyRecommendation: DailyStyleRecommendationSnapshot? = nil,
+        closetItems: [ClothingItemSummary] = [],
         recentConversations: [ConversationSummary] = [],
         language: Language = .english
     ) {
@@ -140,8 +144,10 @@ struct ChatContext {
         self.userStylePreferences = userStylePreferences
         self.personalStylingProfile = personalStylingProfile
         self.preferredName = preferredName
+        self.userGender = userGender
         self.todayEvents = todayEvents
         self.dailyRecommendation = dailyRecommendation
+        self.closetItems = closetItems
         self.recentConversations = recentConversations
         self.language = language
     }

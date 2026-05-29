@@ -28,6 +28,7 @@ final class ChatViewModel {
         }
 
         hasPrepared = true
+        prewarmAssistant()
 
         let descriptor = FetchDescriptor<Conversation>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
@@ -53,6 +54,7 @@ final class ChatViewModel {
             context.userStylePreferences = user.stylePreferences
             context.personalStylingProfile = user.personalStylingProfile
             context.preferredName = user.displayName
+            context.userGender = user.personalStylingProfile.genderIdentity
             context.todayEvents = appState.todayCalendarEvents
             context.dailyRecommendation = appState.latestDailyRecommendation
         } else {
@@ -60,6 +62,7 @@ final class ChatViewModel {
             context.userStylePreferences = []
             context.personalStylingProfile = nil
             context.preferredName = nil
+            context.userGender = nil
             context.todayEvents = []
             context.dailyRecommendation = nil
         }
@@ -122,9 +125,24 @@ final class ChatViewModel {
             appState: appState
         )
         setContext(from: appState)
+        context.closetItems = fetchClosetSummaries(modelContext: modelContext)
+
+        let aiService = activeAIService(for: appState)
+
+        if let streamingService = aiService as? FoundationModelsServiceProtocol {
+            await streamAssistantResponse(
+                using: streamingService,
+                prompt: trimmedInput,
+                savedFacts: savedFacts,
+                closetSummary: closetSummary,
+                appState: appState,
+                modelContext: modelContext
+            )
+            isLoading = false
+            return
+        }
 
         do {
-            let aiService = activeAIService(for: appState)
             let baseResponse = try await aiService.sendMessage(trimmedInput, context: context)
             let assistantResponse = composeAssistantResponse(
                 base: baseResponse,
@@ -285,8 +303,19 @@ final class ChatViewModel {
     }
 
     private func composeAssistantResponse(base: String, savedFacts: [String], closetSummary: String?, appState: AppState) -> String {
+        var sections = leadingSections(savedFacts: savedFacts, closetSummary: closetSummary, appState: appState)
+        sections.append(base)
+
+        if let followUp = followUpQuestion(appState: appState) {
+            sections.append(followUp)
+        }
+
+        return sections.joined(separator: "\n\n")
+    }
+
+    /// Sections that come before the AI's own answer (saved profile facts, closet updates).
+    private func leadingSections(savedFacts: [String], closetSummary: String?, appState: AppState) -> [String] {
         let isSpanish = appState.preferredLanguage == .spanish
-        let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
         var sections: [String] = []
 
         if !savedFacts.isEmpty {
@@ -300,14 +329,119 @@ final class ChatViewModel {
             sections.append(closetSummary)
         }
 
-        sections.append(base)
+        return sections
+    }
 
-        if let nextQuestion = profile.nextQuestion(in: appState.preferredLanguage) {
-            let followUpPrefix = isSpanish ? "Si quieres, seguimos afinando:" : "If you want, we can keep refining:"
-            sections.append("\(followUpPrefix) \(nextQuestion)")
+    /// Optional follow-up question appended after the AI's answer to keep enriching the profile.
+    private func followUpQuestion(appState: AppState) -> String? {
+        let isSpanish = appState.preferredLanguage == .spanish
+        let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
+
+        guard let nextQuestion = profile.nextQuestion(in: appState.preferredLanguage) else {
+            return nil
         }
 
-        return sections.joined(separator: "\n\n")
+        let followUpPrefix = isSpanish ? "Si quieres, seguimos afinando:" : "If you want, we can keep refining:"
+        return "\(followUpPrefix) \(nextQuestion)"
+    }
+
+    /// Streams the assistant reply token-by-token (Apple Intelligence) so it types out live,
+    /// then appends the optional follow-up question and any prepared tool output.
+    private func streamAssistantResponse(
+        using service: FoundationModelsServiceProtocol,
+        prompt: String,
+        savedFacts: [String],
+        closetSummary: String?,
+        appState: AppState,
+        modelContext: ModelContext
+    ) async {
+        let lead = leadingSections(savedFacts: savedFacts, closetSummary: closetSummary, appState: appState)
+        let prefix = lead.isEmpty ? "" : lead.joined(separator: "\n\n") + "\n\n"
+
+        var streamingMessage: Message?
+        var streamedText = ""
+
+        do {
+            for try await delta in service.streamMessage(prompt, context: context) {
+                streamedText += delta
+
+                if let streamingMessage {
+                    streamingMessage.content = prefix + streamedText
+                } else {
+                    let message = Message(role: .assistant, content: prefix + streamedText)
+                    streamingMessage = message
+                    messages.append(message)
+                    conversation?.addMessage(message)
+                    isLoading = false
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            if streamingMessage == nil {
+                let fallback = fallbackResponse(appState: appState, savedFacts: savedFacts, closetSummary: closetSummary)
+                appendAssistantMessage(fallback, saveToModel: true, modelContext: modelContext)
+            } else {
+                try? modelContext.save()
+            }
+            return
+        }
+
+        // No usable tokens — drop the empty placeholder and use a contextual fallback instead.
+        guard let streamingMessage,
+              !streamedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            if let placeholder = streamingMessage {
+                messages.removeAll { $0.id == placeholder.id }
+                conversation?.messages.removeAll { $0.id == placeholder.id }
+                modelContext.delete(placeholder)
+            }
+            let fallback = fallbackResponse(appState: appState, savedFacts: savedFacts, closetSummary: closetSummary)
+            appendAssistantMessage(fallback, saveToModel: true, modelContext: modelContext)
+            return
+        }
+
+        var finalContent = prefix + streamedText
+        if let followUp = followUpQuestion(appState: appState) {
+            finalContent += "\n\n" + followUp
+        }
+        streamingMessage.content = finalContent
+
+        let toolResult = (try? await preparedToolResultIfEnabled(
+            for: prompt,
+            appState: appState,
+            modelContext: modelContext
+        )) ?? nil
+        if let toolResult {
+            applyToolResult(toolResult, to: streamingMessage)
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            errorMessage = appState.preferredLanguage == .spanish
+                ? "No he podido guardar la conversación: \(error.localizedDescription)"
+                : "I couldn't save the conversation: \(error.localizedDescription)"
+        }
+    }
+
+    private func applyToolResult(_ toolResult: ChatToolResult, to message: Message) {
+        let toolText = toolResult.assistantText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !toolText.isEmpty {
+            let current = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            message.content = current.isEmpty ? toolResult.assistantText : "\(message.content)\n\n\(toolResult.assistantText)"
+        }
+        if let image = toolResult.image {
+            message.image = image
+        }
+        message.linkedClosetItemID = toolResult.linkedClosetItemID
+        message.linkedTryOnResultID = toolResult.linkedTryOnResultID
+        message.metadata = toolResult.metadata
+    }
+
+    /// Warms up the on-device model so the first chat reply is fast.
+    private func prewarmAssistant() {
+        let service = AIChatServiceFactory.createService()
+        guard let streamingService = service as? FoundationModelsServiceProtocol else { return }
+        Task { await streamingService.prewarm() }
     }
 
     private func fallbackResponse(appState: AppState, savedFacts: [String], closetSummary: String?) -> String {
@@ -348,6 +482,16 @@ final class ChatViewModel {
            profile.age != age {
             profile.age = age
             savedFacts.append(language == .spanish ? "edad \(age)" : "age \(age)")
+        }
+
+        if let gender = extractGender(from: message),
+           profile.genderIdentity != gender {
+            profile.genderIdentity = gender
+            savedFacts.append(
+                language == .spanish
+                    ? "género \(gender.title(in: language).lowercased())"
+                    : "gender \(gender.title(in: language).lowercased())"
+            )
         }
 
         if let occupation = extractOccupation(from: message),
@@ -476,6 +620,22 @@ final class ChatViewModel {
         }
 
         return AIChatServiceFactory.createService()
+    }
+
+    private func fetchClosetSummaries(modelContext: ModelContext) -> [ClothingItemSummary] {
+        let descriptor = FetchDescriptor<ClothingItem>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+
+        return ((try? modelContext.fetch(descriptor)) ?? []).map { item in
+            ClothingItemSummary(
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                colorTags: item.colorTags,
+                styleTags: item.styleTags
+            )
+        }
     }
 
     private func userFacingMessageContent(from message: String, hasAttachedImage: Bool, language: Language) -> String {
@@ -621,6 +781,15 @@ final class ChatViewModel {
             }
         }
 
+        return nil
+    }
+
+    private func extractGender(from message: String) -> StyleGender? {
+        let female = ["soy mujer", "soy una mujer", "soy chica", "soy una chica", "soy femenina", "i'm a woman", "i am a woman", "i'm female"]
+        let male = ["soy hombre", "soy un hombre", "soy chico", "soy un chico", "soy masculino", "i'm a man", "i am a man", "i'm male"]
+
+        if containsAny(female, in: message) { return .female }
+        if containsAny(male, in: message) { return .male }
         return nil
     }
 

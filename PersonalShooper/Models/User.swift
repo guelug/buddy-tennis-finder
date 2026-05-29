@@ -136,8 +136,42 @@ struct ProfilePhotos {
     }
 }
 
+enum StyleGender: String, Codable, CaseIterable, Identifiable, Sendable {
+    case female
+    case male
+    case unspecified
+
+    var id: String { rawValue }
+
+    func title(in language: Language) -> String {
+        switch (self, language) {
+        case (.female, .spanish): return "Chica"
+        case (.male, .spanish): return "Chico"
+        case (.unspecified, .spanish): return "Prefiero no decirlo"
+        case (.female, .english): return "Woman"
+        case (.male, .english): return "Man"
+        case (.unspecified, .english): return "Prefer not to say"
+        }
+    }
+
+    /// How the assistant should frame wardrobe advice for this user.
+    var stylingDescriptor: String {
+        switch self {
+        case .female: return "a woman (give womenswear-oriented advice)"
+        case .male: return "a man (give menswear-oriented advice)"
+        case .unspecified: return "of unspecified gender (keep advice inclusive and neutral)"
+        }
+    }
+}
+
 struct PersonalStylingProfile: Codable, Equatable {
     var age: Int?
+    var genderIdentity: StyleGender?
+    var heightCm: Double?
+    var weightKg: Double?
+    var waistCm: Double?
+    var hipsCm: Double?
+    var chestCm: Double?
     var occupation: String
     var lifestyleSummary: String
     var usualSocialPlans: [String]
@@ -153,6 +187,12 @@ struct PersonalStylingProfile: Codable, Equatable {
 
     init(
         age: Int? = nil,
+        genderIdentity: StyleGender? = nil,
+        heightCm: Double? = nil,
+        weightKg: Double? = nil,
+        waistCm: Double? = nil,
+        hipsCm: Double? = nil,
+        chestCm: Double? = nil,
         occupation: String = "",
         lifestyleSummary: String = "",
         usualSocialPlans: [String] = [],
@@ -167,6 +207,12 @@ struct PersonalStylingProfile: Codable, Equatable {
         lastUpdatedFromChatAt: Date? = nil
     ) {
         self.age = age
+        self.genderIdentity = genderIdentity
+        self.heightCm = heightCm
+        self.weightKg = weightKg
+        self.waistCm = waistCm
+        self.hipsCm = hipsCm
+        self.chestCm = chestCm
         self.occupation = occupation
         self.lifestyleSummary = lifestyleSummary
         self.usualSocialPlans = usualSocialPlans

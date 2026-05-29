@@ -21,7 +21,11 @@ struct PersonalShooperApp: App {
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
             let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: schema, configurations: [config])
+            do {
+                return try ModelContainer(for: schema, configurations: [config])
+            } catch {
+                fatalError("Unable to create SwiftData model container: \(error.localizedDescription)")
+            }
         }
     }()
     
@@ -36,6 +40,7 @@ struct PersonalShooperApp: App {
 
 struct ContentView: View {
     @AppStorage("app_theme") private var storedTheme = AppTheme.system.rawValue
+    @AppStorage("has_completed_onboarding") private var hasCompletedOnboarding = false
     @State private var isReady = false
     @State private var selectedTab = 0
     @Environment(AppState.self) private var appState
@@ -58,10 +63,14 @@ struct ContentView: View {
 
     var body: some View {
         Group {
-            if isReady {
-                MainTabView(selectedTab: $selectedTab)
-            } else {
+            if !isReady {
                 SplashView()
+            } else if !hasCompletedOnboarding {
+                OnboardingView { name, gender in
+                    completeOnboarding(with: name, gender: gender)
+                }
+            } else {
+                MainTabView(selectedTab: $selectedTab)
             }
         }
         .environment(\.locale, Locale(identifier: appState.preferredLanguage.rawValue))
@@ -79,11 +88,13 @@ struct ContentView: View {
                 await appState.refreshPremiumStatus()
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
                 await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
+                refreshLiveActivity()
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 applyPendingLaunchDestinationIfNeeded()
+                refreshLiveActivity()
                 Task {
                     await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
                 }
@@ -109,6 +120,38 @@ struct ContentView: View {
             Task {
                 await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
             }
+        }
+    }
+
+    private func refreshLiveActivity() {
+        DailyOutfitLiveActivityController.shared.refresh(
+            enabled: appState.isDailyReminderEnabled,
+            hasClosetItems: !clothingItems.isEmpty,
+            reminderTime: appState.dailyReminderTime,
+            recommendation: appState.latestDailyRecommendation,
+            language: appState.preferredLanguage
+        )
+    }
+
+    private func completeOnboarding(with name: String, gender: StyleGender) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let user = appState.currentUser ?? users.first {
+            if !trimmed.isEmpty {
+                user.displayName = trimmed
+            }
+            if gender != .unspecified {
+                var profile = user.personalStylingProfile
+                profile.genderIdentity = gender
+                user.updateStylingProfile(profile)
+            }
+            user.updatedAt = Date()
+            try? modelContext.save()
+            appState.updateUser(user)
+        }
+
+        withAnimation(.smooth) {
+            hasCompletedOnboarding = true
         }
     }
 

@@ -398,7 +398,7 @@ struct Strings {
     }
 
     private static let translations: [String: [Language: String]] = [
-        "app_name": [.english: "Personal Shooper", .spanish: "Personal Shooper"],
+        "app_name": [.english: "Personal Shopper", .spanish: "Personal Shopper"],
         "tab_home": [.english: "Home", .spanish: "Inicio"],
         "tab_chat": [.english: "Chat", .spanish: "Chat"],
         "tab_closet": [.english: "Closet", .spanish: "Armario"],

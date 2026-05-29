@@ -22,6 +22,8 @@ final class AppState {
     var isCalendarSyncEnabled: Bool = false
     var areDailyWidgetsEnabled: Bool = true
     var isSiriStyleSupportEnabled: Bool = true
+    var isDailyReminderEnabled: Bool = false
+    var dailyReminderTime: Date = AppState.reminderTime(hour: 8, minute: 0)
     var calendarAuthorizationStatus: CalendarSyncAuthorizationStatus = .notDetermined
     var todayCalendarEvents: [CalendarEventSnapshot] = []
     var latestDailyRecommendation: DailyStyleRecommendationSnapshot?
@@ -38,6 +40,11 @@ final class AppState {
         isCalendarSyncEnabled = sharedConfiguration.calendarSyncEnabled
         areDailyWidgetsEnabled = sharedConfiguration.widgetRecommendationsEnabled
         isSiriStyleSupportEnabled = sharedConfiguration.siriSuggestionsEnabled
+        isDailyReminderEnabled = sharedConfiguration.dailyReminderEnabled
+        dailyReminderTime = AppState.reminderTime(
+            hour: sharedConfiguration.dailyReminderHour,
+            minute: sharedConfiguration.dailyReminderMinute
+        )
         latestDailyRecommendation = SharedStyleCompanionStore.loadRecommendation()
         todayCalendarEvents = SharedStyleCompanionStore.loadEvents()
         calendarAuthorizationStatus = calendarSyncService.currentAuthorizationStatus()
@@ -122,6 +129,45 @@ final class AppState {
         persistStyleCompanionConfiguration()
     }
 
+    func setDailyReminderEnabled(_ enabled: Bool, closetItems: [ClothingItem]) async {
+        isDailyReminderEnabled = enabled
+        persistStyleCompanionConfiguration()
+        await syncDailyReminder(closetItems: closetItems)
+    }
+
+    func setDailyReminderTime(_ time: Date, closetItems: [ClothingItem]) async {
+        dailyReminderTime = time
+        persistStyleCompanionConfiguration()
+        await syncDailyReminder(closetItems: closetItems)
+    }
+
+    static func reminderTime(hour: Int, minute: Int) -> Date {
+        Calendar.current.date(
+            bySettingHour: max(0, min(23, hour)),
+            minute: max(0, min(59, minute)),
+            second: 0,
+            of: Date()
+        ) ?? Date()
+    }
+
+    private func syncDailyReminder(closetItems: [ClothingItem]) async {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: dailyReminderTime)
+        let scheduled = await DailyOutfitReminderScheduler.shared.sync(
+            enabled: isDailyReminderEnabled,
+            hour: components.hour ?? 8,
+            minute: components.minute ?? 0,
+            hasClosetItems: !closetItems.isEmpty,
+            language: preferredLanguage
+        )
+
+        // If the user enabled it and we have garments but couldn't schedule, notifications are
+        // denied — reflect that so the toggle doesn't look misleadingly on.
+        if isDailyReminderEnabled && !scheduled && !closetItems.isEmpty {
+            isDailyReminderEnabled = false
+            persistStyleCompanionConfiguration()
+        }
+    }
+
     func refreshStyleCompanionState(closetItems: [ClothingItem]) async {
         calendarAuthorizationStatus = calendarSyncService.currentAuthorizationStatus()
 
@@ -151,6 +197,9 @@ final class AppState {
         SharedStyleCompanionStore.saveRecommendation(latestDailyRecommendation)
         persistStyleCompanionConfiguration()
         reloadWidgets()
+
+        // Keep the daily reminder in sync with closet contents (only fires when there are garments).
+        await syncDailyReminder(closetItems: closetItems)
     }
 
     func connectChatGPT(token: String) {
@@ -204,11 +253,15 @@ final class AppState {
     }
 
     private func persistStyleCompanionConfiguration() {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: dailyReminderTime)
         SharedStyleCompanionStore.saveConfiguration(
             StyleCompanionConfigurationSnapshot(
                 calendarSyncEnabled: isCalendarSyncEnabled,
                 widgetRecommendationsEnabled: areDailyWidgetsEnabled,
-                siriSuggestionsEnabled: isSiriStyleSupportEnabled
+                siriSuggestionsEnabled: isSiriStyleSupportEnabled,
+                dailyReminderEnabled: isDailyReminderEnabled,
+                dailyReminderHour: components.hour ?? 8,
+                dailyReminderMinute: components.minute ?? 0
             )
         )
     }

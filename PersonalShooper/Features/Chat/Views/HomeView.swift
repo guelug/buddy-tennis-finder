@@ -4,14 +4,16 @@ import SwiftData
 struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Binding var selectedTab: Int
+    @State private var showingAR = false
+    @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
+    @Query private var clothingItems: [ClothingItem]
 
     init(selectedTab: Binding<Int> = .constant(0)) {
         self._selectedTab = selectedTab
     }
 
     private enum Tab: Int {
-        case home = 0, chat = 1, closet = 2, tryOn = 3, profile = 4
-        // case ar = 5
+        case home = 0, chat = 1, closet = 2, tryOn = 3, ar = 4, profile = 5
     }
 
     private var lang: Language {
@@ -23,40 +25,53 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
                     heroSection
+                    closetNudgeSection
                     dailyRecommendationSection
                     quickActionsSection
                     recentConversationsSection
                 }
                 .padding(Theme.Spacing.screenPadding)
+                .padding(.top, Theme.Spacing.xs)
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                }
+            .toolbar(.hidden, for: .navigationBar)
+            .fullScreenCover(isPresented: $showingAR) {
+                ARWardrobeView()
             }
         }
     }
 
     private var heroSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            Text(greeting)
-                .font(.largeTitle)
-                .fontWeight(.bold)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                Text(greeting)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
 
-            if let user = appState.currentUser, let palette = user.personalPalette {
-                Text("\(Strings.profilePaletteTitle(lang)): \(palette.seasonalType.displayName) \(palette.undertone.displayName)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(Strings.homeSetupProfile(lang))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if let user = appState.currentUser, let palette = user.personalPalette {
+                    Text("\(Strings.profilePaletteTitle(lang)): \(palette.seasonalType.displayName) \(palette.undertone.displayName)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(Strings.homeSetupProfile(lang))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
+
+            Spacer(minLength: Theme.Spacing.sm)
+
+            NavigationLink {
+                SettingsView()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+                    .foregroundStyle(.primary)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.Colors.cardBackground)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.premiumPressable)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -107,15 +122,55 @@ struct HomeView: View {
                 ) {
                     selectedTab = Tab.closet.rawValue
                 }
-                // QuickActionCard(
-                //     icon: "arkit",
-                //     title: Strings.tabAR(lang),
-                //     subtitle: Strings.tabAR(lang),
-                //     color: .teal
-                // ) {
-                //     selectedTab = Tab.ar.rawValue
-                // }
+                QuickActionCard(
+                    icon: "arkit",
+                    title: Strings.tabAR(lang),
+                    subtitle: Strings.tabAR(lang),
+                    color: .teal
+                ) {
+                    showingAR = true
+                }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var closetNudgeSection: some View {
+        if clothingItems.isEmpty {
+            Button {
+                selectedTab = Tab.closet.rawValue
+            } label: {
+                HStack(spacing: Theme.Spacing.md) {
+                    Image(systemName: "hanger")
+                        .font(.title2)
+                        .foregroundStyle(Theme.Colors.primary)
+                        .frame(width: 46, height: 46)
+                        .background(Theme.Colors.primary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(lang == .spanish ? "Empieza por tu armario" : "Start with your closet")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(lang == .spanish
+                             ? "Añade tus prendas para recibir recomendaciones, probártelas y activar el recordatorio diario."
+                             : "Add your garments to get recommendations, try them on, and unlock the daily reminder.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(Theme.Colors.primary)
+                }
+                .padding(Theme.Spacing.md)
+                .background(Theme.Colors.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+            }
+            .buttonStyle(.premiumPressable)
         }
     }
 
@@ -138,6 +193,7 @@ struct HomeView: View {
                         selectedTab = Tab.chat.rawValue
                     }
                     .font(.subheadline.weight(.semibold))
+                    .buttonStyle(.premiumPressable)
                 }
 
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -193,20 +249,88 @@ struct HomeView: View {
                 .font(.subheadline)
             }
 
-            VStack(spacing: Theme.Spacing.md) {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.secondary)
-                Text(Strings.homeNoConversations(lang))
-                    .font(.headline)
-                Text(Strings.homeStartChatting(lang))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+            if conversations.isEmpty {
+                VStack(spacing: Theme.Spacing.md) {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.secondary)
+                    Text(Strings.homeNoConversations(lang))
+                        .font(.headline)
+                    Text(Strings.homeStartChatting(lang))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, Theme.Spacing.xl)
+            } else {
+                VStack(spacing: Theme.Spacing.sm) {
+                    ForEach(conversations.prefix(3)) { conversation in
+                        RecentConversationCard(conversation: conversation, language: lang) {
+                            selectedTab = Tab.chat.rawValue
+                        }
+                    }
+                }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, Theme.Spacing.xl)
         }
+    }
+}
+
+private struct RecentConversationCard: View {
+    let conversation: Conversation
+    let language: Language
+    let action: () -> Void
+
+    private var previewMessage: Message? {
+        conversation.messages.max { $0.timestamp < $1.timestamp }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.title3)
+                    .foregroundStyle(Theme.Colors.primary)
+                    .frame(width: 42, height: 42)
+                    .background(Theme.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(conversation.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(previewText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(conversation.updatedAt, style: .date)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(Theme.Spacing.md)
+            .background(Theme.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        }
+        .buttonStyle(.premiumPressable)
+    }
+
+    private var previewText: String {
+        guard let previewMessage else {
+            return language == .spanish ? "Conversación sin mensajes todavía" : "Conversation has no messages yet"
+        }
+
+        return previewMessage.content
     }
 }
 
@@ -229,6 +353,6 @@ struct QuickActionCard: View {
             .background(Theme.Colors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premiumPressable)
     }
 }

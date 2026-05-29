@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var showingTryOnProvider = false
     @State private var isRefreshingStyleCompanion = false
     @State private var showingClearCacheAlert = false
+    @State private var clearCacheResultMessage: String?
 
     private var lang: Language {
         appState.preferredLanguage
@@ -83,7 +84,7 @@ struct SettingsView: View {
             } header: {
                 Text(text("Probador virtual", "Virtual Try-On"))
             } footer: {
-                Text(text("Google: mejor calidad. Playground: estilo cartoon gratis. BYOK: usa tu propia clave de OpenAI.", "Google: best quality. Playground: free cartoon style. BYOK: uses your own OpenAI API key."))
+                Text(text("Google: mejor calidad. Vista local: composición gratuita. BYOK: usa tu propia clave de OpenAI.", "Google: best quality. Local Preview: free composition. BYOK: uses your own OpenAI API key."))
             }
 
             Section {
@@ -124,6 +125,52 @@ struct SettingsView: View {
                         Text(text("Permite pedir la recomendación diaria con Siri.", "Lets Siri read your daily recommendation."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+                }
+
+                Toggle(isOn: Binding(
+                    get: { appState.isDailyReminderEnabled },
+                    set: { newValue in
+                        Task { await appState.setDailyReminderEnabled(newValue, closetItems: closetItems) }
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(text("Recordatorio diario de outfit", "Daily outfit reminder"))
+                        Text(text("Cada día, a la hora que elijas, te recuerdo qué ponerte. Solo si tienes prendas en el armario.", "Each day, at the time you choose, I remind you what to wear. Only when your closet has garments."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if appState.isDailyReminderEnabled {
+                    DatePicker(
+                        text("Hora del recordatorio", "Reminder time"),
+                        selection: Binding(
+                            get: { appState.dailyReminderTime },
+                            set: { newValue in
+                                Task { await appState.setDailyReminderTime(newValue, closetItems: closetItems) }
+                            }
+                        ),
+                        displayedComponents: .hourAndMinute
+                    )
+
+                    if closetItems.isEmpty {
+                        Label(
+                            text("Aún no tienes prendas. Añade alguna al armario para activar el recordatorio.", "No garments yet. Add some to your closet to activate the reminder."),
+                            systemImage: "exclamationmark.circle"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    } else if let recommendation = appState.latestDailyRecommendation {
+                        Button {
+                            DailyOutfitLiveActivityController.shared.pin(
+                                recommendation: recommendation,
+                                reminderTime: appState.dailyReminderTime,
+                                language: lang
+                            )
+                        } label: {
+                            Label(text("Mostrar look en la Isla Dinámica", "Show look in Dynamic Island"), systemImage: "sparkles")
+                        }
                     }
                 }
 
@@ -202,8 +249,8 @@ struct SettingsView: View {
                 Text(text("Style Companion", "Style Companion"))
             } footer: {
                 Text(text(
-                    "Siri: di “¿Qué me recomienda ponerme hoy Personal Shooper?” para escuchar la recomendación diaria.",
-                    "Siri: say “What should I wear today with Personal Shooper?” to hear the daily recommendation."
+                    "Siri: di “¿Qué me recomienda ponerme hoy Personal Shopper?” para escuchar la recomendación diaria.",
+                    "Siri: say “What should I wear today with Personal Shopper?” to hear the daily recommendation."
                 ))
             }
 
@@ -243,6 +290,21 @@ struct SettingsView: View {
                         }
                     }
                     .disabled(!appState.isChatGPTConnected)
+                }
+
+                NavigationLink {
+                    BYOKSettingsView()
+                } label: {
+                    HStack {
+                        Image(systemName: "key.fill")
+                            .foregroundStyle(.yellow)
+                            .frame(width: 24)
+                        Text(text("Claves BYOK", "BYOK Keys"))
+                        Spacer()
+                        Text(appState.isBYOKEnabled ? text("Activas", "Active") : text("Configurar", "Configure"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 NavigationLink {
@@ -301,7 +363,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Link(destination: URL(string: "https://personalshooper.app/terms")!) {
+                Link(destination: URL(string: "https://personalshooper.rebka.co/")!) {
                     HStack {
                         Text(text("Términos del servicio", "Terms of Service"))
                         Spacer()
@@ -310,7 +372,7 @@ struct SettingsView: View {
                     }
                 }
 
-                Link(destination: URL(string: "https://personalshooper.app/privacy")!) {
+                Link(destination: URL(string: "https://personalshooper.rebka.co/#privacy")!) {
                     HStack {
                         Text(text("Política de privacidad", "Privacy Policy"))
                         Spacer()
@@ -335,6 +397,16 @@ struct SettingsView: View {
         } message: {
             Text(text("Se eliminarán solo los resultados guardados del try-on en este dispositivo para liberar espacio y forzar nuevas generaciones. Tu armario no se borrará.", "Only saved try-on results on this device will be removed to free up space and force fresh generations. Your closet will not be deleted."))
         }
+        .alert(text("Caché actualizada", "Cache Updated"), isPresented: Binding(
+            get: { clearCacheResultMessage != nil },
+            set: { if !$0 { clearCacheResultMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                clearCacheResultMessage = nil
+            }
+        } message: {
+            Text(clearCacheResultMessage ?? "")
+        }
         .onAppear {
             if let savedTheme = UserDefaults.standard.string(forKey: "app_theme"),
                let theme = AppTheme(rawValue: savedTheme) {
@@ -353,9 +425,19 @@ struct SettingsView: View {
 
     private func clearTryOnCache() {
         let descriptor = FetchDescriptor<TryOnResult>()
-        if let results = try? modelContext.fetch(descriptor) {
+        do {
+            let results = try modelContext.fetch(descriptor)
             results.forEach { modelContext.delete($0) }
-            try? modelContext.save()
+            try modelContext.save()
+            clearCacheResultMessage = text(
+                "Se eliminaron \(results.count) resultados guardados de try-on.",
+                "Deleted \(results.count) saved try-on results."
+            )
+        } catch {
+            clearCacheResultMessage = text(
+                "No se pudo limpiar la caché: \(error.localizedDescription)",
+                "Could not clear cache: \(error.localizedDescription)"
+            )
         }
     }
 
@@ -448,9 +530,9 @@ struct TryOnProviderInfoView: View {
                     ProviderInfoCard(
                         icon: "apple.logo",
                         color: .orange,
-                        name: "Apple Playground",
-                        description: isSpanish ? "Generación gratuita en el dispositivo con estilo cartoon." : "Free on-device cartoon-style generation. Fun for kids!",
-                        features: isSpanish ? ["100% gratis", "Funciona sin conexión", "Solo estilo cartoon", "No necesita cuenta"] : ["100% Free", "Works offline", "Cartoon style only", "No account needed"],
+                        name: isSpanish ? "Vista local" : "Local Preview",
+                        description: isSpanish ? "Composición gratuita en el dispositivo para previsualizar una prenda sin llamar a un proveedor externo." : "Free on-device composition for previewing a garment without calling an external provider.",
+                        features: isSpanish ? ["100% gratis", "Funciona sin conexión", "Vista rápida", "No necesita cuenta"] : ["100% free", "Works offline", "Quick preview", "No account needed"],
                         badge: "FREE"
                     )
 
@@ -534,6 +616,7 @@ struct ClosetManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @State private var showingDeleteAllConfirmation = false
 
     var body: some View {
         List {
@@ -570,8 +653,7 @@ struct ClosetManagementView: View {
 
             Section {
                 Button(role: .destructive) {
-                    items.forEach { modelContext.delete($0) }
-                    try? modelContext.save()
+                    showingDeleteAllConfirmation = true
                 } label: {
                     Text(appState.preferredLanguage == .spanish ? "Eliminar todas las prendas" : "Delete All Items")
                 }
@@ -579,5 +661,22 @@ struct ClosetManagementView: View {
         }
         .navigationTitle(appState.preferredLanguage == .spanish ? "Gestionar armario" : "Manage Closet")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            appState.preferredLanguage == .spanish ? "¿Eliminar todas las prendas?" : "Delete all items?",
+            isPresented: $showingDeleteAllConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(appState.preferredLanguage == .spanish ? "Eliminar todo" : "Delete Everything", role: .destructive) {
+                deleteAllItems()
+            }
+            Button(appState.preferredLanguage == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
+        } message: {
+            Text(appState.preferredLanguage == .spanish ? "Esta acción borra el armario local. No elimina tus fotos del perfil ni la suscripción." : "This deletes the local closet. It does not remove profile photos or your subscription.")
+        }
+    }
+
+    private func deleteAllItems() {
+        items.forEach { modelContext.delete($0) }
+        try? modelContext.save()
     }
 }

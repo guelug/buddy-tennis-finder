@@ -5,6 +5,7 @@ import RealityKit
 struct ARWardrobeView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ARViewModel()
     @State private var showingClothingPicker = false
 
@@ -28,7 +29,7 @@ struct ARWardrobeView: View {
                         // Selected clothing indicator
                         if let clothing = viewModel.selectedClothingItem {
                             HStack {
-                                if let image = clothing.image {
+                                if let image = clothing.displayImage {
                                     Image(uiImage: image)
                                         .resizable()
                                         .aspectRatio(contentMode: .fill)
@@ -93,8 +94,28 @@ struct ARWardrobeView: View {
             }
             .navigationTitle(isSpanish ? "Armario AR" : "AR Closet")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(isSpanish ? "Cerrar" : "Close") {
+                        dismiss()
+                    }
+                }
+            }
             .sheet(isPresented: $showingClothingPicker) {
                 ClothingPickerSheet(viewModel: viewModel)
+            }
+            .alert(
+                isSpanish ? "No se pudo mostrar en AR" : "Couldn't show AR preview",
+                isPresented: Binding(
+                    get: { viewModel.errorMessage != nil },
+                    set: { if !$0 { viewModel.errorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
             }
             .onAppear {
                 viewModel.configure(modelContext: modelContext)
@@ -175,43 +196,53 @@ struct ClothingPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: Theme.Spacing.sm) {
-                    ForEach(viewModel.clothingItems) { item in
-                        Button {
-                            viewModel.selectClothing(item)
-                            dismiss()
-                        } label: {
-                            VStack {
-                                if let image = item.image {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 100, height: 100)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                } else {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(width: 100, height: 100)
-                                        .overlay {
-                                            Image(systemName: item.category.icon)
-                                                .foregroundStyle(.secondary)
+            Group {
+                if viewModel.clothingItems.isEmpty {
+                    ContentUnavailableView(
+                        isSpanish ? "Armario vacío" : "Empty closet",
+                        systemImage: "cabinet",
+                        description: Text(isSpanish ? "Guarda prendas en el armario para verlas aquí en AR." : "Save garments in your closet to preview them here in AR.")
+                    )
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: Theme.Spacing.sm) {
+                            ForEach(viewModel.clothingItems) { item in
+                                Button {
+                                    viewModel.selectClothing(item)
+                                    dismiss()
+                                } label: {
+                                    VStack {
+                                        if let image = item.displayImage {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 100, height: 100)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color.gray.opacity(0.2))
+                                                .frame(width: 100, height: 100)
+                                                .overlay {
+                                                    Image(systemName: item.category.icon)
+                                                        .foregroundStyle(.secondary)
+                                                }
                                         }
-                                }
 
-                                Text(item.name)
-                                    .font(.caption)
-                                    .lineLimit(1)
+                                        Text(item.name)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
-                        .buttonStyle(.plain)
+                        .padding()
                     }
                 }
-                .padding()
             }
             .navigationTitle(isSpanish ? "Seleccionar ropa" : "Select clothing")
             .navigationBarTitleDisplayMode(.inline)

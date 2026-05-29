@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 import NaturalLanguage
 
 // MARK: - AI Service Errors
@@ -58,7 +59,7 @@ protocol ClothingDataServiceProtocol: Sendable {
     ) async -> [ClothingItemSummary]
 }
 
-struct ClothingItemSummary: Codable {
+struct ClothingItemSummary: Codable, Sendable {
     let id: UUID
     let name: String
     let category: ClothingCategory
@@ -70,6 +71,13 @@ struct ClothingItemSummary: Codable {
 enum AIChatServiceFactory {
     @MainActor
     static func createService() -> AIChatServiceProtocol {
+        if #available(iOS 26.0, *) {
+            let foundationModelsService = FoundationModelsStylistService()
+            if foundationModelsService.isAvailable {
+                return foundationModelsService
+            }
+        }
+
         return EnhancedAppleIntelligenceService()
     }
 
@@ -79,13 +87,218 @@ enum AIChatServiceFactory {
     }
 }
 
+// MARK: - Foundation Models Service
+@available(iOS 26.0, *)
+@MainActor
+final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
+    private let model: SystemLanguageModel
+    private var session: LanguageModelSession?
+
+    var isStreaming: Bool { false }
+
+    var isAvailable: Bool {
+        model.isAvailable
+    }
+
+    init(model: SystemLanguageModel = .default) {
+        self.model = model
+    }
+
+    func prewarm() async {
+        guard isAvailable else { return }
+        // Warm the model without caching a session, so the real session is built once we know the
+        // user's name (which decides whether the assistant is "Rebe" or "Peter").
+        LanguageModelSession(
+            model: model,
+            instructions: systemInstructions(for: .english, assistantName: AssistantPersona.defaultName)
+        ).prewarm()
+    }
+
+    func sendMessage(_ message: String, context: ChatContext) async throws -> String {
+        guard isAvailable else {
+            throw AIError.modelNotAvailable
+        }
+
+        let session = activeSession(for: context)
+        let response = try await session.respond(
+            to: userPrompt(for: message, context: context),
+            options: GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
+        )
+
+        let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else {
+            throw AIError.responseFailed("Empty Foundation Models response")
+        }
+
+        return content
+    }
+
+    func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            Task { @MainActor in
+                guard self.isAvailable else {
+                    continuation.finish(throwing: AIError.modelNotAvailable)
+                    return
+                }
+
+                do {
+                    var lastContent = ""
+                    let stream = self.activeSession(for: context).streamResponse(
+                        to: self.userPrompt(for: message, context: context),
+                        options: GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
+                    )
+
+                    for try await snapshot in stream {
+                        let current = snapshot.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard current.count > lastContent.count else { continue }
+
+                        let delta = String(current.dropFirst(lastContent.count))
+                        lastContent = current
+                        continuation.yield(delta)
+                    }
+
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    private func activeSession(for context: ChatContext) -> LanguageModelSession {
+        if let session {
+            return session
+        }
+
+        let session = LanguageModelSession(
+            model: model,
+            instructions: systemInstructions(
+                for: context.language,
+                assistantName: AssistantPersona.name(forUserNamed: context.preferredName)
+            )
+        )
+        self.session = session
+        return session
+    }
+
+    private func systemInstructions(for language: Language, assistantName: String) -> String {
+        [
+            "You are \(assistantName), the personal stylist inside Personal Shopper, a premium iOS fashion app.",
+            "Introduce yourself as \(assistantName) only if the user greets you or asks who you are; otherwise get straight to styling.",
+            "The user may share their own name; never assume your name and the user's name are the same person.",
+            "Personal Shopper serves both men and women. Tailor garments, fit, and silhouettes to the user's gender when it is known, and never default to womenswear. In Spanish use the correct gendered wording for the user. If gender is unknown, keep advice inclusive.",
+            language == .spanish
+                ? "Responde siempre en espanol claro, natural y especifico."
+                : "Always reply in clear, natural, specific English.",
+            "Use the user's saved style profile, palette, calendar context, and closet inventory when present.",
+            "Give concrete outfit formulas, color pairings, fit guidance, and wardrobe actions.",
+            "Prioritize privacy: do not ask for sensitive personal data unrelated to style, and do not claim external access.",
+            "If a closet item is relevant, name it directly and explain why it works.",
+            "Keep responses concise enough for mobile chat."
+        ].joined(separator: "\n")
+    }
+
+    private func userPrompt(for message: String, context: ChatContext) -> String {
+        var sections: [String] = []
+
+        if let preferredName = context.preferredName, !preferredName.isEmpty {
+            sections.append("Preferred name: \(preferredName)")
+        }
+
+        if let gender = context.userGender {
+            sections.append("The user is \(gender.stylingDescriptor).")
+        }
+
+        if let palette = context.userPalette {
+            let colors = palette.recommendedColors.prefix(5).map(colorName).joined(separator: ", ")
+            sections.append("Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone. Recommended colors: \(colors).")
+        }
+
+        if let profile = context.personalStylingProfile {
+            sections.append(styleProfileContext(profile, language: context.language))
+        } else if !context.userStylePreferences.isEmpty {
+            sections.append("Saved style preferences: \(context.userStylePreferences.joined(separator: ", ")).")
+        }
+
+        if let recommendation = context.dailyRecommendation {
+            sections.append("Today's style recommendation: \(recommendation.contextLine). Outfit formula: \(recommendation.outfitFormula).")
+        }
+
+        if !context.todayEvents.isEmpty {
+            let events = context.todayEvents.prefix(4).map { "\($0.title) at \($0.timeWindowText)" }.joined(separator: "; ")
+            sections.append("Today's calendar events: \(events).")
+        }
+
+        if !context.closetItems.isEmpty {
+            let closet = context.closetItems.prefix(20).map { item in
+                let details = (item.colorTags + item.styleTags).prefix(5).joined(separator: ", ")
+                return "- \(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
+            }.joined(separator: "\n")
+            sections.append("Current closet inventory:\n\(closet)")
+        }
+
+        sections.append("User message: \(message)")
+        sections.append("Answer as the stylist. Use saved context only when it helps.")
+
+        return sections.joined(separator: "\n\n")
+    }
+
+    private func styleProfileContext(_ profile: PersonalStylingProfile, language: Language) -> String {
+        var values: [String] = []
+
+        if let age = profile.age {
+            values.append("Age: \(age)")
+        }
+        var measurements: [String] = []
+        if let height = profile.heightCm { measurements.append("height \(Int(height.rounded())) cm") }
+        if let weight = profile.weightKg { measurements.append("weight \(Int(weight.rounded())) kg") }
+        if let waist = profile.waistCm { measurements.append("waist \(Int(waist.rounded())) cm") }
+        if let hips = profile.hipsCm { measurements.append("hips \(Int(hips.rounded())) cm") }
+        if let chest = profile.chestCm { measurements.append("chest \(Int(chest.rounded())) cm") }
+        if !measurements.isEmpty {
+            values.append("Body measurements (use for sizing/fit, never comment on the user's body negatively): \(measurements.joined(separator: ", "))")
+        }
+        if !profile.occupation.isEmpty {
+            values.append("Occupation: \(profile.occupation)")
+        }
+        if !profile.lifestyleSummary.isEmpty {
+            values.append("Routine: \(profile.lifestyleSummary)")
+        }
+        appendProfileValues(profile.usualSocialPlans, label: "Usual plans", language: language, into: &values)
+        appendProfileValues(profile.preferredStyles, label: "Preferred styles", language: language, into: &values)
+        appendProfileValues(profile.desiredImpression, label: "Desired impression", language: language, into: &values)
+        appendProfileValues(profile.fitPriorities, label: "Fit priorities", language: language, into: &values)
+        appendRawValues(profile.favoriteColors, label: "Favorite colors", into: &values)
+        appendRawValues(profile.avoidColors, label: "Colors to avoid", into: &values)
+
+        return "Saved style profile: \(values.joined(separator: "; "))."
+    }
+
+    private func appendProfileValues(_ values: [String], label: String, language: Language, into output: inout [String]) {
+        guard !values.isEmpty else { return }
+        output.append("\(label): \(values.prefix(5).map { StyleProfileCatalog.title(for: $0, in: language) }.joined(separator: ", "))")
+    }
+
+    private func appendRawValues(_ values: [String], label: String, into output: inout [String]) {
+        guard !values.isEmpty else { return }
+        output.append("\(label): \(values.prefix(5).joined(separator: ", "))")
+    }
+
+    private func colorName(_ color: CodableColor) -> String {
+        let red = Int((color.red * 255).rounded())
+        let green = Int((color.green * 255).rounded())
+        let blue = Int((color.blue * 255).rounded())
+        return "rgb(\(red), \(green), \(blue))"
+    }
+}
+
 // MARK: - Enhanced Apple Intelligence Service (Fallback for older iOS)
 /// Enhanced fallback service using keyword analysis and NaturalLanguage framework
 @MainActor
 final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
 
     private let fashionSystemPrompt = """
-    You are Personal Shooper, a professional AI fashion stylist assistant. Your role is to help users with:
+    You are Rebe, the personal stylist inside Personal Shopper. Your role is to help users with:
     - Color recommendations based on their personal color palette
     - Outfit suggestions for various occasions
     - Style advice matching their preferences

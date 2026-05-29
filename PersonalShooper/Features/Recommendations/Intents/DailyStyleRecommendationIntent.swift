@@ -6,7 +6,7 @@ struct DailyStyleRecommendationIntent: AppIntent {
     }
 
     static var description: IntentDescription {
-        IntentDescription("Read the latest Personal Shooper outfit recommendation based on your profile and calendar.")
+        IntentDescription("Read the latest Personal Shopper outfit recommendation based on your profile and calendar.")
     }
 
     static var openAppWhenRun: Bool {
@@ -19,7 +19,7 @@ struct DailyStyleRecommendationIntent: AppIntent {
         guard configuration.siriSuggestionsEnabled else {
             return .result(
                 dialog: IntentDialog(
-                    "Siri style suggestions are disabled. Enable them in Personal Shooper settings."
+                    "Siri style suggestions are disabled. Enable them in Personal Shopper settings."
                 )
             )
         }
@@ -27,7 +27,7 @@ struct DailyStyleRecommendationIntent: AppIntent {
         guard let recommendation = SharedStyleCompanionStore.loadRecommendation() else {
             return .result(
                 dialog: IntentDialog(
-                    "I don't have a daily recommendation yet. Open Personal Shooper to refresh today's styling plan."
+                    "I don't have a daily recommendation yet. Open Personal Shopper to refresh today's styling plan."
                 )
             )
         }
@@ -42,7 +42,7 @@ struct OpenChatIntent: AppIntent {
     }
 
     static var description: IntentDescription {
-        IntentDescription("Open the Personal Shooper style chat.")
+        IntentDescription("Open the Personal Shopper style chat.")
     }
 
     static var openAppWhenRun: Bool {
@@ -53,7 +53,7 @@ struct OpenChatIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.chat)
@@ -67,7 +67,7 @@ struct OpenClosetIntent: AppIntent {
     }
 
     static var description: IntentDescription {
-        IntentDescription("Open the Personal Shooper closet.")
+        IntentDescription("Open the Personal Shopper closet.")
     }
 
     static var openAppWhenRun: Bool {
@@ -78,7 +78,7 @@ struct OpenClosetIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.closet)
@@ -92,7 +92,7 @@ struct OpenTryOnIntent: AppIntent {
     }
 
     static var description: IntentDescription {
-        IntentDescription("Open the Personal Shooper try-on experience.")
+        IntentDescription("Open the Personal Shopper try-on experience.")
     }
 
     static var openAppWhenRun: Bool {
@@ -103,7 +103,7 @@ struct OpenTryOnIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shooper settings."))
+            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.tryOn)

@@ -15,15 +15,23 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
+                    HStack {
+                        Text(text("Perfil", "Profile"))
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                        Spacer()
+                    }
+
                     profileHeaderSection
                     stylingProfileSection
                     photoUploadSection
                     settingsSection
                 }
                 .padding(Theme.Spacing.screenPadding)
+                .padding(.top, Theme.Spacing.xs)
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
-            .navigationTitle(text("Perfil", "Profile"))
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingPhotoUpload) {
                 PhotoUploadView(startStep: editingPhotoStep)
             }
@@ -58,6 +66,7 @@ struct ProfileView: View {
                 Text(occupation)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .transition(.opacity)
             }
 
             HStack(spacing: 8) {
@@ -135,6 +144,7 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color(.systemBackground))
                             .clipShape(Capsule())
+                            .transition(.scale(scale: 0.96).combined(with: .opacity))
                     }
                 }
             } else if let nextQuestion = profile.nextQuestion(in: lang) {
@@ -147,6 +157,7 @@ struct ProfileView: View {
         .padding(Theme.Spacing.md)
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        .animation(.snappy(duration: 0.24), value: profile.completionRatio)
     }
 
     private var photoUploadSection: some View {
@@ -223,6 +234,7 @@ struct ProfileView: View {
             } label: {
                 SettingsRowContent(icon: "person.fill", title: text("Editar perfil", "Edit Profile"), color: .blue)
             }
+            .buttonStyle(.premiumPressable)
 
             Divider().padding(.leading, 52)
 
@@ -232,6 +244,7 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
                 }
+                .buttonStyle(.premiumPressable)
             } else {
                 NavigationLink {
                     Text(text("Todavía no tienes una paleta. Sube fotos para generarla.", "No palette available. Upload photos to generate one."))
@@ -239,6 +252,7 @@ struct ProfileView: View {
                 } label: {
                     SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
                 }
+                .buttonStyle(.premiumPressable)
             }
 
             Divider().padding(.leading, 52)
@@ -246,8 +260,14 @@ struct ProfileView: View {
             Button {
                 showingLanguagePicker = true
             } label: {
-                HStack {
-                    SettingsRowContent(icon: "globe", title: text("Idioma", "Language"), color: .green)
+                HStack(spacing: 16) {
+                    Image(systemName: "globe")
+                        .font(.body)
+                        .foregroundStyle(.green)
+                        .frame(width: 24)
+                    Text(text("Idioma", "Language"))
+                        .font(.body)
+                        .foregroundStyle(.primary)
                     Spacer()
                     Text(appState.preferredLanguage.displayName)
                         .font(.subheadline)
@@ -256,8 +276,10 @@ struct ProfileView: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
+                .padding(Theme.Spacing.md)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.premiumPressable)
 
             Divider().padding(.leading, 52)
 
@@ -266,6 +288,7 @@ struct ProfileView: View {
             } label: {
                 SettingsRowContent(icon: "lock.shield.fill", title: text("Privacidad", "Privacy"), color: .red)
             }
+            .buttonStyle(.premiumPressable)
         }
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
@@ -307,6 +330,7 @@ struct SettingsRowContent: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(Theme.Spacing.md)
+        .contentShape(Rectangle())
     }
 }
 
@@ -361,7 +385,7 @@ struct PhotoThumbnail: View {
             .background(Theme.Colors.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.premiumPressable)
     }
 }
 

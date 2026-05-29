@@ -5,7 +5,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>Personal Shooper</string>
+    <string>Personal Shopper</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -23,13 +23,21 @@
     <key>LSRequiresIPhoneOS</key>
     <true/>
 
+    <!-- Live Activities (Dynamic Island) -->
+    <key>NSSupportsLiveActivities</key>
+    <true/>
+
+    <!-- Apple Health -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>Personal Shopper reads your height, weight, waist, and age from Apple Health to tailor sizing and fit recommendations. This stays on your device.</string>
+
     <!-- Apple Intelligence -->
     <key>NSAppleIntelligenceUsageDescription</key>
-    <string>Personal Shooper uses Apple Intelligence to provide personalized fashion advice directly on your device.</string>
+    <string>Personal Shopper uses Apple Intelligence to provide personalized fashion advice directly on your device.</string>
 
     <!-- Calendar -->
     <key>NSCalendarsFullAccessUsageDescription</key>
-    <string>Sync your Apple Calendar so Personal Shooper can tailor outfit recommendations to your schedule and events.</string>
+    <string>Sync your Apple Calendar so Personal Shopper can tailor outfit recommendations to your schedule and events.</string>
 
     <!-- Camera -->
     <key>NSCameraUsageDescription</key>
@@ -40,18 +48,6 @@
     <string>Access your photos to save try-on results and import clothing images for your virtual closet.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>Save your favorite try-on looks and outfit inspirations to your photo library.</string>
-
-    <!-- Speech Recognition -->
-    <key>NSSpeechRecognitionUsageDescription</key>
-    <string>Enable voice commands to chat with your AI stylist hands-free.</string>
-
-    <!-- Microphone -->
-    <key>NSMicrophoneUsageDescription</key>
-    <string>Record voice messages for your AI stylist when you prefer speaking over typing.</string>
-
-    <!-- Face ID -->
-    <key>NSFaceIDUsageDescription</key>
-    <string>Secure access to your personal style profile and wardrobe data.</string>
 
     <!-- Launch Screen -->
     <key>UILaunchScreen</key>
@@ -101,10 +97,5 @@
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
 
-    <!-- Background Modes -->
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>processing</string>
-    </array>
 </dict>
 </plist>

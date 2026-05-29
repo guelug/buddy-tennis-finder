@@ -1,4 +1,15 @@
 PersonalShooper/LocalSecrets.plist
+.env
+.env.*
+!.env.example
+!.env.*.example
+Secrets/
+*.p8
 PersonalShooper.xcodeproj/xcuserdata/
 PersonalShooper.xcodeproj/project.xcworkspace/xcuserdata/
 .DS_Store
+
+# Build artifacts
+build/
+*.xcarchive
+DerivedData/

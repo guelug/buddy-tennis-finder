@@ -1,5 +1,6 @@
 import SwiftUI
 import WidgetKit
+import ActivityKit
 
 private struct DailyStyleEntry: TimelineEntry {
     let date: Date
@@ -99,7 +100,7 @@ private struct DailyStyleRecommendationWidgetView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("PERSONAL SHOOPER")
+                Text("PERSONAL SHOPPER")
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
                 Text("Daily Style")
@@ -164,9 +165,94 @@ private struct DailyStyleRecommendationWidgetView: View {
     }
 }
 
+// MARK: - Daily Outfit Live Activity (Dynamic Island)
+
+struct DailyOutfitLiveActivity: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: DailyOutfitActivityAttributes.self) { context in
+            DailyOutfitLockScreenView(state: context.state)
+                .activityBackgroundTint(Color.black.opacity(0.85))
+                .activitySystemActionForegroundColor(.white)
+        } dynamicIsland: { context in
+            DynamicIsland {
+                DynamicIslandExpandedRegion(.leading) {
+                    Image(systemName: "sparkles")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    Text(context.state.timeText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(context.state.headline)
+                            .font(.headline)
+                            .lineLimit(1)
+                        Text(context.state.outfitFormula)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                        if !context.state.moodTags.isEmpty {
+                            HStack(spacing: 6) {
+                                ForEach(context.state.moodTags.prefix(3), id: \.self) { tag in
+                                    Text(tag)
+                                        .font(.caption2.weight(.semibold))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(.white.opacity(0.16), in: Capsule())
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } compactLeading: {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(.orange)
+            } compactTrailing: {
+                Text(context.state.timeText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } minimal: {
+                Image(systemName: "sparkles")
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+}
+
+private struct DailyOutfitLockScreenView: View {
+    let state: DailyOutfitActivityAttributes.ContentState
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(state.headline)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                Text(state.outfitFormula)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+    }
+}
+
 @main
 struct PersonalShooperWidgetsBundle: WidgetBundle {
     var body: some Widget {
         DailyStyleRecommendationWidget()
+        DailyOutfitLiveActivity()
     }
 }

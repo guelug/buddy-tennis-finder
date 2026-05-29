@@ -8,6 +8,15 @@ struct EditProfileView: View {
 
     @State private var displayName: String = ""
     @State private var ageText: String = ""
+    @State private var selectedGender: StyleGender = .unspecified
+    @State private var heightText: String = ""
+    @State private var weightText: String = ""
+    @State private var waistText: String = ""
+    @State private var hipsText: String = ""
+    @State private var chestText: String = ""
+    @State private var isImportingHealth = false
+    @State private var healthMessage: String?
+    private let healthService = HealthKitService()
     @State private var occupation: String = ""
     @State private var lifestyleSummary: String = ""
     @State private var selectedSocialPlans: [String] = []
@@ -30,6 +39,12 @@ struct EditProfileView: View {
     private var draftProfile: PersonalStylingProfile {
         PersonalStylingProfile(
             age: Int(ageText),
+            genderIdentity: selectedGender == .unspecified ? nil : selectedGender,
+            heightCm: parseDouble(heightText),
+            weightKg: parseDouble(weightText),
+            waistCm: parseDouble(waistText),
+            hipsCm: parseDouble(hipsText),
+            chestCm: parseDouble(chestText),
             occupation: occupation.trimmingCharacters(in: .whitespacesAndNewlines),
             lifestyleSummary: lifestyleSummary.trimmingCharacters(in: .whitespacesAndNewlines),
             usualSocialPlans: selectedSocialPlans,
@@ -52,6 +67,7 @@ struct EditProfileView: View {
                     profileHeroCard
                     completionCard
                     basicInfoCard
+                    bodyMeasurementsCard
                     socialContextCard
                     styleIdentityCard
                     colorPreferencesCard
@@ -209,8 +225,104 @@ struct EditProfileView: View {
                         text: $occupation
                     )
                 }
+
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    Text(text("Para quién vestimos", "Who we dress"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Picker(text("Para quién vestimos", "Who we dress"), selection: $selectedGender) {
+                        ForEach(StyleGender.allCases) { option in
+                            Text(option.title(in: lang)).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
             }
         }
+    }
+
+    private var bodyMeasurementsCard: some View {
+        ProfileSectionCard(
+            title: text("Medidas y cuerpo", "Body & measurements"),
+            subtitle: text(
+                "Opcional. Ayuda al estilista con tallas, cortes y proporciones.",
+                "Optional. Helps the stylist with sizing, cuts, and proportions."
+            )
+        ) {
+            VStack(spacing: Theme.Spacing.md) {
+                if healthService.isAvailable {
+                    Button {
+                        Task { await importFromHealth() }
+                    } label: {
+                        HStack {
+                            Label(text("Importar de Apple Salud", "Import from Apple Health"), systemImage: "heart.text.square.fill")
+                            Spacer()
+                            if isImportingHealth {
+                                ProgressView().controlSize(.small)
+                            }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.primary)
+                        .padding(.vertical, Theme.Spacing.sm)
+                        .padding(.horizontal, Theme.Spacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.Colors.primary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        .contentShape(Rectangle())
+                    }
+                    .disabled(isImportingHealth)
+                    .buttonStyle(.premiumPressable)
+
+                    if let healthMessage {
+                        Text(healthMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack(spacing: Theme.Spacing.md) {
+                    ProfileTextField(title: text("Altura (cm)", "Height (cm)"), placeholder: "—", text: $heightText, keyboardType: .decimalPad)
+                    ProfileTextField(title: text("Peso (kg)", "Weight (kg)"), placeholder: "—", text: $weightText, keyboardType: .decimalPad)
+                }
+
+                HStack(spacing: Theme.Spacing.md) {
+                    ProfileTextField(title: text("Cintura (cm)", "Waist (cm)"), placeholder: "—", text: $waistText, keyboardType: .decimalPad)
+                    ProfileTextField(title: text("Cadera (cm)", "Hips (cm)"), placeholder: "—", text: $hipsText, keyboardType: .decimalPad)
+                }
+
+                ProfileTextField(title: text("Pecho (cm)", "Chest (cm)"), placeholder: "—", text: $chestText, keyboardType: .decimalPad)
+            }
+        }
+    }
+
+    private func importFromHealth() async {
+        isImportingHealth = true
+        defer { isImportingHealth = false }
+
+        do {
+            let metrics = try await healthService.requestAndImport()
+            if let value = metrics.heightCm { heightText = Self.numberText(value) }
+            if let value = metrics.weightKg { weightText = Self.numberText(value) }
+            if let value = metrics.waistCm { waistText = Self.numberText(value) }
+            if let age = metrics.age { ageText = String(age) }
+
+            healthMessage = metrics.hasAnyValue
+                ? text("Datos importados de Apple Salud.", "Imported from Apple Health.")
+                : text("No encontré datos en Apple Salud o no diste permiso.", "No data in Apple Health, or permission was denied.")
+        } catch {
+            healthMessage = text("No pude conectar con Apple Salud.", "Couldn't connect to Apple Health.")
+        }
+    }
+
+    private func parseDouble(_ string: String) -> Double? {
+        let trimmed = string.replacingOccurrences(of: ",", with: ".").trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? nil : Double(trimmed)
+    }
+
+    private static func numberText(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        return rounded == rounded.rounded() ? String(Int(rounded)) : String(format: "%.1f", rounded)
     }
 
     private var socialContextCard: some View {
@@ -378,6 +490,12 @@ struct EditProfileView: View {
 
         displayName = user.displayName
         ageText = profile.age.map(String.init) ?? ""
+        selectedGender = profile.genderIdentity ?? .unspecified
+        heightText = profile.heightCm.map { Self.numberText($0) } ?? ""
+        weightText = profile.weightKg.map { Self.numberText($0) } ?? ""
+        waistText = profile.waistCm.map { Self.numberText($0) } ?? ""
+        hipsText = profile.hipsCm.map { Self.numberText($0) } ?? ""
+        chestText = profile.chestCm.map { Self.numberText($0) } ?? ""
         occupation = profile.occupation
         lifestyleSummary = profile.lifestyleSummary
         selectedSocialPlans = profile.usualSocialPlans
@@ -421,7 +539,7 @@ struct EditProfileView: View {
         user.displayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         user.updateStylingProfile(draftProfile)
 
-        if let profileImage {
+        if profileImage != nil {
             user.profilePhotos = updatedPhotos
         }
 

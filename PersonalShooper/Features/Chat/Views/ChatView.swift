@@ -30,6 +30,10 @@ struct ChatView: View {
 
                             ForEach(viewModel.messages) { message in
                                 messageRow(for: message)
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: message.role == .user ? .trailing : .leading).combined(with: .opacity),
+                                        removal: .opacity
+                                    ))
                             }
 
                             if viewModel.isLoading {
@@ -40,6 +44,7 @@ struct ChatView: View {
                         }
                         .padding(.vertical)
                     }
+                    .animation(.snappy(duration: 0.28), value: viewModel.messages.count)
                     .onChange(of: viewModel.messages.count) { _, _ in
                         scrollToBottom(using: proxy)
                     }
@@ -59,6 +64,7 @@ struct ChatView: View {
                         viewModel.startNewConversation(appState: appState, modelContext: modelContext)
                     }
                     .font(.subheadline)
+                    .buttonStyle(.premiumPressable)
                 }
             }
         }
@@ -208,11 +214,13 @@ struct ChatView: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.premiumPressable)
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
                 .padding(.bottom, 6)
                 .background(Color(.systemGroupedBackground))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             HStack(alignment: .bottom, spacing: 12) {
@@ -223,6 +231,7 @@ struct ChatView: View {
                         .font(.title2)
                         .foregroundStyle(Theme.Colors.primary)
                 }
+                .buttonStyle(.premiumPressable)
 
                 TextField(Strings.chatAskFashion(lang), text: $viewModel.inputText, axis: .vertical)
                     .textFieldStyle(.plain)
@@ -247,6 +256,8 @@ struct ChatView: View {
                         )
                 }
                 .disabled(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
+                .buttonStyle(.premiumPressable)
+                .sensoryFeedback(.success, trigger: viewModel.messages.count)
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -286,19 +297,25 @@ struct ChatView: View {
 }
 
 struct TypingIndicatorView: View {
+    @State private var isAnimating = false
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.secondary.opacity(0.45))
-                        .frame(width: 8, height: 8)
-                    Circle()
-                        .fill(Color.secondary.opacity(0.65))
-                        .frame(width: 8, height: 8)
-                    Circle()
-                        .fill(Color.secondary.opacity(0.85))
-                        .frame(width: 8, height: 8)
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .fill(Color.secondary.opacity(0.45 + Double(index) * 0.18))
+                            .frame(width: 8, height: 8)
+                            .scaleEffect(isAnimating ? 1.25 : 0.72)
+                            .opacity(isAnimating ? 1 : 0.55)
+                            .animation(
+                                .easeInOut(duration: 0.58)
+                                    .repeatForever(autoreverses: true)
+                                    .delay(Double(index) * 0.16),
+                                value: isAnimating
+                            )
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -308,6 +325,9 @@ struct TypingIndicatorView: View {
             .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
 
             Spacer(minLength: 60)
+        }
+        .onAppear {
+            isAnimating = true
         }
     }
 }
@@ -353,7 +373,7 @@ struct MessageBubbleView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.premiumPressable)
                     }
 
                     Text(formattedTime(from: message.timestamp))
@@ -461,9 +481,11 @@ struct ChatBubbleShape: Shape {
 }
 
 @Observable
+@MainActor
 final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
     var speakingMessageID: UUID?
 
+    @ObservationIgnored
     private let synthesizer = AVSpeechSynthesizer()
 
     override init() {
@@ -481,9 +503,12 @@ final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
             synthesizer.stopSpeaking(at: .immediate)
         }
 
+        configureAudioSession()
+
         let utterance = AVSpeechUtterance(string: message.content)
-        utterance.voice = AVSpeechSynthesisVoice(language: language == .spanish ? "es-ES" : "en-US")
-        utterance.rate = 0.5
+        utterance.voice = Self.naturalVoice(for: language)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        utterance.pitchMultiplier = 1.0
         speakingMessageID = message.id
         synthesizer.speak(utterance)
     }
@@ -493,14 +518,55 @@ final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
             synthesizer.stopSpeaking(at: .immediate)
         }
         speakingMessageID = nil
+        deactivateAudioSession()
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        speakingMessageID = nil
+    /// Picks the most natural installed voice for the language, preferring Siri/premium/enhanced
+    /// voices over the default "compact" voice that sounds robotic. Falls back gracefully when the
+    /// user hasn't downloaded a high-quality voice.
+    static func naturalVoice(for language: Language) -> AVSpeechSynthesisVoice? {
+        let languagePrefix = language == .spanish ? "es" : "en"
+        let preferredRegion = language == .spanish ? "es-ES" : "en-US"
+
+        let candidates = AVSpeechSynthesisVoice.speechVoices().filter {
+            $0.language.hasPrefix(languagePrefix)
+        }
+
+        guard !candidates.isEmpty else {
+            return AVSpeechSynthesisVoice(language: preferredRegion)
+        }
+
+        func score(_ voice: AVSpeechSynthesisVoice) -> Int {
+            var value = 0
+            if voice.identifier.lowercased().contains("siri") { value += 1000 }
+            switch voice.quality {
+            case .premium: value += 300
+            case .enhanced: value += 200
+            default: value += 0
+            }
+            if voice.language == preferredRegion { value += 50 }
+            return value
+        }
+
+        return candidates.max { score($0) < score($1) }
+            ?? AVSpeechSynthesisVoice(language: preferredRegion)
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        speakingMessageID = nil
+    private func configureAudioSession() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? session.setActive(true)
+    }
+
+    private func deactivateAudioSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.speakingMessageID = nil
+            self.deactivateAudioSession()
+        }
     }
 }
 

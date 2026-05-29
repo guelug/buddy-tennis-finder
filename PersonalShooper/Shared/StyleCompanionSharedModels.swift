@@ -1,4 +1,19 @@
 import Foundation
+import ActivityKit
+
+/// Live Activity (Dynamic Island / lock screen) for the daily outfit reminder.
+struct DailyOutfitActivityAttributes: ActivityAttributes {
+    struct ContentState: Codable, Hashable {
+        var headline: String
+        var outfitFormula: String
+        var colorDirection: String
+        var moodTags: [String]
+        var timeText: String
+    }
+
+    /// "Personal Shopper" by default; kept as an attribute so the look name can be localized.
+    var title: String
+}
 
 enum StyleCompanionSharedKeys {
     static let appGroupID = "group.com.personalshooper.shared"
@@ -52,12 +67,38 @@ struct StyleCompanionConfigurationSnapshot: Codable, Hashable {
     var calendarSyncEnabled: Bool
     var widgetRecommendationsEnabled: Bool
     var siriSuggestionsEnabled: Bool
+    var dailyReminderEnabled: Bool
+    var dailyReminderHour: Int
+    var dailyReminderMinute: Int
 
-    static let `default` = StyleCompanionConfigurationSnapshot(
-        calendarSyncEnabled: false,
-        widgetRecommendationsEnabled: true,
-        siriSuggestionsEnabled: true
-    )
+    init(
+        calendarSyncEnabled: Bool = false,
+        widgetRecommendationsEnabled: Bool = true,
+        siriSuggestionsEnabled: Bool = true,
+        dailyReminderEnabled: Bool = false,
+        dailyReminderHour: Int = 8,
+        dailyReminderMinute: Int = 0
+    ) {
+        self.calendarSyncEnabled = calendarSyncEnabled
+        self.widgetRecommendationsEnabled = widgetRecommendationsEnabled
+        self.siriSuggestionsEnabled = siriSuggestionsEnabled
+        self.dailyReminderEnabled = dailyReminderEnabled
+        self.dailyReminderHour = dailyReminderHour
+        self.dailyReminderMinute = dailyReminderMinute
+    }
+
+    // Backward-compatible decode: older stored configs without the reminder keys fall back to defaults.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        calendarSyncEnabled = try container.decodeIfPresent(Bool.self, forKey: .calendarSyncEnabled) ?? false
+        widgetRecommendationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .widgetRecommendationsEnabled) ?? true
+        siriSuggestionsEnabled = try container.decodeIfPresent(Bool.self, forKey: .siriSuggestionsEnabled) ?? true
+        dailyReminderEnabled = try container.decodeIfPresent(Bool.self, forKey: .dailyReminderEnabled) ?? false
+        dailyReminderHour = try container.decodeIfPresent(Int.self, forKey: .dailyReminderHour) ?? 8
+        dailyReminderMinute = try container.decodeIfPresent(Int.self, forKey: .dailyReminderMinute) ?? 0
+    }
+
+    static let `default` = StyleCompanionConfigurationSnapshot()
 }
 
 enum SharedStyleCompanionStore {

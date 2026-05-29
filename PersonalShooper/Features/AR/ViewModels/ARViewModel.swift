@@ -4,6 +4,7 @@ import RealityKit
 import SwiftData
 
 @Observable
+@MainActor
 final class ARViewModel {
     var arSession: ARSession?
     var selectedClothingItem: ClothingItem?
@@ -31,24 +32,53 @@ final class ARViewModel {
 
     func placeClothing(at position: SIMD3<Float>? = nil) {
         guard let clothingItem = selectedClothingItem,
-              let _ = clothingItem.image else { return }
-
-        // Create a simple plane to represent the clothing
-        let mesh = MeshResource.generatePlane(width: 0.5, height: 0.7)
-
-        // Create material
-        let material = SimpleMaterial()
-
-        let entity = ModelEntity(mesh: mesh, materials: [material])
-
-        // Create anchor
-        let anchor = AnchorEntity()
-        if let position = position {
-            anchor.position = position
+              let image = clothingItem.displayImage ?? clothingItem.image,
+              let cgImage = image.cgImage else {
+            errorMessage = "No image is available for this garment."
+            return
         }
 
-        anchor.addChild(entity)
-        placedClothingAnchor = anchor
+        removePlacedClothing()
+
+        let aspectRatio = max(Float(image.size.width / max(image.size.height, 1)), 0.2)
+        let height: Float = 0.75
+        let width = min(max(height * aspectRatio, 0.28), 0.95)
+        let mesh = MeshResource.generatePlane(width: width, height: height)
+
+        do {
+            let texture = try TextureResource(
+                image: cgImage,
+                withName: clothingItem.id.uuidString,
+                options: TextureResource.CreateOptions(semantic: .color)
+            )
+            var material = UnlitMaterial(texture: texture)
+            material.faceCulling = .none
+
+            let entity = ModelEntity(mesh: mesh, materials: [material])
+            entity.name = clothingItem.name
+            // Lift the plane so its base rests on the detected surface and it stands upright.
+            entity.position = SIMD3<Float>(0, height / 2, 0)
+
+            let anchor = AnchorEntity()
+            let basePosition = position ?? SIMD3<Float>(0, 0, -0.8)
+            anchor.position = basePosition
+
+            // Rotate the garment (yaw only) so it faces the user, like it's hanging in front of them.
+            if let cameraTransform = arSession?.currentFrame?.camera.transform {
+                let cameraPosition = cameraTransform.columns.3
+                let dx = cameraPosition.x - basePosition.x
+                let dz = cameraPosition.z - basePosition.z
+                if abs(dx) > 0.0001 || abs(dz) > 0.0001 {
+                    anchor.orientation = simd_quatf(angle: atan2(dx, dz), axis: SIMD3<Float>(0, 1, 0))
+                }
+            }
+
+            anchor.addChild(entity)
+            placedClothingAnchor = anchor
+            errorMessage = nil
+        } catch {
+            errorMessage = "I couldn't prepare the AR preview for this garment."
+        }
     }
 
     func removePlacedClothing() {
