@@ -278,18 +278,18 @@ struct SettingsView: View {
                         set: { appState.setConnectedChatGPTForChatEnabled($0) }
                     )) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(text("Usar BYOK también en el chat", "Use BYOK in chat too"))
+                            Text(text("Usar proveedor BYOK en el chat", "Use BYOK provider in chat"))
                             Text(
                                 text(
-                                    "Si tienes acceso BYOK y una clave válida, el chat podrá usar esa integración en vez de la IA local.",
-                                    "If you have BYOK access and a valid key, chat replies can use that integration instead of local AI."
+                                    "Si tienes acceso BYOK y una clave válida, el chat usará tu proveedor externo en vez de la IA local.",
+                                    "If you have BYOK access and a valid key, chat will use your external provider instead of local AI."
                                 )
                             )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
                     }
-                    .disabled(!appState.isChatGPTConnected)
+                    .disabled(!appState.isBYOKEnabled)
                 }
 
                 NavigationLink {

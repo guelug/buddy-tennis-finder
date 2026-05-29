@@ -215,7 +215,7 @@ final class AppState {
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue = enabled && isChatGPTConnected && (hasBYOKAccess || currentTier.hasBYOK)
+        let effectiveValue = enabled && (hasBYOKAccess || currentTier.hasBYOK) && isBYOKEnabled
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
