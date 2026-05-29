@@ -29,6 +29,7 @@ struct PhotoUploadView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var cropItem: CropItem?
     @State private var pendingCameraImage: UIImage?
+    @State private var showPaletteQuestionnaire = false
 
     private let photoAnalysisService = PhotoAnalysisService()
     private let paletteService = PaletteGenerationService()
@@ -104,6 +105,11 @@ struct PhotoUploadView: View {
                 }
             }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+            .sheet(isPresented: $showPaletteQuestionnaire) {
+                PaletteQuestionnaireView(language: appState.preferredLanguage) { preferences in
+                    Task { await analyzePhotos(preferences: preferences) }
+                }
+            }
             .fullScreenCover(isPresented: $showCamera, onDismiss: presentCropForCapturedImage) {
                 CameraView { image in
                     pendingCameraImage = image
@@ -349,9 +355,26 @@ struct PhotoUploadView: View {
         appState.updateUser(user)
     }
 
+    /// Merges the questionnaire color answers into the styling profile so chat + future palettes use them.
+    private func persistColorPreferences(_ preferences: PalettePreferences) {
+        guard !preferences.isEmpty, let user = appState.currentUser else { return }
+        let language = appState.preferredLanguage
+        var profile = user.personalStylingProfile
+
+        let lovedNames = preferences.lovedChoices.map { $0.name(in: language) }
+        let dislikedNames = preferences.dislikedChoices.map { $0.name(in: language) }
+
+        profile.favoriteColors = Array(Set(profile.favoriteColors + lovedNames)).sorted()
+        profile.avoidColors = Array(Set(profile.avoidColors + dislikedNames)).sorted()
+
+        user.updateStylingProfile(profile)
+    }
+
     private func moveToNextStep() {
         if currentStep == .fullBodyBack {
-            Task { await analyzePhotos() }
+            // Ask a couple of quick color questions before analyzing, so the palette respects what
+            // the user already knows looks good on them.
+            showPaletteQuestionnaire = true
         } else if let nextStep = UploadStep(rawValue: currentStep.rawValue + 1) {
             withAnimation {
                 currentStep = nextStep
@@ -359,7 +382,7 @@ struct PhotoUploadView: View {
         }
     }
 
-    private func analyzePhotos() async {
+    private func analyzePhotos(preferences: PalettePreferences) async {
         guard let face = faceCloseUp else {
             errorMessage = isSpanish ? "Se requiere una foto de primer plano del rostro." : "A close-up face photo is required."
             return
@@ -376,7 +399,15 @@ struct PhotoUploadView: View {
         let analysisResult = (try? await photoAnalysisService.extractSkinTone(from: face))
             ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
 
-        let palette = await paletteService.generatePalette(from: analysisResult, language: appState.preferredLanguage)
+        let palette = await paletteService.generatePalette(
+            from: analysisResult,
+            language: appState.preferredLanguage,
+            preferences: preferences
+        )
+
+        // Persist the reported color preferences into the styling profile so the chat stylist and
+        // future palette regenerations keep honoring them.
+        persistColorPreferences(preferences)
 
         guard let user = appState.currentUser else {
             errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."

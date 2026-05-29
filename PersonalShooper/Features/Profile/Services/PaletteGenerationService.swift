@@ -10,23 +10,76 @@ final class PaletteGenerationService {
 
     private let ruleBasedExtractor = SkinToneExtractor()
 
-    func generatePalette(from analysis: SkinAnalysisResult, language: Language) async -> PersonalPalette {
+    func generatePalette(
+        from analysis: SkinAnalysisResult,
+        language: Language,
+        preferences: PalettePreferences = PalettePreferences()
+    ) async -> PersonalPalette {
         let seasonalType = ruleBasedExtractor.seasonalType(
             undertone: analysis.undertone,
             skinTone: analysis.skinToneCategory
         )
 
-        if #available(iOS 26.0, *) {
-            if let aiPalette = await generateWithAI(
-                seasonalType: seasonalType,
-                analysis: analysis,
-                language: language
-            ) {
-                return aiPalette
-            }
+        var result: PersonalPalette
+        if #available(iOS 26.0, *),
+           let aiPalette = await generateWithAI(
+            seasonalType: seasonalType,
+            analysis: analysis,
+            language: language,
+            preferences: preferences
+           ) {
+            result = aiPalette
+        } else {
+            result = ruleBasedPalette(seasonalType: seasonalType, undertone: analysis.undertone, language: language)
         }
 
-        return ruleBasedPalette(seasonalType: seasonalType, undertone: analysis.undertone, language: language)
+        // Always honor what the user told us regardless of which engine produced the palette: the
+        // person knows colors they look great in better than an automatic skin read does.
+        return applyPreferences(preferences, to: result, language: language)
+    }
+
+    /// Forces the user's loved colors into the recommended set (and out of "avoid"), and pushes
+    /// disliked colors into "avoid" (and out of the recommended/neutral/statement sets).
+    private func applyPreferences(
+        _ preferences: PalettePreferences,
+        to palette: PersonalPalette,
+        language: Language
+    ) -> PersonalPalette {
+        guard !preferences.isEmpty else { return palette }
+
+        let loved = preferences.lovedChoices.compactMap { CodableColor(hex: $0.hex, name: $0.name(in: language)) }
+        let disliked = preferences.dislikedChoices.compactMap { CodableColor(hex: $0.hex, name: $0.name(in: language)) }
+
+        // Remove colors visually similar to any reference color (catches e.g. White vs near-white).
+        func without(_ colors: [CodableColor]?, similarTo refs: [CodableColor]) -> [CodableColor] {
+            (colors ?? []).filter { color in !refs.contains { Self.isSimilar($0, color) } }
+        }
+
+        // Recommended = loved colors first, then existing best (minus disliked, minus near-duplicates of loved).
+        var recommended = loved
+        for color in without(palette.recommendedColors, similarTo: disliked) where !loved.contains(where: { Self.isSimilar($0, color) }) {
+            recommended.append(color)
+        }
+
+        let neutrals = without(palette.neutralColors, similarTo: disliked)
+        let statements = without(palette.statementColors, similarTo: disliked)
+
+        // Avoid = disliked colors first, then existing avoid (minus anything similar to a loved color).
+        var avoid = disliked
+        for color in without(palette.colorsToAvoid, similarTo: loved) where !disliked.contains(where: { Self.isSimilar($0, color) }) {
+            avoid.append(color)
+        }
+
+        return PersonalPalette(
+            seasonalType: palette.seasonalType,
+            undertone: palette.undertone,
+            recommendedColors: recommended.isEmpty ? palette.recommendedColors : recommended,
+            createdAt: palette.createdAt,
+            summary: palette.summary,
+            neutralColors: neutrals.isEmpty ? palette.neutralColors : neutrals,
+            statementColors: statements.isEmpty ? palette.statementColors : statements,
+            colorsToAvoid: avoid.isEmpty ? nil : avoid
+        )
     }
 
     // MARK: - AI generation (iOS 26+)
@@ -35,7 +88,8 @@ final class PaletteGenerationService {
     private func generateWithAI(
         seasonalType: SeasonalType,
         analysis: SkinAnalysisResult,
-        language: Language
+        language: Language,
+        preferences: PalettePreferences
     ) async -> PersonalPalette? {
         let model = SystemLanguageModel.default
         guard model.isAvailable else { return nil }
@@ -45,7 +99,7 @@ final class PaletteGenerationService {
             instructions: Self.instructions(language: language)
         )
 
-        let prompt = Self.prompt(seasonalType: seasonalType, analysis: analysis, language: language)
+        let prompt = Self.prompt(seasonalType: seasonalType, analysis: analysis, language: language, preferences: preferences)
 
         do {
             let result = try await session.respond(
@@ -76,7 +130,12 @@ final class PaletteGenerationService {
     }
 
     @available(iOS 26.0, *)
-    private static func prompt(seasonalType: SeasonalType, analysis: SkinAnalysisResult, language: Language) -> String {
+    private static func prompt(
+        seasonalType: SeasonalType,
+        analysis: SkinAnalysisResult,
+        language: Language,
+        preferences: PalettePreferences
+    ) -> String {
         var lines = [
             "Create a personal color palette.",
             "Seasonal type: \(seasonalType.displayName).",
@@ -87,6 +146,21 @@ final class PaletteGenerationService {
             let swatches = analysis.dominantColors.prefix(3).map { hexString($0) }.joined(separator: ", ")
             lines.append("Sampled skin tones (for context only, do NOT recommend these): \(swatches).")
         }
+
+        // The user's self-reported experience outranks the automatic skin read.
+        let loved = preferences.lovedChoices.map { $0.name(in: .english) }
+        if !loved.isEmpty {
+            lines.append("IMPORTANT: the user says they look great in and get compliments on: \(loved.joined(separator: ", ")). Treat these as flattering and include them (or close variants) among the best/neutral/statement colors. Do NOT put them in colors-to-avoid.")
+        }
+        let disliked = preferences.dislikedChoices.map { $0.name(in: .english) }
+        if !disliked.isEmpty {
+            lines.append("The user dislikes or feels washed out in: \(disliked.joined(separator: ", ")). Avoid recommending these.")
+        }
+        let notes = preferences.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !notes.isEmpty {
+            lines.append("Extra note from the user: \(notes)")
+        }
+
         lines.append("Return 6 best flattering garment colors, 4 versatile neutrals, 3 bold statement colors, and 3 colors to avoid.")
         lines.append("Add a 1–2 sentence summary explaining why these work, in \(language == .spanish ? "Spanish" : "English").")
         return lines.joined(separator: "\n")
@@ -129,6 +203,13 @@ final class PaletteGenerationService {
         let g = Int((color.green * 255).rounded())
         let b = Int((color.blue * 255).rounded())
         return String(format: "#%02X%02X%02X", r, g, b)
+    }
+
+    /// Euclidean RGB distance; two colors within the threshold are treated as the "same" color so a
+    /// user's loved/disliked pick overrides near-duplicates produced by the AI or the library.
+    private static func isSimilar(_ a: CodableColor, _ b: CodableColor, threshold: Double = 0.16) -> Bool {
+        let dr = a.red - b.red, dg = a.green - b.green, db = a.blue - b.blue
+        return (dr * dr + dg * dg + db * db).squareRoot() <= threshold
     }
 
     // MARK: - Rich rule-based fallback

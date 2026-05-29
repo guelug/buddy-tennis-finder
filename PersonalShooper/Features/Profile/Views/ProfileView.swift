@@ -9,6 +9,7 @@ struct ProfileView: View {
     @State private var editingPhotoStep: PhotoUploadView.UploadStep = .faceCloseUp
     @State private var isGeneratingPalette = false
     @State private var paletteMessage: String?
+    @State private var showPaletteQuestionnaire = false
     private let photoAnalysisService = PhotoAnalysisService()
     private let paletteService = PaletteGenerationService()
 
@@ -16,10 +17,14 @@ struct ProfileView: View {
         appState.preferredLanguage
     }
 
-    /// True when the user has uploaded a face photo but no palette has been generated yet.
-    private var canGeneratePalette: Bool {
-        appState.currentUser?.personalPalette == nil
-            && appState.currentUser?.profilePhotos.faceCloseUp != nil
+    /// True when there is a face photo we can analyze (whether or not a palette already exists).
+    private var hasFacePhoto: Bool {
+        appState.currentUser?.profilePhotos.faceCloseUp != nil
+    }
+
+    /// True when a palette already exists — the button becomes a "redo with my answers" action.
+    private var hasPalette: Bool {
+        appState.currentUser?.personalPalette != nil
     }
 
     var body: some View {
@@ -46,7 +51,27 @@ struct ProfileView: View {
             .sheet(isPresented: $showingPhotoUpload) {
                 PhotoUploadView(startStep: editingPhotoStep)
             }
+            .sheet(isPresented: $showPaletteQuestionnaire) {
+                PaletteQuestionnaireView(language: lang, initial: savedColorPreferences) { preferences in
+                    Task { await generatePalette(preferences: preferences) }
+                }
+            }
         }
+    }
+
+    /// Pre-fills the questionnaire with any color preferences already saved in the styling profile.
+    private var savedColorPreferences: PalettePreferences {
+        guard let profile = appState.currentUser?.personalStylingProfile else { return PalettePreferences() }
+        func ids(matching names: [String]) -> [String] {
+            let lowered = Set(names.map { $0.lowercased() })
+            return PaletteColorCatalog.all
+                .filter { lowered.contains($0.nameEn.lowercased()) || lowered.contains($0.nameEs.lowercased()) }
+                .map { $0.id }
+        }
+        return PalettePreferences(
+            lovedColorIDs: ids(matching: profile.favoriteColors),
+            dislikedColorIDs: ids(matching: profile.avoidColors)
+        )
     }
 
     private var profileHeaderSection: some View {
@@ -233,9 +258,9 @@ struct ProfileView: View {
                     .padding(.top, Theme.Spacing.xs)
             }
 
-            if canGeneratePalette {
+            if hasFacePhoto {
                 Button {
-                    Task { await generatePalette() }
+                    showPaletteQuestionnaire = true
                 } label: {
                     HStack(spacing: 8) {
                         if isGeneratingPalette {
@@ -245,7 +270,9 @@ struct ProfileView: View {
                         }
                         Text(isGeneratingPalette
                              ? text("Analizando...", "Analyzing...")
-                             : text("Generar mi paleta de color", "Generate my color palette"))
+                             : (hasPalette
+                                ? text("Rehacer mi paleta con mis colores", "Redo my palette with my colors")
+                                : text("Generar mi paleta de color", "Generate my color palette")))
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Colors.primary)
@@ -273,7 +300,7 @@ struct ProfileView: View {
 
     /// Generates the palette from the already-saved face photo, so the user doesn't have to
     /// re-upload if the analysis didn't run during the original upload flow.
-    private func generatePalette() async {
+    private func generatePalette(preferences: PalettePreferences) async {
         guard let user = appState.currentUser,
               let face = user.profilePhotos.faceCloseUp else { return }
 
@@ -282,7 +309,15 @@ struct ProfileView: View {
 
         let analysis = (try? await photoAnalysisService.extractSkinTone(from: face))
             ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
-        let palette = await paletteService.generatePalette(from: analysis, language: lang)
+        let palette = await paletteService.generatePalette(from: analysis, language: lang, preferences: preferences)
+
+        // Save the reported preferences into the styling profile so they persist for chat + reruns.
+        if !preferences.isEmpty {
+            var profile = user.personalStylingProfile
+            profile.favoriteColors = Array(Set(profile.favoriteColors + preferences.lovedChoices.map { $0.name(in: lang) })).sorted()
+            profile.avoidColors = Array(Set(profile.avoidColors + preferences.dislikedChoices.map { $0.name(in: lang) })).sorted()
+            user.updateStylingProfile(profile)
+        }
 
         user.skinAnalysis = analysis
         user.personalPalette = palette
