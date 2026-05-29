@@ -215,13 +215,13 @@ final class AppState {
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue = enabled && isChatGPTConnected && hasBYOKAccess
+        let effectiveValue = enabled && isChatGPTConnected && (hasBYOKAccess || currentTier.hasBYOK)
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
 
     func isTryOnProviderAvailable(_ provider: TryOnProvider) -> Bool {
-        provider != .chatgpt || hasBYOKAccess
+        provider != .chatgpt || hasBYOKAccess || currentTier.hasBYOK
     }
 
     func closetItemLimitDescription(language: Language) -> String {

@@ -5,38 +5,60 @@ import StoreKit
 
 enum SubscriptionTier: String, CaseIterable, Codable {
     case free = "free"
+    case byokLite = "byok_lite"
     case premium = "premium"
     case pro = "pro"
-    case byok = "byok"
+    case lifetime = "lifetime"
 
     var displayName: String {
         switch self {
         case .free: return "Free"
+        case .byokLite: return "BYOK Lite"
         case .premium: return "Premium"
         case .pro: return "Pro"
-        case .byok: return "BYOK"
+        case .lifetime: return "Lifetime"
         }
     }
 
     var monthlyCredits: Int {
         switch self {
         case .free: return 5
+        case .byokLite: return 5  // Uses BYOK for unlimited, but has same base as free
         case .premium: return 50
         case .pro: return 200
-        case .byok: return Int.max
+        case .lifetime: return Int.max
+        }
+    }
+
+    var monthlyImages: Int {
+        switch self {
+        case .free: return 0
+        case .byokLite: return 0
+        case .premium: return 20
+        case .pro: return 50
+        case .lifetime: return 100
         }
     }
 
     var isUnlimited: Bool {
-        self == .byok
+        self == .lifetime
+    }
+
+    var hasBYOK: Bool {
+        self == .byokLite || self == .pro || self == .lifetime
+    }
+
+    var hasTrial: Bool {
+        self == .premium || self == .pro
     }
 }
 
 enum StoreProduct: String, CaseIterable {
     case free = "com.personalshooper.free"
+    case byokLiteMonthly = "com.personalshooper.byoklite.monthly"
     case premiumMonthly = "com.personalshooper.premium.monthly"
     case proMonthly = "com.personalshooper.pro.monthly"
-    case byokLifetime = "com.personalshooper.byok.lifetime"
+    case lifetime = "com.personalshooper.lifetime"
     case creditsPack10 = "com.personalshooper.credits.pack10"
     case creditsPack50 = "com.personalshooper.credits.pack50"
 
@@ -45,17 +67,19 @@ enum StoreProduct: String, CaseIterable {
     var tier: SubscriptionTier? {
         switch self {
         case .free: return .free
+        case .byokLiteMonthly: return .byokLite
         case .premiumMonthly: return .premium
         case .proMonthly: return .pro
-        case .byokLifetime, .creditsPack10, .creditsPack50: return nil
+        case .lifetime: return .lifetime
+        case .creditsPack10, .creditsPack50: return nil
         }
     }
 
     var visibleInSubscriptionUI: Bool {
         switch self {
-        case .free, .creditsPack10, .creditsPack50, .byokLifetime:
+        case .free, .creditsPack10, .creditsPack50:
             return false
-        case .premiumMonthly, .proMonthly:
+        case .byokLiteMonthly, .premiumMonthly, .proMonthly, .lifetime:
             return true
         }
     }
@@ -321,31 +345,44 @@ final class StoreKitManager: ObservableLike {
     }
 
     var hasBYOKPurchase: Bool {
-        purchasedProductIDs.contains(StoreProduct.byokLifetime.productID) || AppSecrets.internalBYOKTestingEnabled
+        purchasedProductIDs.contains(StoreProduct.lifetime.productID) || AppSecrets.internalBYOKTestingEnabled
     }
 
     var isBYOKConfigured: Bool {
-        let geminiKey = KeychainHelper.load(for: "gemini_api_key")
-        let openAIKey = KeychainHelper.load(for: "openai_api_key")
-        return [geminiKey, openAIKey]
+        let keys = [
+            KeychainHelper.load(for: "gemini_api_key"),
+            KeychainHelper.load(for: "openai_api_key"),
+            KeychainHelper.load(for: "anthropic_api_key"),
+            KeychainHelper.load(for: "kimi_api_key"),
+            KeychainHelper.load(for: "openrouter_api_key")
+        ]
+        return keys
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
             .contains { !$0.isEmpty }
     }
 
     var isBYOKActive: Bool {
-        hasBYOKPurchase && isBYOKConfigured
+        (currentTier.hasBYOK || hasLifetimePurchase) && isBYOKConfigured
+    }
+
+    var hasLifetimePurchase: Bool {
+        purchasedProductIDs.contains(StoreProduct.lifetime.productID)
     }
 
     var isSubscribed: Bool {
-        currentTier == .premium || currentTier == .pro
+        currentTier == .premium || currentTier == .pro || currentTier == .byokLite
     }
 
     var isPremium: Bool {
-        isSubscribed
+        currentTier == .premium || currentTier == .pro || currentTier == .lifetime
     }
 
     var canTryOn: Bool {
-        remainingCredits > 0 || isBYOKActive
+        remainingCredits > 0 || isBYOKActive || currentTier.monthlyImages > 0
+    }
+
+    var canUseImages: Bool {
+        currentTier.monthlyImages > 0
     }
 }
 
@@ -355,9 +392,10 @@ extension SubscriptionTier {
     var rank: Int {
         switch self {
         case .free: return 0
-        case .premium: return 1
-        case .pro: return 2
-        case .byok: return 3
+        case .byokLite: return 1
+        case .premium: return 2
+        case .pro: return 3
+        case .lifetime: return 4
         }
     }
 }
