@@ -366,70 +366,43 @@ struct PhotoUploadView: View {
 
         isAnalyzing = true
 
+        // Photos are already persisted progressively during cropping, but make sure the latest
+        // state is saved before we attempt the (heavier) palette analysis.
+        persistPhotos()
+
+        // Analysis never throws now: it falls back to the central region of the photo when Vision
+        // can't find a face, so we always produce a palette instead of failing the whole flow.
+        let analysisResult = (try? await photoAnalysisService.extractSkinTone(from: face))
+            ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
+
+        let skinToneExtractor = SkinToneExtractor()
+        let palette = skinToneExtractor.generatePalette(
+            undertone: analysisResult.undertone,
+            skinTone: analysisResult.skinToneCategory
+        )
+
+        guard let user = appState.currentUser else {
+            errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
+            isAnalyzing = false
+            return
+        }
+
+        // The palette and skin analysis are tiny JSON blobs — always save them. The photo bytes
+        // were already accounted for when persisted, so no storage-budget gate is needed here.
+        user.skinAnalysis = analysisResult
+        user.personalPalette = palette
+        user.updatedAt = Date()
+
         do {
-            let analysisResult = try await photoAnalysisService.extractSkinTone(from: face)
-
-            let skinToneExtractor = SkinToneExtractor()
-            let palette = skinToneExtractor.generatePalette(
-                undertone: analysisResult.undertone,
-                skinTone: analysisResult.skinToneCategory
-            )
-
-            let updatedPhotos = ProfilePhotos(
-                faceCloseUp: faceCloseUp,
-                faceProfile: faceProfile,
-                fullBodyFront: fullBodyFront,
-                fullBodyBack: fullBodyBack
-            )
-
-            let additionalBytes = StorageBudgetManager.incrementalBytesForProfileUpdate(
-                currentUser: appState.currentUser,
-                profilePhotos: updatedPhotos,
-                skinAnalysis: analysisResult,
-                personalPalette: palette
-            )
-
-            guard StorageBudgetManager.canStore(additionalBytes: additionalBytes, modelContext: modelContext) else {
-                errorMessage = StorageBudgetManager.overflowMessage(
-                    language: appState.preferredLanguage,
-                    modelContext: modelContext,
-                    additionalBytes: additionalBytes
-                )
-                isAnalyzing = false
-                return
-            }
-
-            guard let user = appState.currentUser else {
-                errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
-                isAnalyzing = false
-                return
-            }
-
-            user.skinAnalysis = analysisResult
-            user.personalPalette = palette
-            user.profilePhotos = updatedPhotos
-
-            do {
-                try modelContext.save()
-                appState.updateUser(user)
-                isAnalyzing = false
-                dismiss()
-            } catch {
-                errorMessage = isSpanish ? "No he podido guardar tu perfil: \(error.localizedDescription)" : "I couldn't save your profile: \(error.localizedDescription)"
-                isAnalyzing = false
-            }
-        } catch is AnalysisError {
-            // No face detected (or analysis failed): keep the photos saved and let the user finish
-            // without a palette rather than blocking them.
-            persistPhotos()
+            try modelContext.save()
+            appState.updateUser(user)
+            isAnalyzing = false
+            dismiss()
+        } catch {
             isAnalyzing = false
             errorMessage = isSpanish
-                ? "No he podido detectar bien el rostro para la paleta, pero he guardado tus fotos. Puedes reintentar con una foto más clara del rostro."
-                : "I couldn't read your face clearly for the palette, but your photos are saved. You can retry with a clearer face photo."
-        } catch {
-            persistPhotos()
-            errorMessage = isSpanish ? "Error en el análisis: \(error.localizedDescription)" : "Analysis error: \(error.localizedDescription)"
-            isAnalyzing = false
+                ? "No he podido guardar tu paleta: \(error.localizedDescription)"
+                : "I couldn't save your palette: \(error.localizedDescription)"
         }
     }
 

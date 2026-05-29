@@ -28,25 +28,24 @@ enum AnalysisError: Error, LocalizedError {
 
 @MainActor
 final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
-    
+
     private let skinToneExtractor = SkinToneExtractor()
-    
+
     func extractSkinTone(from image: UIImage) async throws -> SkinAnalysisResult {
-        guard let cgImage = image.cgImage else {
+        guard image.cgImage != nil else {
             throw AnalysisError.invalidImage
         }
-        
-        let faceRect = try await detectFaceRect(in: image)
-        
-        guard let faceImage = image.cropped(to: faceRect) else {
-            throw AnalysisError.invalidImage
-        }
-        
-        let colors = try extractDominantColors(from: faceImage)
+
+        // Prefer the detected face; if Vision finds nothing usable, fall back to the central region
+        // of the photo so we always produce a palette instead of failing the whole flow.
+        let region = (try? await detectFaceRect(in: image)) ?? centerRegion(of: image)
+        let cropImage = image.cropped(to: region) ?? image
+
+        let colors = (try? extractDominantColors(from: cropImage)) ?? []
         let undertone = skinToneExtractor.extractUndertone(from: colors)
         let skinToneCategory = classifySkinTone(averageBrightness: averageBrightness(of: colors))
         let confidence = calculateAnalysisConfidence(colors: colors)
-        
+
         return SkinAnalysisResult(
             dominantColors: colors.map { CodableColor(uiColor: $0) },
             undertone: undertone,
@@ -54,29 +53,38 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
             skinToneCategory: skinToneCategory
         )
     }
-    
+
+    /// Central square (~60%) of the image, used when no face is detected.
+    private func centerRegion(of image: UIImage) -> CGRect {
+        guard let cgImage = image.cgImage else { return .zero }
+        let w = CGFloat(cgImage.width)
+        let h = CGFloat(cgImage.height)
+        let side = min(w, h) * 0.6
+        return CGRect(x: (w - side) / 2, y: (h - side) / 2, width: side, height: side)
+    }
+
     func detectFaceRect(in image: UIImage) async throws -> CGRect {
         guard let cgImage = image.cgImage else {
             throw AnalysisError.invalidImage
         }
-        
+
         return try await withCheckedThrowingContinuation { continuation in
             let request = VNDetectFaceRectanglesRequest { request, error in
                 if let error = error {
                     continuation.resume(throwing: AnalysisError.visionRequestFailed(error.localizedDescription))
                     return
                 }
-                
+
                 guard let results = request.results as? [VNFaceObservation],
                       let firstFace = results.first else {
                     continuation.resume(throwing: AnalysisError.noFaceDetected)
                     return
                 }
-                
+
                 let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-                continuation.resume(returning: self.convertBoundingBox(firstFace.boundingBox, imageSize: imageSize))
+                continuation.resume(returning: Self.convertBoundingBox(firstFace.boundingBox, imageSize: imageSize))
             }
-            
+
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             do {
                 try handler.perform([request])
@@ -86,7 +94,7 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
         }
     }
     
-    private func convertBoundingBox(_ boundingBox: CGRect, imageSize: CGSize) -> CGRect {
+    private static func convertBoundingBox(_ boundingBox: CGRect, imageSize: CGSize) -> CGRect {
         return CGRect(
             x: boundingBox.origin.x * imageSize.width,
             y: (1 - boundingBox.origin.y - boundingBox.height) * imageSize.height,

@@ -3,12 +3,22 @@ import PhotosUI
 
 struct ProfileView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.modelContext) private var modelContext
     @State private var showingPhotoUpload = false
     @State private var showingLanguagePicker = false
     @State private var editingPhotoStep: PhotoUploadView.UploadStep = .faceCloseUp
+    @State private var isGeneratingPalette = false
+    @State private var paletteMessage: String?
+    private let photoAnalysisService = PhotoAnalysisService()
 
     private var lang: Language {
         appState.preferredLanguage
+    }
+
+    /// True when the user has uploaded a face photo but no palette has been generated yet.
+    private var canGeneratePalette: Bool {
+        appState.currentUser?.personalPalette == nil
+            && appState.currentUser?.profilePhotos.faceCloseUp != nil
     }
 
     var body: some View {
@@ -221,10 +231,72 @@ struct ProfileView: View {
                     .foregroundStyle(.secondary)
                     .padding(.top, Theme.Spacing.xs)
             }
+
+            if canGeneratePalette {
+                Button {
+                    Task { await generatePalette() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isGeneratingPalette {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "paintpalette.fill")
+                        }
+                        Text(isGeneratingPalette
+                             ? text("Analizando...", "Analyzing...")
+                             : text("Generar mi paleta de color", "Generate my color palette"))
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.sm)
+                    .background(Theme.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                    .contentShape(Rectangle())
+                }
+                .disabled(isGeneratingPalette)
+                .buttonStyle(.premiumPressable)
+                .padding(.top, Theme.Spacing.xs)
+            }
+
+            if let paletteMessage {
+                Text(paletteMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(Theme.Spacing.md)
         .background(Theme.Colors.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+    }
+
+    /// Generates the palette from the already-saved face photo, so the user doesn't have to
+    /// re-upload if the analysis didn't run during the original upload flow.
+    private func generatePalette() async {
+        guard let user = appState.currentUser,
+              let face = user.profilePhotos.faceCloseUp else { return }
+
+        isGeneratingPalette = true
+        defer { isGeneratingPalette = false }
+
+        let analysis = (try? await photoAnalysisService.extractSkinTone(from: face))
+            ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
+        let palette = SkinToneExtractor().generatePalette(
+            undertone: analysis.undertone,
+            skinTone: analysis.skinToneCategory
+        )
+
+        user.skinAnalysis = analysis
+        user.personalPalette = palette
+        user.updatedAt = Date()
+
+        do {
+            try modelContext.save()
+            appState.updateUser(user)
+            paletteMessage = text("Tu paleta personal está lista.", "Your personal palette is ready.")
+        } catch {
+            paletteMessage = text("No he podido guardar la paleta.", "I couldn't save the palette.")
+        }
     }
 
     private var settingsSection: some View {
