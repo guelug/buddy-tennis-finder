@@ -36,6 +36,7 @@
 		5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7327AED235F37BA65C119031 /* SkinToneExtractor.swift */; };
 		5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C3A6D967523FBE144BC1419 /* Language.swift */; };
 		6119AF129AC9A908E3A2F527 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56173F3B4C47A44171AD4425 /* WidgetKit.framework */; };
+		626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */; };
 		648D6C49BD792F7A3CE4AE3D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56173F3B4C47A44171AD4425 /* WidgetKit.framework */; };
 		653F52F805B613307D414401 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */; };
 		697D39AA4E36A52BB8C914C5 /* ConnectedChatGPTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */; };
@@ -83,6 +84,7 @@
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
 		FAB2438FEB64E57DD5187064 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */; };
 		FB12C3559703A574FB6795C1 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */; };
+		FCF7235DD9D851E88EEA06AE /* NamedPaletteLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D7695543F9650283615229D /* NamedPaletteLibrary.swift */; };
 		FD6C8B36F65BFF1147894411 /* StorageBudgetManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */; };
 		FE40DCAE3F3B3D8F14E1E2CF /* TryOnView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C09A315901B54622384FDF8 /* TryOnView.swift */; };
 /* End PBXBuildFile section */
@@ -124,6 +126,7 @@
 		2A108E1DDE75B55664093E03 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		3C3A6D967523FBE144BC1419 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
+		3D7695543F9650283615229D /* NamedPaletteLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamedPaletteLibrary.swift; sourceTree = "<group>"; };
 		40F78EBA23E4FB4692771AFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		468C44B82C05D68A858BA53F /* PersonalShooper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PersonalShooper.entitlements; sourceTree = "<group>"; };
 		4ED6A1E503E280CED9735D85 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
@@ -148,6 +151,7 @@
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
 		7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingCaptureView.swift; sourceTree = "<group>"; };
+		7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationService.swift; sourceTree = "<group>"; };
 		801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisService.swift; sourceTree = "<group>"; };
 		839E6E6C98B89B75F3114776 /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
 		86FB13AAA6D0B1AC46C0EB4A /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = System/Library/Frameworks/RealityKit.framework; sourceTree = SDKROOT; };
@@ -511,6 +515,8 @@
 			isa = PBXGroup;
 			children = (
 				D57994BF42D7F63E35E06E71 /* HealthKitService.swift */,
+				3D7695543F9650283615229D /* NamedPaletteLibrary.swift */,
+				7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */,
 				801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */,
 				E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */,
 				7327AED235F37BA65C119031 /* SkinToneExtractor.swift */,
@@ -833,9 +839,11 @@
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,
+				FCF7235DD9D851E88EEA06AE /* NamedPaletteLibrary.swift in Sources */,
 				A46152D996282676D8C8ED78 /* NoPaletteView.swift in Sources */,
 				A17E9F62BE725D71CC4F05C3 /* OnboardingView.swift in Sources */,
 				B34A434CBFAA5DE5942A36EC /* OpenAIImageTryOnService.swift in Sources */,
+				626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */,
 				76530E1C76FBE252B2EBA8F9 /* PersonalShooperApp.swift in Sources */,
 				F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */,
 				8EF22799197289A77575D099 /* PhotoUploadView.swift in Sources */,
@@ -966,7 +974,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1028,7 +1036,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

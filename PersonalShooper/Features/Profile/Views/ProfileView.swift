@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var isGeneratingPalette = false
     @State private var paletteMessage: String?
     private let photoAnalysisService = PhotoAnalysisService()
+    private let paletteService = PaletteGenerationService()
 
     private var lang: Language {
         appState.preferredLanguage
@@ -281,10 +282,7 @@ struct ProfileView: View {
 
         let analysis = (try? await photoAnalysisService.extractSkinTone(from: face))
             ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
-        let palette = SkinToneExtractor().generatePalette(
-            undertone: analysis.undertone,
-            skinTone: analysis.skinToneCategory
-        )
+        let palette = await paletteService.generatePalette(from: analysis, language: lang)
 
         user.skinAnalysis = analysis
         user.personalPalette = palette
@@ -471,51 +469,110 @@ struct ColorPaletteDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: Theme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                 Text(isSpanish ? "Tu paleta personal" : "Your Personal Palette")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(spacing: Theme.Spacing.md) {
-                    HStack(spacing: Theme.Spacing.sm) {
-                        Text(palette.seasonalType.displayName)
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Theme.Colors.primary.opacity(0.1))
-                            .clipShape(Capsule())
-
-                        Text(palette.undertone.displayName)
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Theme.Colors.primary.opacity(0.1))
-                            .clipShape(Capsule())
-                    }
+                HStack(spacing: Theme.Spacing.sm) {
+                    tag(palette.seasonalType.displayName)
+                    tag(isSpanish ? "Subtono \(palette.undertone.displayName)" : "\(palette.undertone.displayName) undertone")
                 }
 
-                Text(isSpanish ? "Colores recomendados" : "Recommended Colors")
-                    .font(.headline)
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))], spacing: Theme.Spacing.sm) {
-                    ForEach(palette.recommendedColors) { color in
-                        Circle()
-                            .fill(color.color)
-                            .frame(width: 50, height: 50)
-                            .overlay {
-                                Circle()
-                                    .stroke(Color.white, lineWidth: 2)
-                            }
-                            .shadow(color: .black.opacity(0.1), radius: 2)
-                    }
+                if let summary = palette.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(Theme.Spacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.Colors.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                 }
-                .padding()
+
+                swatchSection(
+                    title: isSpanish ? "Tus mejores colores" : "Your best colors",
+                    subtitle: isSpanish ? "Lúcelos cerca del rostro" : "Wear these near your face",
+                    colors: palette.recommendedColors
+                )
+
+                if let neutrals = palette.neutralColors, !neutrals.isEmpty {
+                    swatchSection(
+                        title: isSpanish ? "Neutros versátiles" : "Versatile neutrals",
+                        subtitle: isSpanish ? "Base para combinar todo" : "Mix-and-match basics",
+                        colors: neutrals
+                    )
+                }
+
+                if let statements = palette.statementColors, !statements.isEmpty {
+                    swatchSection(
+                        title: isSpanish ? "Colores statement" : "Statement colors",
+                        subtitle: isSpanish ? "Para destacar con intención" : "For a bold, intentional pop",
+                        colors: statements
+                    )
+                }
+
+                if let avoid = palette.colorsToAvoid, !avoid.isEmpty {
+                    swatchSection(
+                        title: isSpanish ? "Colores a evitar" : "Colors to avoid",
+                        subtitle: isSpanish ? "Tienden a apagarte cerca del rostro" : "These tend to wash you out",
+                        colors: avoid
+                    )
+                }
             }
             .padding()
         }
         .background(Theme.Colors.groupedBackground.ignoresSafeArea())
         .navigationTitle(isSpanish ? "Mi paleta" : "My Palette")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func tag(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline.weight(.medium))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Theme.Colors.primary.opacity(0.1))
+            .clipShape(Capsule())
+    }
+
+    private func swatchSection(title: String, subtitle: String, colors: [CodableColor]) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: Theme.Spacing.sm)], spacing: Theme.Spacing.md) {
+                ForEach(colors) { color in
+                    VStack(spacing: 6) {
+                        RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
+                            .fill(color.color)
+                            .frame(height: 56)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
+                                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                            }
+                            .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+
+                        if let name = color.name, !name.isEmpty {
+                            Text(name)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(Theme.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
     }
 }
 

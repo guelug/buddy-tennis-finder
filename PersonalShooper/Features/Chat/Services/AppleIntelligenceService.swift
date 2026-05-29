@@ -210,8 +210,19 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         }
 
         if let palette = context.userPalette {
-            let colors = palette.recommendedColors.prefix(5).map(colorName).joined(separator: ", ")
-            sections.append("Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone. Recommended colors: \(colors).")
+            var paletteLine = "Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone."
+            let best = palette.recommendedColors.prefix(6).map(colorName).joined(separator: ", ")
+            if !best.isEmpty { paletteLine += " Best colors: \(best)." }
+            if let neutrals = palette.neutralColors, !neutrals.isEmpty {
+                paletteLine += " Neutrals: \(neutrals.prefix(4).map(colorName).joined(separator: ", "))."
+            }
+            if let statements = palette.statementColors, !statements.isEmpty {
+                paletteLine += " Statement colors: \(statements.prefix(3).map(colorName).joined(separator: ", "))."
+            }
+            if let avoid = palette.colorsToAvoid, !avoid.isEmpty {
+                paletteLine += " Colors to avoid: \(avoid.prefix(3).map(colorName).joined(separator: ", "))."
+            }
+            sections.append(paletteLine)
         }
 
         if let profile = context.personalStylingProfile {
@@ -285,6 +296,9 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     }
 
     private func colorName(_ color: CodableColor) -> String {
+        if let name = color.name, !name.isEmpty {
+            return name
+        }
         let red = Int((color.red * 255).rounded())
         let green = Int((color.green * 255).rounded())
         let blue = Int((color.blue * 255).rounded())

@@ -16,6 +16,36 @@ struct PersonalPalette: Codable {
     let undertone: Undertone
     let recommendedColors: [CodableColor]
     let createdAt: Date
+
+    // Richer, expert-stylist fields (optional for backward compatibility with previously saved data).
+    /// Short expert explanation of why these colors flatter the user.
+    var summary: String?
+    /// Versatile base/neutral garment colors.
+    var neutralColors: [CodableColor]?
+    /// Bold statement/accent garment colors.
+    var statementColors: [CodableColor]?
+    /// Colors that tend to wash the user out — better to avoid near the face.
+    var colorsToAvoid: [CodableColor]?
+
+    init(
+        seasonalType: SeasonalType,
+        undertone: Undertone,
+        recommendedColors: [CodableColor],
+        createdAt: Date = Date(),
+        summary: String? = nil,
+        neutralColors: [CodableColor]? = nil,
+        statementColors: [CodableColor]? = nil,
+        colorsToAvoid: [CodableColor]? = nil
+    ) {
+        self.seasonalType = seasonalType
+        self.undertone = undertone
+        self.recommendedColors = recommendedColors
+        self.createdAt = createdAt
+        self.summary = summary
+        self.neutralColors = neutralColors
+        self.statementColors = statementColors
+        self.colorsToAvoid = colorsToAvoid
+    }
 }
 
 // MARK: - Codable Color
@@ -24,6 +54,8 @@ struct CodableColor: Codable, Identifiable {
     let red: Double
     let green: Double
     let blue: Double
+    /// Human-readable name (e.g. "Emerald", "Navy"). Optional for backward compatibility.
+    var name: String?
 
     var color: Color {
         Color(red: red, green: green, blue: blue)
@@ -33,16 +65,17 @@ struct CodableColor: Codable, Identifiable {
         UIColor(red: red, green: green, blue: blue, alpha: 1.0)
     }
 
-    init(uiColor: UIColor) {
+    init(uiColor: UIColor, name: String? = nil) {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
         uiColor.getRed(&r, green: &g, blue: &b, alpha: nil)
         self.id = UUID()
         self.red = Double(r)
         self.green = Double(g)
         self.blue = Double(b)
+        self.name = name
     }
 
-    init(color: Color) {
+    init(color: Color, name: String? = nil) {
         let uiColor = UIColor(color)
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
         uiColor.getRed(&r, green: &g, blue: &b, alpha: nil)
@@ -50,13 +83,28 @@ struct CodableColor: Codable, Identifiable {
         self.red = Double(r)
         self.green = Double(g)
         self.blue = Double(b)
+        self.name = name
     }
 
-    init(red: Double, green: Double, blue: Double) {
+    init(red: Double, green: Double, blue: Double, name: String? = nil) {
         self.id = UUID()
         self.red = red
         self.green = green
         self.blue = blue
+        self.name = name
+    }
+
+    /// Parses a "#RRGGBB" (or "RRGGBB") hex string. Returns nil for malformed input.
+    init?(hex: String, name: String? = nil) {
+        var cleaned = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if cleaned.hasPrefix("#") { cleaned.removeFirst() }
+        if cleaned.hasPrefix("0X") { cleaned.removeFirst(2) }
+        guard cleaned.count == 6, let value = Int(cleaned, radix: 16) else { return nil }
+        self.id = UUID()
+        self.red = Double((value >> 16) & 0xFF) / 255.0
+        self.green = Double((value >> 8) & 0xFF) / 255.0
+        self.blue = Double(value & 0xFF) / 255.0
+        self.name = name
     }
 }
 

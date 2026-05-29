@@ -50,6 +50,11 @@ final class SkinToneExtractor {
         )
     }
 
+    /// Public seasonal-type mapping so other services (e.g. the AI palette generator) can reuse it.
+    func seasonalType(undertone: Undertone, skinTone: SkinToneCategory) -> SeasonalType {
+        determineSeasonalType(undertone: undertone, skinTone: skinTone)
+    }
+
     private func determineSeasonalType(undertone: Undertone, skinTone: SkinToneCategory) -> SeasonalType {
         switch (undertone, skinTone) {
         case (.warm, .fair), (.warm, .light): return .spring

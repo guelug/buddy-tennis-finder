@@ -31,6 +31,7 @@ struct PhotoUploadView: View {
     @State private var pendingCameraImage: UIImage?
 
     private let photoAnalysisService = PhotoAnalysisService()
+    private let paletteService = PaletteGenerationService()
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
@@ -375,11 +376,7 @@ struct PhotoUploadView: View {
         let analysisResult = (try? await photoAnalysisService.extractSkinTone(from: face))
             ?? SkinAnalysisResult(dominantColors: [], undertone: .neutral, undertoneConfidence: 0.5, skinToneCategory: .medium)
 
-        let skinToneExtractor = SkinToneExtractor()
-        let palette = skinToneExtractor.generatePalette(
-            undertone: analysisResult.undertone,
-            skinTone: analysisResult.skinToneCategory
-        )
+        let palette = await paletteService.generatePalette(from: analysisResult, language: appState.preferredLanguage)
 
         guard let user = appState.currentUser else {
             errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
