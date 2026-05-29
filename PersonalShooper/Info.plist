@@ -30,6 +30,8 @@
     <!-- Apple Health -->
     <key>NSHealthShareUsageDescription</key>
     <string>Personal Shopper reads your height, weight, waist, and age from Apple Health to tailor sizing and fit recommendations. This stays on your device.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>Personal Shopper does not write health data. This string is required by App Store review when the HealthKit entitlement is present.</string>
 
     <!-- Apple Intelligence -->
     <key>NSAppleIntelligenceUsageDescription</key>
