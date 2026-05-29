@@ -68,30 +68,24 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
             throw AnalysisError.invalidImage
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNDetectFaceRectanglesRequest { request, error in
-                if let error = error {
-                    continuation.resume(throwing: AnalysisError.visionRequestFailed(error.localizedDescription))
-                    return
-                }
+        // VNImageRequestHandler.perform is synchronous, so read results directly afterwards. The
+        // previous continuation + completion-handler version could resume the continuation twice
+        // (completion + perform throwing), which is a fatal trap that `try?` cannot catch.
+        let request = VNDetectFaceRectanglesRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
-                guard let results = request.results as? [VNFaceObservation],
-                      let firstFace = results.first else {
-                    continuation.resume(throwing: AnalysisError.noFaceDetected)
-                    return
-                }
-
-                let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
-                continuation.resume(returning: Self.convertBoundingBox(firstFace.boundingBox, imageSize: imageSize))
-            }
-
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                continuation.resume(throwing: AnalysisError.visionRequestFailed(error.localizedDescription))
-            }
+        do {
+            try handler.perform([request])
+        } catch {
+            throw AnalysisError.visionRequestFailed(error.localizedDescription)
         }
+
+        guard let firstFace = request.results?.first else {
+            throw AnalysisError.noFaceDetected
+        }
+
+        let imageSize = CGSize(width: cgImage.width, height: cgImage.height)
+        return Self.convertBoundingBox(firstFace.boundingBox, imageSize: imageSize)
     }
     
     private static func convertBoundingBox(_ boundingBox: CGRect, imageSize: CGSize) -> CGRect {
