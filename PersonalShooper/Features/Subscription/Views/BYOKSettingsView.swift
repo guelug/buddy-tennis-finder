@@ -45,6 +45,13 @@ struct BYOKSettingsView: View {
         appState.hasBYOKAccess
     }
 
+    private var imageEngineBinding: Binding<StyleImageService.Engine> {
+        Binding(
+            get: { StyleImageService.resolvedEngine() },
+            set: { UserDefaults.standard.set($0.rawValue, forKey: StyleImageService.providerDefaultsKey) }
+        )
+    }
+
     private var lang: Language {
         appState.preferredLanguage
     }
@@ -189,6 +196,21 @@ struct BYOKSettingsView: View {
                             Label(message, systemImage: "xmark.circle.fill")
                                 .foregroundStyle(.red)
                         }
+                    }
+                }
+
+                // Image provider — only meaningful when more than one image-capable key is set.
+                if StyleImageService.hasMultipleEngines() {
+                    Section {
+                        Picker(text("Proveedor de imágenes y armario", "Image & wardrobe provider"), selection: imageEngineBinding) {
+                            Text("Google Gemini").tag(StyleImageService.Engine.gemini)
+                            Text("OpenAI").tag(StyleImageService.Engine.openai)
+                        }
+                    } footer: {
+                        Text(text(
+                            "Se usa para optimizar las fotos del armario y limpiar la referencia del probador. Si solo configuras un proveedor, se usa automáticamente.",
+                            "Used to optimize wardrobe photos and clean the try-on reference. If you configure only one provider, it's used automatically."
+                        ))
                     }
                 }
 

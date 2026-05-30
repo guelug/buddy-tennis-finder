@@ -237,7 +237,7 @@ final class TryOnViewModel {
               let frontPhoto = user.profilePhotos.fullBodyFront else { return }
 
         do {
-            let cleaned = try await GeminiTryOnService().cleanStudioImage(from: frontPhoto)
+            let cleaned = try await StyleImageService.cleanStudioReference(from: frontPhoto)
             user.cleanBodyReference = cleaned
             user.updatedAt = Date()
             try? modelContext.save()

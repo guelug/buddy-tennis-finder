@@ -45,6 +45,65 @@ final class OpenAIImageTryOnService {
         return image
     }
 
+    /// Single-image edit with a custom prompt (used for clean reference + marketing thumbnails).
+    func editImage(_ image: UIImage, prompt: String, size: String, apiKey: String) async throws -> UIImage {
+        guard let png = preparedPNG(from: image) else {
+            throw TryOnProviderError.generationFailed("Could not prepare source image")
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 120
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        appendField("model", value: model, boundary: boundary, to: &body)
+        appendField("prompt", value: prompt, boundary: boundary, to: &body)
+        appendField("size", value: size, boundary: boundary, to: &body)
+        appendField("quality", value: "medium", boundary: boundary, to: &body)
+        appendField("response_format", value: "b64_json", boundary: boundary, to: &body)
+        appendField("input_fidelity", value: "high", boundary: boundary, to: &body)
+        appendFileField("image[]", fileName: "source.png", mimeType: "image/png", data: png, boundary: boundary, to: &body)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TryOnProviderError.generationFailed("Missing HTTP response")
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            let apiMessage = (try? JSONDecoder().decode(OpenAIImageErrorEnvelope.self, from: data))?.error.message ?? "HTTP \(httpResponse.statusCode)"
+            throw TryOnProviderError.generationFailed(apiMessage)
+        }
+        let decoded = try JSONDecoder().decode(OpenAIImageEditResponse.self, from: data)
+        guard let base64 = decoded.data.first?.b64JSON,
+              let imageData = Data(base64Encoded: base64),
+              let result = UIImage(data: imageData) else {
+            throw TryOnProviderError.generationFailed("OpenAI image response did not include a valid image")
+        }
+        return result
+    }
+
+    func cleanStudioImage(from person: UIImage, apiKey: String) async throws -> UIImage {
+        let prompt = """
+        Regenerate this as a clean, professional full-body studio portrait of the SAME person.
+        Keep the person's face, identity, hairstyle, body shape, proportions, skin tone, pose, and exact clothing unchanged.
+        Remove the mirror, phone, reflections, furniture and all background clutter; place them on a plain light neutral studio background, full body, centered, evenly lit, natural colors.
+        """
+        return try await editImage(person, prompt: prompt, size: "1024x1536", apiKey: apiKey)
+    }
+
+    func marketingImage(for garment: UIImage, categoryHint: String, apiKey: String) async throws -> UIImage {
+        let prompt = """
+        Create a clean e-commerce product photo of THIS EXACT \(categoryHint) on a pure white seamless studio background.
+        Keep the garment's color, pattern, fabric, logos and shape exactly as in the source — do not restyle or recolor.
+        Photograph it straight-on, centered, fully visible, evenly lit with a soft shadow. No mannequin, no person, no props, no text.
+        """
+        return try await editImage(garment, prompt: prompt, size: "1024x1024", apiKey: apiKey)
+    }
+
     private func buildMultipartBody(boundary: String, userImage: UIImage, clothingImage: UIImage) throws -> Data {
         guard let userPNG = preparedPNG(from: userImage),
               let clothingPNG = preparedPNG(from: clothingImage) else {

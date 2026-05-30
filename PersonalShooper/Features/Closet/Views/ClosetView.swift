@@ -376,8 +376,10 @@ struct ClosetItemCard: View {
             if let image = item.displayImage {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .frame(height: 120)
+                    .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
             } else {
                 RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
@@ -606,7 +608,7 @@ private struct ClosetItemDetailView: View {
         defer { isOptimizing = false }
 
         do {
-            let optimized = try await GeminiTryOnService().marketingImage(
+            let optimized = try await StyleImageService.marketingImage(
                 for: source,
                 categoryHint: item.category.displayName.lowercased()
             )

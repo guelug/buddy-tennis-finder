@@ -306,9 +306,9 @@ final class ChatViewModel {
         var sections = leadingSections(savedFacts: savedFacts, closetSummary: closetSummary, appState: appState)
         sections.append(base)
 
-        if let followUp = followUpQuestion(appState: appState) {
-            sections.append(followUp)
-        }
+        // Note: we intentionally do NOT append a canned "let's keep refining: what's your age?"
+        // question. The model already has the full saved context, so asking for known data felt
+        // incoherent. The assistant drives any follow-ups itself.
 
         return sections.joined(separator: "\n\n")
     }
