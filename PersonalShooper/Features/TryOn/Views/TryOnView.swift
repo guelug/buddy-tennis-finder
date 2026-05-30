@@ -252,7 +252,8 @@ struct TryOnView: View {
                             await viewModel.generateTryOn(
                                 for: appState.currentUser,
                                 modelContext: modelContext,
-                                language: lang
+                                language: lang,
+                                canGenerateCleanReference: appState.isPremium || appState.hasBYOKAccess
                             )
                         }
                     } label: {

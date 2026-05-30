@@ -13,6 +13,9 @@ final class User {
     var skinAnalysisData: Data?
     var personalPaletteData: Data?
     var personalStylingProfileData: Data?
+    /// AI-cleaned full-body reference (person on a neutral studio backdrop, no mirror/clutter) used
+    /// for try-on. Generated once for premium/BYOK users and cached here. Optional/hidden from the UI.
+    var cleanBodyReferenceData: Data?
     var stylePreferences: [String]
     var subscriptionTierRaw: String
     var preferredLanguageRaw: String
@@ -29,11 +32,24 @@ final class User {
             )
         }
         set {
+            let newFront = StorageBudgetManager.normalizedImageData(newValue.fullBodyFront)
+            // If the front body photo changed, the cached clean reference is stale — drop it so it
+            // regenerates from the new photo on the next try-on.
+            if newFront != fullBodyFrontData {
+                cleanBodyReferenceData = nil
+            }
+
             faceCloseUpData = StorageBudgetManager.normalizedImageData(newValue.faceCloseUp)
             faceProfileData = StorageBudgetManager.normalizedImageData(newValue.faceProfile)
-            fullBodyFrontData = StorageBudgetManager.normalizedImageData(newValue.fullBodyFront)
+            fullBodyFrontData = newFront
             fullBodyBackData = StorageBudgetManager.normalizedImageData(newValue.fullBodyBack)
         }
+    }
+
+    /// The cached AI-cleaned full-body reference, if one has been generated.
+    var cleanBodyReference: UIImage? {
+        get { cleanBodyReferenceData.flatMap { UIImage(data: $0) } }
+        set { cleanBodyReferenceData = StorageBudgetManager.normalizedImageData(newValue) }
     }
 
     var skinAnalysis: SkinAnalysisResult? {

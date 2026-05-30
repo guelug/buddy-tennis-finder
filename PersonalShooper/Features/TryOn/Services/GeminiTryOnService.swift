@@ -70,6 +70,33 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         return try parseResponse(data)
     }
 
+    /// Produces a clean, professional full-body reference of the person: same face, body, clothing
+    /// and proportions, but on a plain neutral studio backdrop with the mirror, phone, and surrounding
+    /// clutter removed. Used as the try-on reference so results aren't polluted by the original scene.
+    func cleanStudioImage(from personImage: UIImage) async throws -> UIImage {
+        guard let apiKey, !apiKey.isEmpty else {
+            return personImage
+        }
+
+        let prompt = """
+        Regenerate this photo as a clean, professional full-body studio portrait of the SAME person.
+        Keep the person's face, identity, hairstyle, body shape, proportions, skin tone, pose, and the exact clothing they are wearing completely unchanged.
+        Remove the mirror, the phone, any reflections, furniture, and all background clutter.
+        Place the person on a plain, evenly-lit light neutral studio background (soft grey/white).
+        Show the full body, head to feet, centered, well-lit, with natural colors. Do not restyle, recolor, or change the clothing.
+        """
+
+        let request = try buildRequest(
+            prompt: prompt,
+            images: [try makeInlineImagePart(from: personImage)],
+            apiKey: apiKey
+        )
+
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+        return try parseResponse(data)
+    }
+
     func refineImage(_ image: UIImage, instructions: String) async throws -> UIImage {
         guard let apiKey, !apiKey.isEmpty else {
             return image

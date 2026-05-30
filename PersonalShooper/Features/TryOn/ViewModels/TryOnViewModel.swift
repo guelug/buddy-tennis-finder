@@ -76,7 +76,12 @@ final class TryOnViewModel {
         }
     }
 
-    func generateTryOn(for user: User?, modelContext: ModelContext, language: Language) async {
+    func generateTryOn(
+        for user: User?,
+        modelContext: ModelContext,
+        language: Language,
+        canGenerateCleanReference: Bool = false
+    ) async {
         guard let clothingImage = selectedClothingImage else {
             errorMessage = language == .spanish
                 ? "Selecciona una prenda para generar el try-on."
@@ -89,6 +94,12 @@ final class TryOnViewModel {
                 ? "Necesitas un perfil antes de usar el probador."
                 : "You need a profile before using try-on."
             return
+        }
+
+        // Premium/BYOK: generate (once) a clean studio reference so try-ons aren't polluted by the
+        // original photo's mirror/background. Cached on the user; failures fall back to the raw photo.
+        if canGenerateCleanReference {
+            await ensureCleanReference(for: user, modelContext: modelContext)
         }
 
         guard let referencePlan = resolveReferencePlan(for: user, language: language) else {
@@ -219,6 +230,22 @@ final class TryOnViewModel {
         return language == .spanish ? "Prenda" : "Garment"
     }
 
+    /// Generates and caches an AI-cleaned full-body reference once, when the user is entitled and a
+    /// front body photo exists. Best-effort: any failure leaves the raw photo path intact.
+    private func ensureCleanReference(for user: User, modelContext: ModelContext) async {
+        guard user.cleanBodyReferenceData == nil,
+              let frontPhoto = user.profilePhotos.fullBodyFront else { return }
+
+        do {
+            let cleaned = try await GeminiTryOnService().cleanStudioImage(from: frontPhoto)
+            user.cleanBodyReference = cleaned
+            user.updatedAt = Date()
+            try? modelContext.save()
+        } catch {
+            // Ignore — try-on will fall back to the original front photo.
+        }
+    }
+
     private func resolveReferencePlan(for user: User, language: Language) -> TryOnReferencePlan? {
         let photos = user.profilePhotos
         let category = selectedClothingCategory ?? .tops
@@ -237,7 +264,8 @@ final class TryOnViewModel {
             )
         }
 
-        guard let primary = photos.fullBodyFront else {
+        // Prefer the AI-cleaned studio reference when available; fall back to the raw front photo.
+        guard let primary = user.cleanBodyReference ?? photos.fullBodyFront else {
             return nil
         }
 
