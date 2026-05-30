@@ -1,11 +1,43 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import UIKit
 
 @main
 struct PersonalShooperApp: App {
     @State private var appState = AppState()
-    
+
+    init() {
+        Self.applyPremiumNavigationAppearance()
+    }
+
+    /// Gives every navigation title a premium look: SF Rounded, bold, with a touch of tracking — so
+    /// section headers like "Mi Armario" / "Probador Virtual" read as designed, not default system.
+    private static func applyPremiumNavigationAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithDefaultBackground()
+
+        let largeSize: CGFloat = 34
+        let inlineSize: CGFloat = 17
+        let largeBase = UIFont.systemFont(ofSize: largeSize, weight: .bold)
+        let inlineBase = UIFont.systemFont(ofSize: inlineSize, weight: .semibold)
+        let largeFont = UIFont(descriptor: largeBase.fontDescriptor.withDesign(.rounded) ?? largeBase.fontDescriptor, size: largeSize)
+        let inlineFont = UIFont(descriptor: inlineBase.fontDescriptor.withDesign(.rounded) ?? inlineBase.fontDescriptor, size: inlineSize)
+
+        appearance.largeTitleTextAttributes = [
+            .font: largeFont,
+            .kern: 0.4
+        ]
+        appearance.titleTextAttributes = [
+            .font: inlineFont,
+            .kern: 0.2
+        ]
+
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             User.self,

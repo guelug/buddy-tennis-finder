@@ -43,12 +43,21 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         userImage: UIImage,
         editHints: [EditHint]?
     ) async throws -> UIImage {
+        try await generateTryOnImage(clothingImage: clothingImage, userImage: userImage, editHints: editHints, garmentInstruction: nil)
+    }
+
+    func generateTryOnImage(
+        clothingImage: UIImage,
+        userImage: UIImage,
+        editHints: [EditHint]?,
+        garmentInstruction: String?
+    ) async throws -> UIImage {
         guard let apiKey, !apiKey.isEmpty else {
             return createPlaceholderResult(clothing: clothingImage, user: userImage)
         }
 
         let request = try buildRequest(
-            prompt: try tryOnPrompt(editHints: editHints),
+            prompt: try tryOnPrompt(editHints: editHints, garmentInstruction: garmentInstruction),
             images: [
                 try makeInlineImagePart(from: clothingImage),
                 try makeInlineImagePart(from: userImage)
@@ -82,7 +91,7 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         return try parseResponse(data)
     }
 
-    private func tryOnPrompt(editHints: [EditHint]?) throws -> String {
+    private func tryOnPrompt(editHints: [EditHint]?, garmentInstruction: String? = nil) throws -> String {
         var prompt = """
         Create a new image by combining the elements from the provided images.
         Take the garment from image 1 and place it on the person from image 2.
@@ -94,6 +103,10 @@ final class GeminiTryOnService: TryOnServiceProtocol {
         If image 2 includes multiple reference views in one frame, use the additional view only to preserve garment structure and fit accuracy, but generate the final result from the main front-facing person.
         Do not add extra garments, accessories, anatomy changes, or unrelated styling changes.
         """
+
+        if let garmentInstruction, !garmentInstruction.isEmpty {
+            prompt += "\nIMPORTANT — garment type: \(garmentInstruction) Do NOT change the type of garment shown in image 1, and do NOT replace any other garment than the one specified."
+        }
 
         if let editHints, !editHints.isEmpty {
             let refinements = editHints.map(\.instruction).joined(separator: " ")

@@ -3,7 +3,14 @@ import UIKit
 import Vision
 
 enum GarmentBackgroundRemovalService {
-    private static let ciContext = CIContext()
+    // Pin the working/output color space to sRGB. Without this, the masked pixel buffer (which can be
+    // in a wide-gamut or linear space) gets reinterpreted on conversion and the garment's colors shift
+    // (e.g. a light-blue shirt rendering as near-white), which then breaks color tagging/recognition.
+    private static let sRGB = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+    private static let ciContext = CIContext(options: [
+        .workingColorSpace: sRGB,
+        .outputColorSpace: sRGB
+    ])
 
     static func prepareImage(_ image: UIImage) async -> UIImage {
         await Task.detached(priority: .userInitiated) {
@@ -44,7 +51,7 @@ enum GarmentBackgroundRemovalService {
             )
 
             let outputImage = CIImage(cvPixelBuffer: maskedPixelBuffer)
-            guard let maskedCGImage = ciContext.createCGImage(outputImage, from: outputImage.extent) else {
+            guard let maskedCGImage = ciContext.createCGImage(outputImage, from: outputImage.extent, format: .RGBA8, colorSpace: sRGB) else {
                 return nil
             }
 

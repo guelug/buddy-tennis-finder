@@ -37,6 +37,27 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
         case .swimwear: return "figure.pool.swim"
         }
     }
+
+    /// Where on the body this garment goes — used to instruct the try-on model to swap ONLY the
+    /// relevant garment and keep everything else the person is wearing unchanged.
+    var tryOnReplacementInstruction: String {
+        switch self {
+        case .tops, .activewear:
+            return "The garment in image 1 is an UPPER-BODY top (e.g. shirt, t-shirt, blouse, sweater). Replace ONLY the person's upper-body top. Keep their existing trousers/skirt, shoes, and accessories exactly as they are."
+        case .bottoms:
+            return "The garment in image 1 is a LOWER-BODY item (e.g. trousers, jeans, skirt, shorts). Replace ONLY the person's lower-body garment. Keep their existing top, shoes, and accessories exactly as they are."
+        case .dresses:
+            return "The garment in image 1 is a full-body DRESS. Replace the person's full outfit with this dress, keeping their shoes unless the dress requires otherwise."
+        case .shoes:
+            return "The garment in image 1 is FOOTWEAR (shoes/sneakers/boots). Replace ONLY the shoes on the person's feet. Do NOT turn it into a shirt or any other garment. Keep their existing top, trousers, and accessories exactly as they are."
+        case .outerwear:
+            return "The garment in image 1 is an OUTER LAYER (jacket/coat/blazer). Place it as an outer layer over the person's existing outfit, keeping the visible clothing underneath, trousers, and shoes unchanged."
+        case .accessories:
+            return "The item in image 1 is an ACCESSORY (e.g. bag, hat, scarf, belt). Add ONLY this accessory. Keep all of the person's existing clothing and shoes unchanged."
+        case .swimwear:
+            return "The garment in image 1 is SWIMWEAR. Replace the person's outfit with this swimwear."
+        }
+    }
 }
 
 @Model

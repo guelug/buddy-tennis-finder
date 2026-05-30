@@ -96,10 +96,10 @@ final class TryOnProviderService {
         }
     }
 
-    func generateTryOn(clothingImage: UIImage, userImage: UIImage) async throws -> UIImage {
+    func generateTryOn(clothingImage: UIImage, userImage: UIImage, garmentCategory: ClothingCategory? = nil) async throws -> UIImage {
         switch currentProvider {
         case .google:
-            return try await generateWithGoogle(clothing: clothingImage, user: userImage)
+            return try await generateWithGoogle(clothing: clothingImage, user: userImage, garmentCategory: garmentCategory)
         case .playground:
             return try await generateWithPlayground(clothing: clothingImage, user: userImage)
         case .chatgpt:
@@ -109,10 +109,15 @@ final class TryOnProviderService {
 
     // MARK: - Google Gemini
 
-    private func generateWithGoogle(clothing: UIImage, user: UIImage) async throws -> UIImage {
+    private func generateWithGoogle(clothing: UIImage, user: UIImage, garmentCategory: ClothingCategory?) async throws -> UIImage {
         // Use Gemini service (existing implementation)
         let service = GeminiTryOnService()
-        return try await service.generateTryOnImage(clothingImage: clothing, userImage: user, editHints: nil)
+        return try await service.generateTryOnImage(
+            clothingImage: clothing,
+            userImage: user,
+            editHints: nil,
+            garmentInstruction: garmentCategory?.tryOnReplacementInstruction
+        )
     }
 
     // MARK: - Local Preview

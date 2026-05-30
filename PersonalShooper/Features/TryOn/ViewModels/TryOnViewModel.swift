@@ -126,7 +126,8 @@ final class TryOnViewModel {
             providerService.setProvider(selectedProvider)
             let generated = try await providerService.generateTryOn(
                 clothingImage: clothingImage,
-                userImage: referencePlan.image
+                userImage: referencePlan.image,
+                garmentCategory: selectedClothingCategory
             )
 
             let additionalBytes = StorageBudgetManager.incrementalBytesForTryOnResult(
