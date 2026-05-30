@@ -121,6 +121,7 @@ struct ContentView: View {
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
                 await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
                 refreshLiveActivity()
+                learnStyleUsageIfDue()
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -185,6 +186,19 @@ struct ContentView: View {
         withAnimation(.smooth) {
             hasCompletedOnboarding = true
         }
+    }
+
+    /// Counts today as a usage-day and, once the user has enough real days of use, refreshes the
+    /// auto-learned style summary from their most-worn garments.
+    private func learnStyleUsageIfDue() {
+        StyleUsageLearning.registerUsageDay()
+        guard let user = users.first else { return }
+        StyleUsageLearning.runIfDue(
+            user: user,
+            closetItems: clothingItems,
+            language: appState.preferredLanguage,
+            modelContext: modelContext
+        )
     }
 
     private func syncUserState() {

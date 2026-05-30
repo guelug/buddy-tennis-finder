@@ -121,6 +121,7 @@ final class BYOKChatService: AIChatServiceProtocol {
             if !profile.styleGoals.isEmpty { lines.append("Style goals: \(profile.styleGoals)") }
             if !profile.shoppingChallenges.isEmpty { lines.append("Shopping challenges: \(profile.shoppingChallenges)") }
             if !profile.additionalNotes.isEmpty { lines.append("Extra notes: \(profile.additionalNotes)") }
+            if !profile.learnedStyleSummary.isEmpty { lines.append(profile.learnedStyleSummary) }
         }
 
         if let recommendation = context.dailyRecommendation {

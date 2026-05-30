@@ -200,6 +200,11 @@ struct PersonalStylingProfile: Codable, Equatable {
     var shoppingChallenges: String
     var additionalNotes: String
     var lastUpdatedFromChatAt: Date?
+    /// Auto-learned summary of the user's real habits (most-worn pieces, color/style leanings),
+    /// derived after enough days of use. Declaration default keeps old saved data decodable.
+    var learnedStyleSummary: String = ""
+    /// Number of distinct usage-days at which the learned summary was last refreshed.
+    var learnedAtUsageDay: Int = 0
 
     init(
         age: Int? = nil,

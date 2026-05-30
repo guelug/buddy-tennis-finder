@@ -281,6 +281,9 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         appendProfileValues(profile.fitPriorities, label: "Fit priorities", language: language, into: &values)
         appendRawValues(profile.favoriteColors, label: "Favorite colors", into: &values)
         appendRawValues(profile.avoidColors, label: "Colors to avoid", into: &values)
+        if !profile.learnedStyleSummary.isEmpty {
+            values.append(profile.learnedStyleSummary)
+        }
 
         return "Saved style profile: \(values.joined(separator: "; "))."
     }

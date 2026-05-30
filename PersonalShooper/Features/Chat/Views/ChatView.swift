@@ -26,6 +26,10 @@ struct ChatView: View {
         AssistantPersona.name(forUserNamed: appState.currentUser?.displayName)
     }
 
+    private var hasDraftText: Bool {
+        !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -102,8 +106,14 @@ struct ChatView: View {
 
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button(text("Listo", "Done")) {
+                    // Pressing this both dismisses the keyboard AND sends the message when there's
+                    // text — saves a tap (the send arrow is right below "Done").
+                    Button(hasDraftText ? text("Enviar", "Send") : text("Listo", "Done")) {
+                        let shouldSend = hasDraftText && !viewModel.isLoading
                         isInputFocused = false
+                        if shouldSend {
+                            Task { await viewModel.sendMessage(appState: appState, modelContext: modelContext) }
+                        }
                     }
                     .fontWeight(.semibold)
                 }
@@ -264,12 +274,12 @@ struct ChatView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            HStack(alignment: .bottom, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
                 Button {
                     showingAttachmentOptions = true
                 } label: {
                     Image(systemName: "plus.circle.fill")
-                        .font(.title2)
+                        .font(.title)
                         .foregroundStyle(Theme.Colors.primary)
                 }
                 .buttonStyle(.premiumPressable)
