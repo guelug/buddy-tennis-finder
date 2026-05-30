@@ -67,6 +67,9 @@ final class ClothingItem {
     var categoryRaw: String
     var imageData: Data?
     var realReferenceImageData: Data?
+    /// AI-generated marketing thumbnail (white background, item facing front, full item visible).
+    /// Premium/BYOK only. Generated on demand and cached; used for display in the closet.
+    var optimizedImageData: Data?
     var colorTags: [String]
     var styleTags: [String]
     var materialTags: [String]
@@ -111,8 +114,28 @@ final class ClothingItem {
         }
     }
 
+    var optimizedImage: UIImage? {
+        get {
+            guard let data = optimizedImageData else { return nil }
+            return UIImage(data: data)
+        }
+        set {
+            optimizedImageData = StorageBudgetManager.normalizedClothingImageData(newValue)
+        }
+    }
+
+    var hasOptimizedImage: Bool {
+        optimizedImageData != nil
+    }
+
+    /// What the closet shows: prefer the polished marketing image, then the real photo, then cutout.
     var displayImage: UIImage? {
-        realReferenceImage ?? image
+        optimizedImage ?? realReferenceImage ?? image
+    }
+
+    /// The most accurate garment image to send to try-on (cutout/original, never the stylized one).
+    var tryOnGarmentImage: UIImage? {
+        image ?? realReferenceImage
     }
 
     var hiddenUsagePercentage: Int {

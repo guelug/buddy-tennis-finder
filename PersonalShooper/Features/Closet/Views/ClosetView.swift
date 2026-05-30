@@ -437,12 +437,18 @@ struct ClosetItemCard: View {
 private struct ClosetItemDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppState.self) private var appState
     @Bindable var item: ClothingItem
     let lang: Language
     let onDelete: () -> Void
 
     @State private var errorMessage: String?
     @State private var detailFeedbackCounter = 0
+    @State private var isOptimizing = false
+
+    private var canOptimize: Bool {
+        appState.isPremium || appState.hasBYOKAccess
+    }
 
     var body: some View {
         NavigationStack {
@@ -455,6 +461,8 @@ private struct ClosetItemDetailView: View {
                             .frame(maxWidth: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                     }
+
+                    optimizeImageSection
 
                     VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                         TextField(lang == .spanish ? "Nombre" : "Name", text: $item.name)
@@ -544,6 +552,71 @@ private struct ClosetItemDetailView: View {
                 Text(errorMessage ?? "")
             }
             .sensoryFeedback(.success, trigger: detailFeedbackCounter)
+        }
+    }
+
+    @ViewBuilder
+    private var optimizeImageSection: some View {
+        if canOptimize {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Button {
+                    Task { await optimizeImage() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isOptimizing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "wand.and.stars")
+                        }
+                        Text(optimizeButtonTitle)
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Theme.Spacing.sm)
+                    .background(Theme.Colors.primary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                    .contentShape(Rectangle())
+                }
+                .disabled(isOptimizing)
+                .buttonStyle(.premiumPressable)
+
+                Text(item.hasOptimizedImage
+                     ? (lang == .spanish ? "Imagen optimizada. Puedes regenerarla si no te convence." : "Optimized image. You can regenerate it if you're not happy.")
+                     : (lang == .spanish ? "Crea una miniatura tipo tienda: fondo blanco, prenda de frente y completa." : "Create a store-style thumbnail: white background, item facing front and fully visible."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var optimizeButtonTitle: String {
+        if isOptimizing {
+            return lang == .spanish ? "Optimizando..." : "Optimizing..."
+        }
+        if item.hasOptimizedImage {
+            return lang == .spanish ? "Regenerar imagen" : "Regenerate image"
+        }
+        return lang == .spanish ? "Optimizar imagen" : "Optimize image"
+    }
+
+    private func optimizeImage() async {
+        guard let source = item.tryOnGarmentImage ?? item.displayImage else { return }
+        isOptimizing = true
+        defer { isOptimizing = false }
+
+        do {
+            let optimized = try await GeminiTryOnService().marketingImage(
+                for: source,
+                categoryHint: item.category.displayName.lowercased()
+            )
+            item.optimizedImage = optimized
+            detailFeedbackCounter += 1
+            try? modelContext.save()
+        } catch {
+            errorMessage = lang == .spanish
+                ? "No he podido optimizar la imagen: \(error.localizedDescription)"
+                : "I couldn't optimize the image: \(error.localizedDescription)"
         }
     }
 

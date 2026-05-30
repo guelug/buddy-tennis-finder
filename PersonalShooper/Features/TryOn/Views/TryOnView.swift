@@ -90,7 +90,8 @@ struct TryOnView: View {
             .sheet(isPresented: $showingClosetPicker) {
                 ClosetPickerSheet(items: closetItems, language: lang) { item in
                     Task {
-                        guard let image = item.displayImage else { return }
+                        // Use the accurate garment cutout for try-on, not the stylized thumbnail.
+                        guard let image = item.tryOnGarmentImage ?? item.displayImage else { return }
                         await viewModel.setSelectedClothingImage(image, source: .closet, closetItem: item)
                     }
                 }

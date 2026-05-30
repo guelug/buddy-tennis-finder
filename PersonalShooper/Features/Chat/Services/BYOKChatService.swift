@@ -14,7 +14,7 @@ final class BYOKChatService: AIChatServiceProtocol {
 
         var chatModel: String {
             switch self {
-            case .gemini: return "gemini-3.5-flash-preview"
+            case .gemini: return "gemini-3.5-flash"
             case .openai: return "gpt-5.5-instant"
             case .anthropic: return "claude-sonnet-4-6"
             case .kimi: return "kimi-2-6"
@@ -25,7 +25,7 @@ final class BYOKChatService: AIChatServiceProtocol {
         var endpoint: URL {
             switch self {
             case .gemini:
-                return URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-preview:generateContent")!
+                return URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent")!
             case .openai:
                 return URL(string: "https://api.openai.com/v1/chat/completions")!
             case .anthropic:
@@ -97,6 +97,17 @@ final class BYOKChatService: AIChatServiceProtocol {
             lines.append("The user is \(gender.stylingDescriptor).")
         }
 
+        if let palette = context.userPalette {
+            var paletteLine = "Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone."
+            let best = palette.recommendedColors.prefix(6).compactMap { $0.name }.joined(separator: ", ")
+            if !best.isEmpty { paletteLine += " Best colors: \(best)." }
+            if let avoid = palette.colorsToAvoid, !avoid.isEmpty {
+                paletteLine += " Colors to avoid: \(avoid.prefix(3).compactMap { $0.name }.joined(separator: ", "))."
+            }
+            lines.append(paletteLine)
+            lines.append("Favor the user's best colors and avoid recommending their unflattering colors.")
+        }
+
         if let profile = context.personalStylingProfile {
             if let age = profile.age { lines.append("Age: \(age)") }
             if !profile.occupation.isEmpty { lines.append("Occupation: \(profile.occupation)") }
@@ -107,6 +118,9 @@ final class BYOKChatService: AIChatServiceProtocol {
             if !profile.fitPriorities.isEmpty { lines.append("Fit priorities: \(profile.fitPriorities.joined(separator: ", "))") }
             if !profile.favoriteColors.isEmpty { lines.append("Favorite colors: \(profile.favoriteColors.joined(separator: ", "))") }
             if !profile.avoidColors.isEmpty { lines.append("Avoid colors: \(profile.avoidColors.joined(separator: ", "))") }
+            if !profile.styleGoals.isEmpty { lines.append("Style goals: \(profile.styleGoals)") }
+            if !profile.shoppingChallenges.isEmpty { lines.append("Shopping challenges: \(profile.shoppingChallenges)") }
+            if !profile.additionalNotes.isEmpty { lines.append("Extra notes: \(profile.additionalNotes)") }
         }
 
         if let recommendation = context.dailyRecommendation {
@@ -134,9 +148,12 @@ final class BYOKChatService: AIChatServiceProtocol {
 
     // MARK: - Gemini
     private func sendGeminiMessage(_ message: String, context: ChatContext, apiKey: String) async throws -> String {
+        // Pass the key via header (x-goog-api-key) rather than the URL, so a malformed key can't
+        // crash a force-unwrapped URL(string:) and isn't logged in the query string.
         var request = URLRequest(url: provider.endpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.timeoutInterval = 45
 
         let payload: [String: Any] = [
@@ -151,16 +168,11 @@ final class BYOKChatService: AIChatServiceProtocol {
 
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
-        let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-preview:generateContent?key=\(apiKey)")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = request.httpBody
-        urlRequest.timeoutInterval = 45
-
-        let (data, response) = try await session.data(for: urlRequest)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) else {
-            throw AIError.responseFailed("HTTP error")
+            let detail = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?
+                .flatMap { ($0["error"] as? [String: Any])?["message"] as? String }
+            throw AIError.responseFailed(detail ?? "HTTP error")
         }
 
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
