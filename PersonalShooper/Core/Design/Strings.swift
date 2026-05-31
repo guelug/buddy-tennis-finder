@@ -352,6 +352,9 @@ struct Strings {
         case .outerwear: return localized("category_outerwear", language)
         case .activewear: return localized("category_activewear", language)
         case .swimwear: return localized("category_swimwear", language)
+        case .jewelry: return language == .spanish ? "Joyería" : "Jewelry"
+        case .lingerie: return language == .spanish ? "Lencería" : "Lingerie"
+        case .beauty: return language == .spanish ? "Belleza" : "Beauty"
         }
     }
 

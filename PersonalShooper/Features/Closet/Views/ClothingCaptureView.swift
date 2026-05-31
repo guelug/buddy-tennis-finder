@@ -228,7 +228,7 @@ struct ClothingCaptureView: View {
                                 get: { detectedCategory ?? .tops },
                                 set: { detectedCategory = $0 }
                             )) {
-                                ForEach(ClothingCategory.allCases, id: \.self) { category in
+                                ForEach(ClothingCategory.available(for: appState.currentUser?.personalStylingProfile.genderIdentity), id: \.self) { category in
                                     Label(Strings.categoryDisplayName(category, lang), systemImage: category.icon)
                                         .tag(category)
                                 }

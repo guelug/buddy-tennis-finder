@@ -46,7 +46,7 @@ struct ClosetView: View {
                             }
                         }
 
-                        ForEach(ClothingCategory.allCases, id: \.self) { category in
+                        ForEach(ClothingCategory.available(for: appState.currentUser?.personalStylingProfile.genderIdentity), id: \.self) { category in
                             CategoryChip(
                                 title: Strings.categoryDisplayName(category, lang),
                                 icon: category.icon,
@@ -506,7 +506,7 @@ private struct ClosetItemDetailView: View {
                             .font(.title2.weight(.semibold))
 
                         Picker(lang == .spanish ? "Categoría" : "Category", selection: $item.category) {
-                            ForEach(ClothingCategory.allCases, id: \.self) { category in
+                            ForEach(ClothingCategory.available(for: appState.currentUser?.personalStylingProfile.genderIdentity), id: \.self) { category in
                                 Label(Strings.categoryDisplayName(category, lang), systemImage: category.icon)
                                     .tag(category)
                             }

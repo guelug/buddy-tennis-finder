@@ -265,7 +265,7 @@ final class ChatWorkspaceService {
         switch category {
         case .tops, .dresses, .outerwear, .activewear, .swimwear:
             return true
-        case .bottoms, .shoes, .accessories:
+        case .bottoms, .shoes, .accessories, .jewelry, .lingerie, .beauty:
             return false
         }
     }

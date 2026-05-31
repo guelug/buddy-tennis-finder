@@ -9,6 +9,7 @@ struct ARWardrobeView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ARViewModel()
     @State private var showingClothingPicker = false
+    @State private var showingFinder = false
     @State private var showingShelfNameInput = false
     @State private var shelfNameInput = ""
     @State private var pendingTapPosition: SIMD3<Float>?
@@ -54,7 +55,10 @@ struct ARWardrobeView: View {
                 }
             }
             .sheet(isPresented: $showingClothingPicker) {
-                ClothingPickerSheet(viewModel: viewModel)
+                ClothingPickerSheet(viewModel: viewModel, purpose: .locate)
+            }
+            .sheet(isPresented: $showingFinder) {
+                ClothingPickerSheet(viewModel: viewModel, purpose: .find)
             }
             .alert(
                 isSpanish ? "Guardar ubicación" : "Save Location",
@@ -106,6 +110,8 @@ struct ARWardrobeView: View {
             return isSpanish ? "Armario AR" : "AR Closet"
         case .place:
             return isSpanish ? "Coloca: \(viewModel.selectedClothingItem?.name ?? "")" : "Place: \(viewModel.selectedClothingItem?.name ?? "")"
+        case .find:
+            return isSpanish ? "Buscando: \(viewModel.selectedClothingItem?.name ?? "")" : "Finding: \(viewModel.selectedClothingItem?.name ?? "")"
         }
     }
 
@@ -122,6 +128,8 @@ struct ARWardrobeView: View {
                 .padding(.vertical, 8)
                 .background(Color.blue.opacity(0.8))
                 .clipShape(Capsule())
+            } else if viewModel.currentMode == .find {
+                findGuidanceBanner
             } else if viewModel.placements.isEmpty {
                 HStack {
                     Image(systemName: "info.circle.fill")
@@ -149,8 +157,67 @@ struct ARWardrobeView: View {
         .padding(.top, 8)
     }
 
+    /// Big directional arrow + distance shown while guiding the user to a garment.
+    private var findGuidanceBanner: some View {
+        VStack(spacing: 10) {
+            if viewModel.isCloseToTarget {
+                Label(isSpanish ? "¡Aquí está!" : "It's right here!", systemImage: "checkmark.seal.fill")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+            } else {
+                Image(systemName: "location.north.fill")
+                    .font(.system(size: 54, weight: .bold))
+                    .foregroundStyle(.white)
+                    .rotationEffect(.radians(Double(viewModel.findHeadingAngle)))
+                    .animation(.snappy(duration: 0.2), value: viewModel.findHeadingAngle)
+
+                if let distance = viewModel.findDistance {
+                    Text(String(format: isSpanish ? "%.1f m" : "%.1f m", distance))
+                        .font(.title2.weight(.bold).monospacedDigit())
+                        .foregroundStyle(.white)
+                }
+
+                Text(verticalHintText)
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var verticalHintText: String {
+        switch viewModel.findVerticalHint {
+        case "up": return isSpanish ? "Mira hacia arriba" : "Look up"
+        case "down": return isSpanish ? "Mira hacia abajo" : "Look down"
+        default: return isSpanish ? "Gira hacia la flecha" : "Turn toward the arrow"
+        }
+    }
+
     private var bottomControls: some View {
         VStack(spacing: 16) {
+            // Find mode: just a Stop button (the banner shows the arrow).
+            if viewModel.currentMode == .find {
+                Button {
+                    viewModel.stopFinding()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "xmark.circle.fill")
+                        Text(isSpanish ? "Dejar de buscar" : "Stop finding")
+                    }
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(.red.opacity(0.85))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.premiumPressable)
+                .padding(.bottom, 30)
+            }
+
             // Selected item indicator (place mode)
             if viewModel.currentMode == .place,
                let item = viewModel.selectedClothingItem {
@@ -207,22 +274,40 @@ struct ARWardrobeView: View {
                     }
                 }
 
-                HStack(spacing: Theme.Spacing.lg) {
+                HStack(spacing: Theme.Spacing.md) {
                     Button {
                         showingClothingPicker = true
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "plus.circle.fill")
-                            Text(isSpanish ? "Ubicar prenda" : "Locate garment")
+                            Text(isSpanish ? "Ubicar" : "Locate")
                         }
                         .font(.headline)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, 18)
                         .padding(.vertical, 14)
                         .background(Theme.Colors.primary)
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.premiumPressable)
+
+                    if !viewModel.placements.isEmpty {
+                        Button {
+                            showingFinder = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "location.magnifyingglass")
+                                Text(isSpanish ? "Encontrar" : "Find")
+                            }
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .background(.green.opacity(0.85))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.premiumPressable)
+                    }
 
                     if let selected = viewModel.selectedPlacement {
                         Button {
@@ -375,6 +460,15 @@ struct ARViewContainer: UIViewRepresentable {
             self.viewModel = viewModel
         }
 
+        /// Per-frame: while finding, refresh the arrow heading/distance from the camera pose.
+        nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            let transform = frame.camera.transform // simd_float4x4 is Sendable; copy before hopping.
+            Task { @MainActor in
+                guard self.viewModel?.currentMode == .find else { return }
+                self.viewModel?.updateFindGuidance(cameraTransform: transform)
+            }
+        }
+
         @MainActor
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
             guard let arView = gesture.view as? ARView else { return }
@@ -479,7 +573,10 @@ struct ARViewContainer: UIViewRepresentable {
 // MARK: - Clothing Picker
 
 struct ClothingPickerSheet: View {
+    enum Purpose { case locate, find }
+
     let viewModel: ARViewModel
+    var purpose: Purpose = .locate
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
@@ -487,20 +584,36 @@ struct ClothingPickerSheet: View {
         appState.preferredLanguage == .spanish
     }
 
+    /// In find mode only show garments that already have a saved location.
+    private var visibleItems: [ClothingItem] {
+        switch purpose {
+        case .locate: return viewModel.clothingItems
+        case .find: return viewModel.clothingItems.filter { viewModel.findPlacement(for: $0) != nil }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.clothingItems.isEmpty {
+                if visibleItems.isEmpty {
                     ContentUnavailableView(
-                        isSpanish ? "Armario vacío" : "Empty closet",
-                        systemImage: "cabinet",
-                        description: Text(isSpanish ? "Guarda prendas en el armario para ubicarlas aquí en AR." : "Save garments in your closet to locate them here in AR.")
+                        purpose == .find ? (isSpanish ? "Sin prendas ubicadas" : "No located garments") : (isSpanish ? "Armario vacío" : "Empty closet"),
+                        systemImage: purpose == .find ? "location.slash" : "cabinet",
+                        description: Text(
+                            purpose == .find
+                                ? (isSpanish ? "Primero marca dónde guardas tus prendas con \"Ubicar\"." : "First mark where you store garments with \"Locate\".")
+                                : (isSpanish ? "Guarda prendas en el armario para ubicarlas aquí en AR." : "Save garments in your closet to locate them here in AR.")
+                        )
                     )
                 } else {
                     List {
-                        ForEach(viewModel.clothingItems) { item in
+                        ForEach(visibleItems) { item in
                             Button {
-                                viewModel.selectClothing(item)
+                                if purpose == .find {
+                                    viewModel.startFinding(item)
+                                } else {
+                                    viewModel.selectClothing(item)
+                                }
                                 dismiss()
                             } label: {
                                 HStack(spacing: 12) {

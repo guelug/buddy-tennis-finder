@@ -6,6 +6,7 @@ import SwiftData
 enum ARMode {
     case browse      // Show saved tags
     case place       // Place a new tag for selected item
+    case find        // Guide the user to a saved garment with a direction arrow
 }
 
 @Observable
@@ -24,6 +25,73 @@ final class ARViewModel {
 
     var pendingTapPosition: SIMD3<Float>?
     var preselectedItemID: UUID?
+
+    // MARK: - Find guidance state
+    var findTarget: ARClothingPlacement?
+    /// Distance from the camera to the target garment, in metres.
+    var findDistance: Float?
+    /// Signed horizontal angle (radians) between camera forward and the target: ~0 = straight ahead,
+    /// positive = turn right, negative = turn left. Drives the on-screen arrow rotation.
+    var findHeadingAngle: Float = 0
+    /// "up" / "down" / "level" hint for vertical position relative to the camera.
+    var findVerticalHint: String = "level"
+
+    var isCloseToTarget: Bool {
+        guard let distance = findDistance else { return false }
+        return distance < 0.6
+    }
+
+    func startFinding(_ item: ClothingItem) {
+        guard let placement = findPlacement(for: item) else {
+            errorMessage = "That garment doesn't have a saved location yet."
+            return
+        }
+        selectedClothingItem = item
+        findTarget = placement
+        selectedPlacement = placement
+        currentMode = .find
+    }
+
+    func stopFinding() {
+        findTarget = nil
+        findDistance = nil
+        findHeadingAngle = 0
+        findVerticalHint = "level"
+        selectedClothingItem = nil
+        currentMode = .browse
+    }
+
+    /// Recomputes the arrow heading + distance from the current camera transform (called per frame).
+    func updateFindGuidance(cameraTransform: simd_float4x4) {
+        guard let target = findTarget else { return }
+
+        let cameraPos = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+        let targetPos = target.simdPosition
+        let delta = targetPos - cameraPos
+
+        findDistance = simd_length(delta)
+
+        // Camera forward is -Z in ARKit camera space.
+        let forward = -SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)
+
+        // Work on the horizontal (x,z) plane for the heading.
+        let forwardH = SIMD2<Float>(forward.x, forward.z)
+        let deltaH = SIMD2<Float>(delta.x, delta.z)
+        if simd_length(forwardH) > 0.0001 && simd_length(deltaH) > 0.0001 {
+            let f = simd_normalize(forwardH)
+            let d = simd_normalize(deltaH)
+            // Signed angle from forward to target (right-handed around up axis).
+            findHeadingAngle = atan2(f.x * d.y - f.y * d.x, f.x * d.x + f.y * d.y)
+        }
+
+        if delta.y > 0.35 {
+            findVerticalHint = "up"
+        } else if delta.y < -0.35 {
+            findVerticalHint = "down"
+        } else {
+            findVerticalHint = "level"
+        }
+    }
 
     func configure(modelContext: ModelContext) {
         self.modelContext = modelContext

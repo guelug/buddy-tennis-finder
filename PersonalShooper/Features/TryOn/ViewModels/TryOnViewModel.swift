@@ -289,7 +289,7 @@ final class TryOnViewModel {
         switch category {
         case .tops, .dresses, .outerwear, .activewear, .swimwear:
             return true
-        case .bottoms, .shoes, .accessories:
+        case .bottoms, .shoes, .accessories, .jewelry, .lingerie, .beauty:
             return false
         }
     }
@@ -399,6 +399,9 @@ final class TryOnViewModel {
         case .outerwear: return "Abrigo o chaqueta"
         case .activewear: return "Deporte"
         case .swimwear: return "Baño"
+        case .jewelry: return "Joyería"
+        case .lingerie: return "Lencería"
+        case .beauty: return "Belleza"
         }
     }
 }

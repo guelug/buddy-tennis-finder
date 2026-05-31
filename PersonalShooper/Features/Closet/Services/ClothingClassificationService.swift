@@ -242,6 +242,7 @@ final class ClothingClassificationService: @unchecked Sendable {
         case .activewear: return 3
         case .swimwear: return 2
         case .outerwear: return 1
+        case .jewelry, .lingerie, .beauty: return 1
         }
     }
 
@@ -355,6 +356,13 @@ final class ClothingClassificationService: @unchecked Sendable {
         case .swimwear:
             styleTags.append("Resort")
             occasionTags.append("Vacaciones")
+        case .jewelry:
+            detailTags.append("Joyería")
+            styleTags.append("Accent")
+        case .lingerie:
+            detailTags.append("Lencería")
+        case .beauty:
+            detailTags.append("Belleza")
         }
 
         let aspectRatio = imageSize.height / max(imageSize.width, 1)
@@ -398,6 +406,9 @@ final class ClothingClassificationService: @unchecked Sendable {
         case .outerwear: return "Abrigo"
         case .activewear: return "Prenda deportiva"
         case .swimwear: return "Bañador"
+        case .jewelry: return "Joyería"
+        case .lingerie: return "Lencería"
+        case .beauty: return "Belleza"
         }
     }
 

@@ -11,6 +11,9 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
     case outerwear
     case activewear
     case swimwear
+    case jewelry
+    case lingerie
+    case beauty
 
     var displayName: String {
         switch self {
@@ -22,6 +25,9 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
         case .outerwear: return "Outerwear"
         case .activewear: return "Activewear"
         case .swimwear: return "Swimwear"
+        case .jewelry: return "Jewelry"
+        case .lingerie: return "Lingerie"
+        case .beauty: return "Beauty"
         }
     }
 
@@ -35,6 +41,22 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
         case .outerwear: return "cloud.snow"
         case .activewear: return "figure.run"
         case .swimwear: return "figure.pool.swim"
+        case .jewelry: return "sparkles"
+        case .lingerie: return "heart"
+        case .beauty: return "wand.and.sparkles"
+        }
+    }
+
+    /// Categories offered for a given gender. Jewelry is universal; lingerie and beauty (makeup,
+    /// lipstick, etc.) are only offered for women, and womenswear surfaces them by default.
+    static func available(for gender: StyleGender?) -> [ClothingCategory] {
+        switch gender {
+        case .male:
+            return [.tops, .bottoms, .shoes, .outerwear, .activewear, .swimwear, .accessories, .jewelry]
+        case .female:
+            return [.tops, .bottoms, .dresses, .shoes, .outerwear, .activewear, .swimwear, .accessories, .jewelry, .lingerie, .beauty]
+        default:
+            return ClothingCategory.allCases
         }
     }
 
@@ -56,6 +78,12 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
             return "The item in image 1 is an ACCESSORY (e.g. bag, hat, scarf, belt). Add ONLY this accessory. Keep all of the person's existing clothing and shoes unchanged."
         case .swimwear:
             return "The garment in image 1 is SWIMWEAR. Replace the person's outfit with this swimwear."
+        case .jewelry:
+            return "The item in image 1 is JEWELRY (e.g. necklace, earrings, ring, bracelet, watch). Add ONLY this jewelry. Keep all of the person's clothing and shoes unchanged."
+        case .lingerie:
+            return "The garment in image 1 is LINGERIE/underwear. Keep it tasteful; replace only the relevant inner layer and keep everything else unchanged."
+        case .beauty:
+            return "The item in image 1 is a BEAUTY product (e.g. lipstick, makeup). Do not change the person's clothing; this is not a garment."
         }
     }
 }

@@ -1210,6 +1210,12 @@ final class ChatViewModel {
         case (.outerwear, .english): return "Outerwear"
         case (.activewear, .english): return "Activewear"
         case (.swimwear, .english): return "Swimwear"
+        case (.jewelry, .spanish): return "Joyería"
+        case (.lingerie, .spanish): return "Lencería"
+        case (.beauty, .spanish): return "Belleza"
+        case (.jewelry, .english): return "Jewelry"
+        case (.lingerie, .english): return "Lingerie"
+        case (.beauty, .english): return "Beauty"
         }
     }
 

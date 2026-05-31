@@ -196,8 +196,12 @@ final class BYOKChatService: AIChatServiceProtocol {
                 ["role": "user", "parts": [["text": systemPrompt(for: context) + "\n\n" + message]]]
             ],
             "generationConfig": [
-                "temperature": 0.35,
-                "maxOutputTokens": 520
+                "temperature": 0.4,
+                // gemini-3.5-flash is a "thinking" model: reasoning consumes output tokens. Disable
+                // thinking and give plenty of headroom so the visible answer is never truncated
+                // (a low budget produced finishReason=MAX_TOKENS and cut replies mid-sentence).
+                "maxOutputTokens": 1200,
+                "thinkingConfig": ["thinkingBudget": 0]
             ]
         ]
 
@@ -214,9 +218,11 @@ final class BYOKChatService: AIChatServiceProtocol {
         if let candidates = json?["candidates"] as? [[String: Any]],
            let first = candidates.first,
            let content = first["content"] as? [String: Any],
-           let parts = content["parts"] as? [[String: Any]],
-           let text = parts.first?["text"] as? String {
-            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+           let parts = content["parts"] as? [[String: Any]] {
+            // Join all text parts (defensive; some responses split text across parts).
+            let text = parts.compactMap { $0["text"] as? String }.joined()
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
         }
 
         throw AIError.responseFailed("Empty Gemini response")
@@ -242,7 +248,7 @@ final class BYOKChatService: AIChatServiceProtocol {
                 ["role": "user", "content": message]
             ],
             "temperature": 0.35,
-            "max_tokens": 520
+            "max_tokens": 900
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -274,7 +280,7 @@ final class BYOKChatService: AIChatServiceProtocol {
 
         let payload: [String: Any] = [
             "model": provider.chatModel,
-            "max_tokens": 520,
+            "max_tokens": 900,
             "temperature": 0.35,
             "system": systemPrompt(for: context),
             "messages": [
@@ -314,7 +320,7 @@ final class BYOKChatService: AIChatServiceProtocol {
                 ["role": "user", "content": message]
             ],
             "temperature": 0.35,
-            "max_tokens": 520
+            "max_tokens": 900
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
