@@ -54,7 +54,7 @@ struct TryOnView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: viewModel.selectedProvider.iconName)
-                            Text(viewModel.selectedProvider.displayName)
+                            Text(viewModel.selectedProvider == .google ? "Gemini" : viewModel.selectedProvider.displayName)
                                 .font(.caption)
                         }
                         .padding(.horizontal, 8)
@@ -149,8 +149,6 @@ struct TryOnView: View {
     private var sourceSelectionView: some View {
         ScrollView {
             VStack(spacing: Theme.Spacing.lg) {
-                Spacer(minLength: Theme.Spacing.lg)
-
                 VStack(spacing: Theme.Spacing.sm) {
                     Image(systemName: "tshirt.fill")
                         .font(.system(size: 72))
@@ -200,7 +198,7 @@ struct TryOnView: View {
 
                 profileReferenceCard
             }
-            .padding(.top, Theme.Spacing.md)
+            .padding(.top, 4)
         }
     }
 
@@ -285,7 +283,7 @@ struct TryOnView: View {
 
                 profileReferenceCard
             }
-            .padding(.top, Theme.Spacing.md)
+            .padding(.top, 4)
         }
     }
 

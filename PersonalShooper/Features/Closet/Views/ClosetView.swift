@@ -151,6 +151,7 @@ struct ClosetView: View {
             }
             .background(Theme.Colors.groupedBackground.ignoresSafeArea())
             .navigationTitle(Strings.closetTitle(lang))
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: Strings.closetSearch(lang))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
