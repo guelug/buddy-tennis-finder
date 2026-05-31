@@ -122,8 +122,8 @@ struct SubscriptionView: View {
 
             FeatureRow(
                 icon: "arkit",
-                title: isSpanish ? "Vista previa AR del armario" : "AR Wardrobe Preview",
-                description: isSpanish ? "Mira ropa en tu espacio con AR" : "See clothes in your space with AR",
+                title: isSpanish ? "Encuentra tus prendas en tu habitación" : "Find your garments in your room",
+                description: isSpanish ? "Guarda y localiza dónde tienes cada prenda usando AR" : "Save and locate where you keep each garment using AR",
                 badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )

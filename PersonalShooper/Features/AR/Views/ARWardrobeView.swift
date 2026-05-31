@@ -382,17 +382,71 @@ struct ARViewContainer: UIViewRepresentable {
 
             // If in place mode, raycast and save position
             if viewModel?.currentMode == .place {
-                if let result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first {
-                    let position = result.worldTransform.columns.3
+                // Try multiple raycast strategies for better responsiveness
+                var result: ARRaycastResult?
+
+                // Strategy 1: Existing plane (most accurate)
+                result = arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .horizontal).first
+
+                // Strategy 2: Estimated plane (if no existing plane)
+                if result == nil {
+                    result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first
+                }
+
+                // Strategy 3: Any surface (vertical or horizontal)
+                if result == nil {
+                    result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .vertical).first
+                }
+
+                // Strategy 4: Use camera forward direction at fixed distance as fallback
+                if result == nil {
+                    result = raycastFromCamera(at: location, in: arView)
+                }
+
+                if let finalResult = result {
+                    let position = finalResult.worldTransform.columns.3
                     let simdPosition = SIMD3<Float>(position.x, position.y + 0.01, position.z)
+
+                    // Haptic feedback
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
 
                     // Show shelf name input via notification
                     NotificationCenter.default.post(name: .arPlacementTapped, object: simdPosition)
+                } else {
+                    // Still no result - show error
+                    let notification = UINotificationFeedbackGenerator()
+                    notification.notificationOccurred(.error)
                 }
             } else {
                 // Browse mode: select nearest tag
                 selectNearestTag(at: location, in: arView)
             }
+        }
+
+        /// Fallback raycast: cast from camera in the direction of the tap at a reasonable distance
+        @MainActor
+        private func raycastFromCamera(at location: CGPoint, in arView: ARView) -> ARRaycastResult? {
+            // Get ray from camera through tap point
+            let ray = arView.ray(through: location)
+            guard let rayOrigin = ray?.origin, let rayDirection = ray?.direction else { return nil }
+
+            // Place at 1.5 meters from camera in the tap direction
+            let distance: Float = 1.5
+            let targetPosition = rayOrigin + rayDirection * distance
+
+            // Create a transform at that position
+            var translation = matrix_identity_float4x4
+            translation.columns.3 = SIMD4<Float>(targetPosition.x, targetPosition.y, targetPosition.z, 1)
+
+            // Use raycast query to get a proper result
+            let query = ARRaycastQuery(
+                origin: rayOrigin,
+                direction: rayDirection,
+                allowing: .estimatedPlane,
+                alignment: .horizontal
+            )
+            return arView.session.raycast(query).first
         }
 
         @MainActor
