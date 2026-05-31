@@ -454,9 +454,11 @@ private struct ClosetItemDetailView: View {
     }
 
     /// True when this garment already has a saved AR location, so "Find in AR" is meaningful.
+    /// Query the STORED `clothingItemIDString` — `clothingItemID` is a computed property and can't
+    /// be used in a SwiftData predicate (it silently returns nothing).
     private var hasARPlacement: Bool {
-        let itemID = item.id
-        var descriptor = FetchDescriptor<ARClothingPlacement>(predicate: #Predicate { $0.clothingItemID == itemID })
+        let itemIDString = item.id.uuidString
+        var descriptor = FetchDescriptor<ARClothingPlacement>(predicate: #Predicate { $0.clothingItemIDString == itemIDString })
         descriptor.fetchLimit = 1
         return ((try? modelContext.fetch(descriptor))?.isEmpty == false)
     }

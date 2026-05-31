@@ -516,26 +516,31 @@ struct ARViewContainer: UIViewRepresentable {
 
             // If in place mode, raycast and save position
             if viewModel?.currentMode == .place {
-                // Accurate hit: a real, detected surface (LiDAR mesh / known plane).
+                // Precise hit: a real detected surface (LiDAR mesh / known plane).
                 var result = arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .horizontal).first
                     ?? arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .vertical).first
                 var isAccurate = result != nil
 
-                // Less accurate fallbacks (estimated plane), only used if nothing precise was found.
+                // Fallbacks so we ALWAYS place something (estimated plane, then camera ray).
                 if result == nil {
                     result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first
                         ?? arView.raycast(from: location, allowing: .estimatedPlane, alignment: .vertical).first
-                    isAccurate = false
+                }
+                if result == nil {
+                    result = raycastFromCamera(at: location, in: arView)
                 }
 
-                if let finalResult = result, isAccurate {
+                if let finalResult = result {
                     let position = finalResult.worldTransform.columns.3
                     let simdPosition = SIMD3<Float>(position.x, position.y + 0.01, position.z)
 
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     NotificationCenter.default.post(name: .arPlacementTapped, object: simdPosition)
+                    // Placed, but warn it's approximate so the user can re-mark closer for precision.
+                    if !isAccurate {
+                        NotificationCenter.default.post(name: .arNeedCloser, object: nil)
+                    }
                 } else {
-                    // No precise surface — ask the user to get closer so LiDAR can detect the spot.
                     UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     NotificationCenter.default.post(name: .arNeedCloser, object: nil)
                 }
