@@ -442,37 +442,11 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private func messageText(isUser: Bool) -> some View {
-        // Parse full markdown including lists, code blocks, etc.
-        if let attributed = try? AttributedString(
-            markdown: message.content,
-            options: AttributedString.MarkdownParsingOptions(
-                interpretedSyntax: .full,
-                failurePolicy: .returnPartiallyParsedIfPossible
-            )
-        ) {
-            if features.textSelectionEnabled {
-                Text(attributed)
-                    .font(.body)
-                    .foregroundStyle(isUser ? .white : .primary)
-                    .textSelection(.enabled)
-            } else {
-                Text(attributed)
-                    .font(.body)
-                    .foregroundStyle(isUser ? .white : .primary)
-            }
-        } else {
-            // Fallback si el markdown no se puede parsear
-            if features.textSelectionEnabled {
-                Text(message.content)
-                    .font(.body)
-                    .foregroundStyle(isUser ? .white : .primary)
-                    .textSelection(.enabled)
-            } else {
-                Text(message.content)
-                    .font(.body)
-                    .foregroundStyle(isUser ? .white : .primary)
-            }
-        }
+        MarkdownMessageView(
+            text: message.content,
+            isUser: isUser,
+            textSelectionEnabled: features.textSelectionEnabled
+        )
     }
 
     @ViewBuilder

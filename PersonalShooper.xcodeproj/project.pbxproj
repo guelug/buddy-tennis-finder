@@ -76,6 +76,7 @@
 		CA008943BC67D78156ED8EB5 /* Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0DB96AC9E480300EB1EBA /* Conversation.swift */; };
 		CC0B7E44E01CC434943435C9 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75191249CD415955E041E75E /* User.swift */; };
 		CC9D66D330135D4E336908C6 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CCE329E228B17589B6409BA /* Speech.framework */; };
+		D37906D2C4BBDEBE9F4BFC6B /* MarkdownMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1229F005E5F1340CB1DB60CA /* MarkdownMessageView.swift */; };
 		D9E50A6A37DE7A5F580BCAF2 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A9C31A216ECCBD18B4C7B501 /* HealthKit.framework */; };
 		DA5E1A4E155AF6503267E0E0 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5054F6856E9D8B83341CA704 /* AppIntents.framework */; };
 		DACBCD273EE65294C9B8BEB5 /* TryOnProviderSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */; };
@@ -124,6 +125,7 @@
 		07A463B1685183813B5F117D /* PaletteQuestionnaireView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteQuestionnaireView.swift; sourceTree = "<group>"; };
 		09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarmentBackgroundRemovalService.swift; sourceTree = "<group>"; };
 		0F9943860D030691BD0D6D9D /* PalettePreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalettePreferences.swift; sourceTree = "<group>"; };
+		1229F005E5F1340CB1DB60CA /* MarkdownMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownMessageView.swift; sourceTree = "<group>"; };
 		14A10A268571DD14DAE2AC68 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		1986786BD0DF89A0E35BF53F /* CalendarSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSyncService.swift; sourceTree = "<group>"; };
 		19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClosetView.swift; sourceTree = "<group>"; };
@@ -396,6 +398,7 @@
 			children = (
 				A4089E6DAF71F0651193DF6A /* ChatView.swift */,
 				34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */,
+				1229F005E5F1340CB1DB60CA /* MarkdownMessageView.swift */,
 				14A10A268571DD14DAE2AC68 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -859,6 +862,7 @@
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,
+				D37906D2C4BBDEBE9F4BFC6B /* MarkdownMessageView.swift in Sources */,
 				FCF7235DD9D851E88EEA06AE /* NamedPaletteLibrary.swift in Sources */,
 				A46152D996282676D8C8ED78 /* NoPaletteView.swift in Sources */,
 				A17E9F62BE725D71CC4F05C3 /* OnboardingView.swift in Sources */,
@@ -998,7 +1002,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1060,7 +1064,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
