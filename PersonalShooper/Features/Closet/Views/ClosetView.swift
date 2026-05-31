@@ -453,6 +453,14 @@ private struct ClosetItemDetailView: View {
         appState.isPremium || appState.hasBYOKAccess
     }
 
+    /// True when this garment already has a saved AR location, so "Find in AR" is meaningful.
+    private var hasARPlacement: Bool {
+        let itemID = item.id
+        var descriptor = FetchDescriptor<ARClothingPlacement>(predicate: #Predicate { $0.clothingItemID == itemID })
+        descriptor.fetchLimit = 1
+        return ((try? modelContext.fetch(descriptor))?.isEmpty == false)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -500,6 +508,41 @@ private struct ClosetItemDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                     }
                     .buttonStyle(.premiumPressable)
+
+                    // Find-in-AR button — only when this garment already has a saved location.
+                    if hasARPlacement {
+                        NavigationLink {
+                            ARWardrobeView()
+                                .onAppear {
+                                    NotificationCenter.default.post(name: .findARItem, object: item.id)
+                                }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "location.magnifyingglass")
+                                    .font(.title2)
+                                    .foregroundStyle(.green)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(lang == .spanish ? "¿Dónde está? Encontrar en AR" : "Where is it? Find in AR")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Text(lang == .spanish ? "Te guío con una flecha hasta la prenda" : "I'll guide you to it with an arrow")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(Theme.Spacing.md)
+                            .background(Theme.Colors.cardBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        }
+                        .buttonStyle(.premiumPressable)
+                    }
 
                     VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                         TextField(lang == .spanish ? "Nombre" : "Name", text: $item.name)

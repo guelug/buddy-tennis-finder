@@ -109,6 +109,27 @@ final class ARViewModel {
                 self?.selectPreselectedItem()
             }
         }
+
+        // Listen for a "find this garment" request from closet detail.
+        NotificationCenter.default.addObserver(
+            forName: .findARItem,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let itemID = notification.object as? UUID {
+                self?.pendingFindItemID = itemID
+                self?.startFindingPreselected()
+            }
+        }
+    }
+
+    var pendingFindItemID: UUID?
+
+    func startFindingPreselected() {
+        guard let itemID = pendingFindItemID,
+              let item = clothingItems.first(where: { $0.id == itemID }) else { return }
+        pendingFindItemID = nil
+        startFinding(item)
     }
 
     func selectPreselectedItem() {

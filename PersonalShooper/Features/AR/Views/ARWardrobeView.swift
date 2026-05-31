@@ -725,4 +725,5 @@ struct PlacedItemChip: View {
 extension Notification.Name {
     static let arPlacementTapped = Notification.Name("arPlacementTapped")
     static let preselectARItem = Notification.Name("preselectARItem")
+    static let findARItem = Notification.Name("findARItem")
 }
