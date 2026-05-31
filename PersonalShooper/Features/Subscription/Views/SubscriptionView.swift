@@ -80,7 +80,7 @@ struct SubscriptionView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text(isSpanish ? "Obtén try-ons ilimitados y funciones premium" : "Get unlimited virtual try-ons and premium features")
+            Text(isSpanish ? "Obtén try-ons limitados y funciones premium" : "Get limited virtual try-ons and premium features")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -95,6 +95,10 @@ struct SubscriptionView: View {
             .padding(.vertical, 10)
             .background(Theme.Colors.premiumGold.opacity(0.12))
             .clipShape(Capsule())
+
+            Text(isSpanish ? "*Sujeto a tipo de suscripción" : "*Subject to subscription type")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -102,8 +106,8 @@ struct SubscriptionView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             FeatureRow(
                 icon: "infinity",
-                title: isSpanish ? "Try-ons ilimitados" : "Unlimited Try-Ons",
-                description: isSpanish ? "Genera tantas imágenes de try-on como quieras" : "Generate as many virtual try-on images as you want",
+                title: isSpanish ? "Try-ons incluidos" : "Try-Ons Included",
+                description: isSpanish ? "Genera imágenes de try-on según tu plan (5-200/mes)" : "Generate try-on images based on your plan (5-200/month)",
                 badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
@@ -126,24 +130,24 @@ struct SubscriptionView: View {
 
             FeatureRow(
                 icon: "bubble.left.and.bubble.right.fill",
-                title: isSpanish ? "Respuestas prioritarias de IA" : "Priority AI Responses",
-                description: isSpanish ? "Recibe respuestas más rápidas de tu estilista IA" : "Get faster responses from your AI stylist",
+                title: isSpanish ? "Modelos más inteligentes de IA" : "Smarter AI Models",
+                description: isSpanish ? "Accede a modelos de IA más avanzados para mejores respuestas" : "Access more advanced AI models for better responses",
                 badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )
 
             FeatureRow(
                 icon: "photo.on.rectangle",
-                title: isSpanish ? "Armario gratis de 10 prendas" : "10-Garment Free Closet",
-                description: isSpanish ? "El plan gratis te deja guardar hasta 10 prendas" : "The free plan lets you save up to 10 garments",
+                title: isSpanish ? "Armario gratis de 20 prendas" : "20-Garment Free Closet",
+                description: isSpanish ? "El plan gratis te deja guardar hasta 20 prendas" : "The free plan lets you save up to 20 garments",
                 badgeText: isSpanish ? "GRATIS" : "FREE",
                 badgeColor: Theme.Colors.primary
             )
 
             FeatureRow(
                 icon: "cabinet.fill",
-                title: isSpanish ? "Armario premium ilimitado" : "Unlimited Premium Closet",
-                description: isSpanish ? "Guarda tantas prendas como quieras, según el espacio local y de iCloud" : "Save as many garments as you want, depending on local and iCloud space",
+                title: isSpanish ? "Armario premium hasta 100 prendas" : "Premium Closet up to 100 garments",
+                description: isSpanish ? "Guarda hasta 100 prendas con tu suscripción premium" : "Save up to 100 garments with your premium subscription",
                 badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
             )

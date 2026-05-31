@@ -5,7 +5,8 @@ import StoreKit
 @Observable
 @MainActor
 final class AppState {
-    static let freeClosetItemLimit = 10
+    static let freeClosetItemLimit = 20
+    static let premiumClosetItemLimit = 100
     static let premiumTrialDays = 7
 
     var currentUser: User?
@@ -245,8 +246,8 @@ final class AppState {
     func closetItemLimitDescription(language: Language) -> String {
         if isPremium {
             return language == .spanish
-                ? "Ilimitado, según tu espacio local y de iCloud"
-                : "Unlimited, depending on your local and iCloud space"
+                ? "Hasta \(Self.premiumClosetItemLimit) prendas"
+                : "Up to \(Self.premiumClosetItemLimit) garments"
         }
 
         return language == .spanish
