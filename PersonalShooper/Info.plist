@@ -41,6 +41,10 @@
     <key>NSCalendarsFullAccessUsageDescription</key>
     <string>Sync your Apple Calendar so Personal Shopper can tailor outfit recommendations to your schedule and events.</string>
 
+    <!-- Location (weather for outfit calendar) -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Personal Shopper uses your location to show the local weather forecast so it can plan outfits for the right conditions.</string>
+
     <!-- Camera -->
     <key>NSCameraUsageDescription</key>
     <string>Take photos to try on clothes virtually and capture your profile photos for personalized style recommendations.</string>

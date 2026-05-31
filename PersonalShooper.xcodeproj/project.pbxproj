@@ -19,6 +19,7 @@
 		22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F78EBA23E4FB4692771AFB /* MainTabView.swift */; };
 		240302348AD244A108B8C9F5 /* ProfileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */; };
 		2659D2E917EC254A0E435A66 /* ARKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66B45EAFDE59A049CE181887 /* ARKit.framework */; };
+		2CC230663AC80DB3B7E9DB1A /* OutfitCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */; };
 		32F6DAE2B60659CF83F0372E /* AssistantPersona.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9CB73AB525291BFF15F6371 /* AssistantPersona.swift */; };
 		33C639E0591A4E2CE62EB90D /* StyleCompanionSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21839F5E1A00CE50CB86ECE0 /* StyleCompanionSharedModels.swift */; };
 		350C1CD2B2224F77C3D21534 /* Analysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 887D2B4D0108C64CA67CDCD2 /* Analysis.swift */; };
@@ -27,6 +28,7 @@
 		3831A7980AE129987A0850EF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */; };
 		3FEF6E4860AB91364E2E4011 /* DailyOutfitReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F6379FDA7965A63D928299 /* DailyOutfitReminderScheduler.swift */; };
 		4042209B5DBA825870E4A6B1 /* ARClothingPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */; };
+		40A2958DD92AA095AF0461A1 /* OutfitWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BBC1DD3428E0BC69EC95B25 /* OutfitWeatherService.swift */; };
 		41394763B138850AE8CBCC2C /* PersonalShooperWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A10A268571DD14DAE2AC68 /* SettingsView.swift */; };
 		46C1F0712295BAB1F6BA9E95 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B668A8B26EAD43C074CA3718 /* Photos.framework */; };
@@ -50,6 +52,7 @@
 		78731E3956A5ADA50089D44F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */; };
 		795D5E329C4DD71E97A844AD /* ClothingClassifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */; };
 		79782D3867F585D71C8ACCBB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A108E1DDE75B55664093E03 /* Theme.swift */; };
+		7BED6BEBADE3624FD121F2E2 /* OutfitCalendarEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */; };
 		82F3DCCBCF8B11A65CF252F1 /* ClothingCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */; };
 		84916E8331EBF2BF1D33E101 /* BYOKChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */; };
 		899E324BD2572DE2E6C5CB92 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4089E6DAF71F0651193DF6A /* ChatView.swift */; };
@@ -82,6 +85,7 @@
 		DA5E1A4E155AF6503267E0E0 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5054F6856E9D8B83341CA704 /* AppIntents.framework */; };
 		DACBCD273EE65294C9B8BEB5 /* TryOnProviderSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */; };
 		DC287BA429B7BA24485C0EB7 /* DailyStyleRecommendationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9930D7303F4819B3BD45519F /* DailyStyleRecommendationService.swift */; };
+		DCD8FB0D2EBF406EEF3A87A1 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F862D43B99551B439DD1416 /* CoreLocation.framework */; };
 		DE4856C42D4622A5CE0A0395 /* ARWardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D482CF83781BBC2FFC1FA7C /* ARWardrobeView.swift */; };
 		E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9943860D030691BD0D6D9D /* PalettePreferences.swift */; };
 		E95C4A6D205754EE6FB65CEE /* TryOnViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5FB969B5E70E76DC39DC291 /* TryOnViewModel.swift */; };
@@ -147,6 +151,8 @@
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
 		56173F3B4C47A44171AD4425 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarEntry.swift; sourceTree = "<group>"; };
+		5F862D43B99551B439DD1416 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKSettingsView.swift; sourceTree = "<group>"; };
@@ -171,6 +177,7 @@
 		887D2B4D0108C64CA67CDCD2 /* Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analysis.swift; sourceTree = "<group>"; };
 		8A4D2E55E40D8444C9CAEB2E /* DailyOutfitLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyOutfitLiveActivityController.swift; sourceTree = "<group>"; };
 		8B363A0CA274E97397EC9DB8 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		8BBC1DD3428E0BC69EC95B25 /* OutfitWeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitWeatherService.swift; sourceTree = "<group>"; };
 		8D482CF83781BBC2FFC1FA7C /* ARWardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARWardrobeView.swift; sourceTree = "<group>"; };
 		8D6E5F1F18EA2BFCCA1B55CC /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
 		8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
@@ -188,6 +195,7 @@
 		BCE0DB96AC9E480300EB1EBA /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		BECF652589720B2AB223F1A5 /* TryOnService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnService.swift; sourceTree = "<group>"; };
 		C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarView.swift; sourceTree = "<group>"; };
 		C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderService.swift; sourceTree = "<group>"; };
 		CCF43F9E1D797C468B6BA7DD /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyNoticeView.swift; sourceTree = "<group>"; };
@@ -241,6 +249,7 @@
 				CC9D66D330135D4E336908C6 /* Speech.framework in Frameworks */,
 				BFA610C11777216A9B784D25 /* ImageIO.framework in Frameworks */,
 				374C8C3F159E42CC3107FCE0 /* EventKit.framework in Frameworks */,
+				DCD8FB0D2EBF406EEF3A87A1 /* CoreLocation.framework in Frameworks */,
 				52ABCBE5722A745FEA2EF801 /* AppIntents.framework in Frameworks */,
 				648D6C49BD792F7A3CE4AE3D /* WidgetKit.framework in Frameworks */,
 			);
@@ -315,12 +324,29 @@
 			path = Chat;
 			sourceTree = "<group>";
 		};
+		1FEE43DEDA1024DF1F7D1A66 /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				9EBC0A80EE8498E1A71E28B4 /* Services */,
+				3A64C5102C099C513D80C26B /* Views */,
+			);
+			path = Calendar;
+			sourceTree = "<group>";
+		};
 		352453E30488D6BB26248AAB /* Resources */ = {
 			isa = PBXGroup;
 			children = (
 				5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		3A64C5102C099C513D80C26B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		3DFAA1F5BCD6BD0EC042111E /* Recommendations */ = {
@@ -410,6 +436,7 @@
 			isa = PBXGroup;
 			children = (
 				9E59AECEB05D9C18A33B8AEF /* AR */,
+				1FEE43DEDA1024DF1F7D1A66 /* Calendar */,
 				1F8F36A9A4EADB50C0E992E9 /* Chat */,
 				5758F9FCFF9CF436F6F8750C /* Closet */,
 				57BEAB0C2ABF5CABDC20BC47 /* Onboarding */,
@@ -519,6 +546,14 @@
 			path = AR;
 			sourceTree = "<group>";
 		};
+		9EBC0A80EE8498E1A71E28B4 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				8BBC1DD3428E0BC69EC95B25 /* OutfitWeatherService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		A074EF61D2BFD75720ACA085 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -606,6 +641,7 @@
 				FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */,
 				FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */,
 				BCE0DB96AC9E480300EB1EBA /* Conversation.swift */,
+				5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */,
 				75191249CD415955E041E75E /* User.swift */,
 			);
 			path = Models;
@@ -636,6 +672,7 @@
 				5054F6856E9D8B83341CA704 /* AppIntents.framework */,
 				66B45EAFDE59A049CE181887 /* ARKit.framework */,
 				C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */,
+				5F862D43B99551B439DD1416 /* CoreLocation.framework */,
 				6BF2365E84C77E4390352F14 /* CoreML.framework */,
 				8D6E5F1F18EA2BFCCA1B55CC /* EventKit.framework */,
 				839E6E6C98B89B75F3114776 /* FoundationModels.framework */,
@@ -871,6 +908,9 @@
 				A46152D996282676D8C8ED78 /* NoPaletteView.swift in Sources */,
 				A17E9F62BE725D71CC4F05C3 /* OnboardingView.swift in Sources */,
 				B34A434CBFAA5DE5942A36EC /* OpenAIImageTryOnService.swift in Sources */,
+				7BED6BEBADE3624FD121F2E2 /* OutfitCalendarEntry.swift in Sources */,
+				2CC230663AC80DB3B7E9DB1A /* OutfitCalendarView.swift in Sources */,
+				40A2958DD92AA095AF0461A1 /* OutfitWeatherService.swift in Sources */,
 				626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */,
 				E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */,
 				1EFBD4E6E49781E2EB439F75 /* PaletteQuestionnaireView.swift in Sources */,
@@ -1006,7 +1046,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1068,7 +1108,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 32;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

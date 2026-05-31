@@ -5,6 +5,7 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @Binding var selectedTab: Int
     @State private var showingAR = false
+    @State private var showingCalendar = false
     @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
     @Query private var clothingItems: [ClothingItem]
 
@@ -26,6 +27,7 @@ struct HomeView: View {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
                     heroSection
                     closetNudgeSection
+                    outfitCalendarCard
                     dailyRecommendationSection
                     quickActionsSection
                     recentConversationsSection
@@ -38,6 +40,48 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $showingAR) {
                 ARWardrobeView()
             }
+            .sheet(isPresented: $showingCalendar) {
+                OutfitCalendarView()
+            }
+        }
+    }
+
+    /// Premium-only entry to the 2-week outfit planner.
+    @ViewBuilder
+    private var outfitCalendarCard: some View {
+        if appState.isPremium || appState.hasBYOKAccess {
+            Button {
+                showingCalendar = true
+            } label: {
+                HStack(spacing: Theme.Spacing.md) {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                        .frame(width: 48, height: 48)
+                        .background(Theme.Colors.primaryGradient)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(lang == .spanish ? "Calendario de outfits" : "Outfit calendar")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(lang == .spanish ? "Planea 15 días con el tiempo de tu zona" : "Plan 15 days with your local weather")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(Theme.Spacing.md)
+                .background(Theme.Colors.cardBackground)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.premiumPressable)
         }
     }
 
