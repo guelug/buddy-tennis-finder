@@ -26,6 +26,13 @@ final class ARViewModel {
     var pendingTapPosition: SIMD3<Float>?
     var preselectedItemID: UUID?
 
+    /// Relocalization/mapping guidance shown until the saved space is recognized again.
+    var spaceStatusHint: String?
+    /// True once ARKit has relocalized into (or freshly mapped) a usable space.
+    var isSpaceReady: Bool = false
+    /// Set by the view so background callbacks can localize hints.
+    var language: Language = .english
+
     // MARK: - Find guidance state
     var findTarget: ARClothingPlacement?
     /// Distance from the camera to the target garment, in metres.
@@ -176,8 +183,18 @@ final class ARViewModel {
             placements.append(placement)
             selectedClothingItem = nil
             currentMode = .browse
+            // Persist the world map so this location survives leaving/re-entering AR.
+            saveWorldMap()
         } catch {
             errorMessage = "Couldn't save the location."
+        }
+    }
+
+    /// Snapshots and saves the current ARKit world map so saved tags relocalize next session.
+    func saveWorldMap() {
+        arSession?.getCurrentWorldMap { worldMap, _ in
+            guard let worldMap else { return }
+            ARWorldMapStore.save(worldMap)
         }
     }
 
@@ -204,6 +221,35 @@ final class ARViewModel {
             configuration.sceneReconstruction = .mesh
         }
 
+        // Restore the saved space so previously-placed tags line up after relocalization.
+        if let savedMap = ARWorldMapStore.load() {
+            configuration.initialWorldMap = savedMap
+            isSpaceReady = false
+            spaceStatusHint = nil
+        } else {
+            isSpaceReady = true
+        }
+
         return configuration
+    }
+
+    /// Updates the relocalization hint from the session's mapping status (called per frame).
+    func updateSpaceStatus(_ status: ARFrame.WorldMappingStatus) {
+        let spanish = language == .spanish
+        switch status {
+        case .mapped, .extending:
+            isSpaceReady = true
+            spaceStatusHint = nil
+        case .limited:
+            isSpaceReady = false
+            spaceStatusHint = spanish
+                ? "Mueve el dispositivo despacio por tu armario para reconocer el espacio…"
+                : "Move the device slowly around your closet to recognize the space…"
+        case .notAvailable:
+            isSpaceReady = false
+            spaceStatusHint = spanish ? "Inicializando AR…" : "Initializing AR…"
+        @unknown default:
+            break
+        }
     }
 }

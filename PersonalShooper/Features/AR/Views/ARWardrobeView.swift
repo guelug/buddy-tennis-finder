@@ -13,6 +13,7 @@ struct ARWardrobeView: View {
     @State private var showingShelfNameInput = false
     @State private var shelfNameInput = ""
     @State private var pendingTapPosition: SIMD3<Float>?
+    @State private var showCloserHint = false
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
@@ -28,9 +29,24 @@ struct ARWardrobeView: View {
                         .ignoresSafeArea()
 
                     // Overlay UI
-                    VStack {
+                    VStack(spacing: 8) {
                         // Top info bar
                         topInfoBar
+
+                        // Relocalization guidance (when restoring a saved space).
+                        if let hint = viewModel.spaceStatusHint, !viewModel.isSpaceReady {
+                            statusBanner(text: hint, systemImage: "viewfinder", tint: .orange)
+                        }
+
+                        // "Get closer" guidance when LiDAR couldn't detect a precise surface.
+                        if showCloserHint {
+                            statusBanner(
+                                text: isSpanish ? "Acércate más para que el LiDAR detecte el punto con precisión." : "Get closer so LiDAR can detect the spot precisely.",
+                                systemImage: "arrow.down.forward.and.arrow.up.backward",
+                                tint: .red
+                            )
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
 
                         Spacer()
 
@@ -93,12 +109,19 @@ struct ARWardrobeView: View {
                 Text(viewModel.errorMessage ?? "")
             }
             .onAppear {
+                viewModel.language = appState.preferredLanguage
                 viewModel.configure(modelContext: modelContext)
             }
             .onReceive(NotificationCenter.default.publisher(for: .arPlacementTapped)) { notification in
                 if let position = notification.object as? SIMD3<Float> {
                     pendingTapPosition = position
                     showingShelfNameInput = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .arNeedCloser)) { _ in
+                withAnimation { showCloserHint = true }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.6) {
+                    withAnimation { showCloserHint = false }
                 }
             }
         }
@@ -155,6 +178,21 @@ struct ARWardrobeView: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    private func statusBanner(text: String, systemImage: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+            Text(text)
+                .font(.footnote.weight(.medium))
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(tint.opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal)
     }
 
     /// Big directional arrow + distance shown while guiding the user to a garment.
@@ -460,10 +498,12 @@ struct ARViewContainer: UIViewRepresentable {
             self.viewModel = viewModel
         }
 
-        /// Per-frame: while finding, refresh the arrow heading/distance from the camera pose.
+        /// Per-frame: refresh relocalization status, and while finding the arrow heading/distance.
         nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
             let transform = frame.camera.transform // simd_float4x4 is Sendable; copy before hopping.
+            let mappingStatus = frame.worldMappingStatus
             Task { @MainActor in
+                self.viewModel?.updateSpaceStatus(mappingStatus)
                 guard self.viewModel?.currentMode == .find else { return }
                 self.viewModel?.updateFindGuidance(cameraTransform: transform)
             }
@@ -476,41 +516,28 @@ struct ARViewContainer: UIViewRepresentable {
 
             // If in place mode, raycast and save position
             if viewModel?.currentMode == .place {
-                // Try multiple raycast strategies for better responsiveness
-                var result: ARRaycastResult?
+                // Accurate hit: a real, detected surface (LiDAR mesh / known plane).
+                var result = arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .horizontal).first
+                    ?? arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .vertical).first
+                var isAccurate = result != nil
 
-                // Strategy 1: Existing plane (most accurate)
-                result = arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .horizontal).first
-
-                // Strategy 2: Estimated plane (if no existing plane)
+                // Less accurate fallbacks (estimated plane), only used if nothing precise was found.
                 if result == nil {
                     result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first
+                        ?? arView.raycast(from: location, allowing: .estimatedPlane, alignment: .vertical).first
+                    isAccurate = false
                 }
 
-                // Strategy 3: Any surface (vertical or horizontal)
-                if result == nil {
-                    result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .vertical).first
-                }
-
-                // Strategy 4: Use camera forward direction at fixed distance as fallback
-                if result == nil {
-                    result = raycastFromCamera(at: location, in: arView)
-                }
-
-                if let finalResult = result {
+                if let finalResult = result, isAccurate {
                     let position = finalResult.worldTransform.columns.3
                     let simdPosition = SIMD3<Float>(position.x, position.y + 0.01, position.z)
 
-                    // Haptic feedback
-                    let impact = UIImpactFeedbackGenerator(style: .medium)
-                    impact.impactOccurred()
-
-                    // Show shelf name input via notification
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     NotificationCenter.default.post(name: .arPlacementTapped, object: simdPosition)
                 } else {
-                    // Still no result - show error
-                    let notification = UINotificationFeedbackGenerator()
-                    notification.notificationOccurred(.error)
+                    // No precise surface — ask the user to get closer so LiDAR can detect the spot.
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                    NotificationCenter.default.post(name: .arNeedCloser, object: nil)
                 }
             } else {
                 // Browse mode: select nearest tag
@@ -726,4 +753,5 @@ extension Notification.Name {
     static let arPlacementTapped = Notification.Name("arPlacementTapped")
     static let preselectARItem = Notification.Name("preselectARItem")
     static let findARItem = Notification.Name("findARItem")
+    static let arNeedCloser = Notification.Name("arNeedCloser")
 }

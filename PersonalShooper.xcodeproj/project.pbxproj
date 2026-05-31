@@ -92,6 +92,7 @@
 		EB8D7B65C7D282E1369B0FE9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */; };
 		EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */; };
 		EE4BFA4A390C124966233A83 /* StyleImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5520711C133FC4F26B4CC57 /* StyleImageService.swift */; };
+		F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */; };
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
 		FAB2438FEB64E57DD5187064 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */; };
 		FB12C3559703A574FB6795C1 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */; };
@@ -182,6 +183,7 @@
 		8D6E5F1F18EA2BFCCA1B55CC /* EventKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = EventKit.framework; path = System/Library/Frameworks/EventKit.framework; sourceTree = SDKROOT; };
 		8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		92543E17BB683B062F3EFB23 /* NoPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoPaletteView.swift; sourceTree = "<group>"; };
+		94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARWorldMapStore.swift; sourceTree = "<group>"; };
 		9930D7303F4819B3BD45519F /* DailyStyleRecommendationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStyleRecommendationService.swift; sourceTree = "<group>"; };
 		A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedChatGPTService.swift; sourceTree = "<group>"; };
 		A4089E6DAF71F0651193DF6A /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -754,6 +756,7 @@
 		FC86F1CE56FFD91AA67FB11B /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -872,6 +875,7 @@
 				4042209B5DBA825870E4A6B1 /* ARClothingPlacement.swift in Sources */,
 				9280A61E7CDBDD099FEF15CE /* ARViewModel.swift in Sources */,
 				DE4856C42D4622A5CE0A0395 /* ARWardrobeView.swift in Sources */,
+				F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */,
 				350C1CD2B2224F77C3D21534 /* Analysis.swift in Sources */,
 				A2C3EEDB62D101461528CD39 /* AppSecrets.swift in Sources */,
 				B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */,
@@ -1046,7 +1050,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 34;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1108,7 +1112,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 33;
+				CURRENT_PROJECT_VERSION = 34;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
