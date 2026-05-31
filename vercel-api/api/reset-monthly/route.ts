@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getAllCreditKeys, deleteCreditKey } from '../../lib/redis';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { getAllCreditKeys, deleteCreditKey } from '../../lib/redis.js';
 
 export async function POST(request: NextRequest) {
   try {

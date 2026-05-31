@@ -70,7 +70,7 @@ export async function verifyReceipt(receiptBase64: string): Promise<ReceiptData 
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
 
       if (data.status !== 0) {
         return null;

@@ -4,6 +4,7 @@ enum AppSecrets {
     private static let openAIKeyName = "OPENAI_API_KEY"
     private static let geminiKeyName = "GEMINI_API_KEY"
     private static let vercelAPIURLName = "VERCEL_API_URL"
+    private static let vercelTestSecretName = "VERCEL_TEST_SECRET"
     private static let internalBYOKTestingName = "ENABLE_BYOK_INTERNAL_TESTING"
     private static let storedOpenAIKey = "chatgpt_access_token"
 
@@ -40,6 +41,10 @@ enum AppSecrets {
     static var vercelAPIBaseURL: URL? {
         guard let value = stringValue(for: vercelAPIURLName) else { return nil }
         return URL(string: value)
+    }
+
+    static var vercelTestSecret: String? {
+        stringValue(for: vercelTestSecretName)
     }
 
     static var internalBYOKTestingEnabled: Bool {

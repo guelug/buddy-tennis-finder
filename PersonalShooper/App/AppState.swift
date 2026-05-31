@@ -18,6 +18,7 @@ final class AppState {
     var tryOnProvider: TryOnProvider = .google
     var isChatGPTConnected: Bool = false
     var useConnectedChatGPTForChat: Bool = false
+    var aiProviderMode: AIProviderMode = .premium
     var chatPreparedFeatures = ChatPreparedFeatures()
     var isCalendarSyncEnabled: Bool = false
     var areDailyWidgetsEnabled: Bool = true
@@ -56,8 +57,10 @@ final class AppState {
         }
 
         // Check ChatGPT connection
-        isChatGPTConnected = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
-        useConnectedChatGPTForChat = UserDefaults.standard.bool(forKey: "chatgpt_chat_enabled")
+        let hasServerAI = AppSecrets.vercelAPIBaseURL != nil
+        isChatGPTConnected = hasServerAI || UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+        useConnectedChatGPTForChat = hasServerAI || UserDefaults.standard.bool(forKey: "chatgpt_chat_enabled")
+        aiProviderMode = AIProviderMode(rawValue: UserDefaults.standard.string(forKey: "ai_provider_mode") ?? "") ?? .premium
         chatPreparedFeatures = ChatPreparedFeatures(
             textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
             richMediaMessagesEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_rich_media_enabled"),
@@ -220,6 +223,21 @@ final class AppState {
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
 
+    func setAIProviderMode(_ mode: AIProviderMode) {
+        aiProviderMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: "ai_provider_mode")
+
+        switch mode {
+        case .premium:
+            useConnectedChatGPTForChat = isChatGPTConnected
+            UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
+        case .byok:
+            isBYOKEnabled = storeKitManager.isBYOKConfigured
+            useConnectedChatGPTForChat = false
+            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
+        }
+    }
+
     func isTryOnProviderAvailable(_ provider: TryOnProvider) -> Bool {
         provider != .chatgpt || hasBYOKAccess || currentTier.hasBYOK
     }
@@ -268,5 +286,21 @@ final class AppState {
 
     private func reloadWidgets() {
         WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
+enum AIProviderMode: String, CaseIterable, Identifiable {
+    case premium
+    case byok
+
+    var id: String { rawValue }
+
+    func displayName(language: Language) -> String {
+        switch self {
+        case .premium:
+            return language == .spanish ? "Premium" : "Premium"
+        case .byok:
+            return "BYOK"
+        }
     }
 }

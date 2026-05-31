@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyReceipt, hashReceipt, getCreditsForTier } from '../../lib/apple';
-import { getCredits, decrementCredits, getTier, checkRateLimit } from '../../lib/redis';
-import { generateTryOn } from '../../lib/gemini';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { verifyReceipt, hashReceipt, getCreditsForTier } from '../../lib/apple.js';
+import { getCredits, decrementCredits, getTier, checkRateLimit } from '../../lib/redis.js';
+import { generateTryOn } from '../../lib/gemini.js';
+import { generateTryOnWithOpenRouter } from '../../lib/openrouter.js';
+import { assertTestSecret, checkAndConsumeQuota, refundQuota } from '../../lib/quota.js';
 
 const RATE_LIMIT = 10;
 const RATE_WINDOW = 60;
@@ -9,8 +11,9 @@ const RATE_WINDOW = 60;
 export async function POST(request: NextRequest) {
   try {
     const receiptData = request.headers.get('X-Receipt-Data');
-    const cloudKitToken = request.headers.get('X-CloudKit-Token');
     const testMode = request.headers.get('X-Test-Mode') === 'true';
+    const testSecret = request.headers.get('X-Test-Secret');
+    const testUser = request.headers.get('X-User-ID') || 'testflight';
 
     if (!receiptData) {
       return NextResponse.json(
@@ -33,17 +36,33 @@ export async function POST(request: NextRequest) {
     const clothingBuffer = Buffer.from(await clothingImageFile.arrayBuffer());
     const personBuffer = Buffer.from(await personImageFile.arrayBuffer());
 
-    // Test mode bypasses credit check
+    // TestFlight mode uses a server-side secret and quota. It should never be unlimited in prod.
     if (testMode) {
-      try {
-        const resultImage = await generateTryOn(clothingBuffer, personBuffer);
+      if (!assertTestSecret(testSecret)) {
+        return NextResponse.json({ error: 'Invalid TestFlight secret' }, { status: 401 });
+      }
+
+      const quota = await checkAndConsumeQuota(testUser, 'testflight', 'try_on');
+      if (!quota.allowed) {
         return NextResponse.json({
-          image: resultImage.toString('base64'),
-          creditsRemaining: 'unlimited',
-          tier: 'test',
+          error: 'Quota exceeded',
+          resetAt: quota.resetAt,
+          window: quota.window,
+          tier: quota.tier,
+        }, { status: 429 });
+      }
+
+      try {
+        const resultImage = await generateTryOnImage(clothingBuffer, personBuffer);
+        return NextResponse.json({
+          success: true,
+          imageUrl: resultImage.toString('base64'),
+          creditsRemaining: quota.remaining.monthly ?? quota.remaining.daily ?? 0,
+          tier: 'testflight',
           mode: 'test',
         });
       } catch (error) {
+        await refundQuota(testUser, 'try_on');
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         if (errorMessage === 'INVALID_API_KEY') {
           return NextResponse.json({ error: 'API key invalid' }, { status: 401 });
@@ -84,9 +103,9 @@ export async function POST(request: NextRequest) {
     const currentTier = receipt.tier;
 
     // If stored tier is higher than receipt tier, use stored tier (user downgraded)
-    const effectiveTier = storedTier && getTierPriority(storedTier) > getTierPriority(currentTier)
+    const effectiveTier = (storedTier && getTierPriority(storedTier) > getTierPriority(currentTier)
       ? storedTier
-      : currentTier;
+      : currentTier) as 'free' | 'premium' | 'pro';
 
     // Check credits
     const credits = await getCredits(receiptHash);
@@ -95,19 +114,20 @@ export async function POST(request: NextRequest) {
       // First time - initialize credits
       const initialCredits = getCreditsForTier(effectiveTier);
       await decrementCredits(receiptHash); // This will set to initial - 1, so we need to set first
-      const { setCredits } = await import('../../lib/redis');
+      const { setCredits } = await import('../../lib/redis.js');
       await setCredits(receiptHash, initialCredits - 1, effectiveTier);
 
       try {
-        const resultImage = await generateTryOn(clothingBuffer, personBuffer);
+        const resultImage = await generateTryOnImage(clothingBuffer, personBuffer);
         return NextResponse.json({
-          image: resultImage.toString('base64'),
+          success: true,
+          imageUrl: resultImage.toString('base64'),
           creditsRemaining: initialCredits - 1,
           tier: effectiveTier,
         });
       } catch (error) {
         // Refund credit on failure
-        const { setCredits: setCreditsImport } = await import('../../lib/redis');
+        const { setCredits: setCreditsImport } = await import('../../lib/redis.js');
         await setCreditsImport(receiptHash, initialCredits, effectiveTier);
         throw error;
       }
@@ -129,15 +149,16 @@ export async function POST(request: NextRequest) {
     const remainingCredits = await decrementCredits(receiptHash);
 
     try {
-      const resultImage = await generateTryOn(clothingBuffer, personBuffer);
+      const resultImage = await generateTryOnImage(clothingBuffer, personBuffer);
       return NextResponse.json({
-        image: resultImage.toString('base64'),
+        success: true,
+        imageUrl: resultImage.toString('base64'),
         creditsRemaining: remainingCredits,
         tier: effectiveTier,
       });
     } catch (error) {
       // Refund credit on failure
-      const { setCredits: setCreditsImport } = await import('../../lib/redis');
+      const { setCredits: setCreditsImport } = await import('../../lib/redis.js');
       await setCreditsImport(receiptHash, credits, effectiveTier);
       throw error;
     }
@@ -158,6 +179,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function generateTryOnImage(clothingBuffer: Buffer, personBuffer: Buffer): Promise<Buffer> {
+  if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_IMAGE_MODEL) {
+    return generateTryOnWithOpenRouter(clothingBuffer, personBuffer);
+  }
+
+  return generateTryOn(clothingBuffer, personBuffer);
 }
 
 function getTierPriority(tier: string): number {

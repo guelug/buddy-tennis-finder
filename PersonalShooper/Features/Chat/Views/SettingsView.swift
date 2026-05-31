@@ -8,6 +8,10 @@ struct SettingsView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var closetItems: [ClothingItem]
     @State private var selectedTheme: AppTheme = .system
     @State private var showingTryOnProvider = false
+
+    private var premiumAIAvailable: Bool {
+        AppSecrets.vercelAPIBaseURL != nil || appState.isChatGPTConnected
+    }
     @State private var isRefreshingStyleCompanion = false
     @State private var showingClearCacheAlert = false
     @State private var clearCacheResultMessage: String?
@@ -262,8 +266,9 @@ struct SettingsView: View {
                         .frame(width: 24)
                     Text(text("Proveedor premium de IA", "Premium AI Provider"))
                     Spacer()
-                    if appState.isChatGPTConnected {
-                        Image(systemName: "checkmark.circle.fill")
+                    if premiumAIAvailable {
+                        Label(text("Activo", "Active"), systemImage: "checkmark.circle.fill")
+                            .font(.caption)
                             .foregroundStyle(.green)
                     } else {
                         Text(text("No disponible", "Unavailable"))
@@ -273,23 +278,32 @@ struct SettingsView: View {
                 }
 
                 if appState.hasBYOKAccess {
-                    Toggle(isOn: Binding(
-                        get: { appState.useConnectedChatGPTForChat },
-                        set: { appState.setConnectedChatGPTForChatEnabled($0) }
+                    Picker(text("Modo de IA", "AI Mode"), selection: Binding(
+                        get: { appState.aiProviderMode },
+                        set: { appState.setAIProviderMode($0) }
                     )) {
+                        ForEach(AIProviderMode.allCases) { mode in
+                            Text(mode.displayName(language: lang)).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: appState.aiProviderMode == .premium ? "crown.fill" : "key.fill")
+                            .foregroundStyle(appState.aiProviderMode == .premium ? .yellow : .blue)
+                            .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(text("Usar proveedor BYOK en el chat", "Use BYOK provider in chat"))
+                            Text(appState.aiProviderMode == .premium ? "Premium" : "BYOK")
+                                .font(.subheadline)
                             Text(
-                                text(
-                                    "Si tienes acceso BYOK y una clave válida, el chat usará tu proveedor externo en vez de la IA local.",
-                                    "If you have BYOK access and a valid key, chat will use your external provider instead of local AI."
-                                )
+                                appState.aiProviderMode == .premium
+                                    ? text("Usa el backend premium de TestFlight con cuotas de prueba.", "Uses the TestFlight premium backend with test quotas.")
+                                    : text("Usa la clave BYOK y el proveedor elegido en este dispositivo.", "Uses the BYOK key and provider selected on this device.")
                             )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
                     }
-                    .disabled(!appState.isBYOKEnabled)
                 }
 
                 NavigationLink {
@@ -299,9 +313,9 @@ struct SettingsView: View {
                         Image(systemName: "key.fill")
                             .foregroundStyle(.yellow)
                             .frame(width: 24)
-                        Text(text("Claves BYOK", "BYOK Keys"))
+                        Text(text("Premium / BYOK", "Premium / BYOK"))
                         Spacer()
-                        Text(appState.isBYOKEnabled ? text("Activas", "Active") : text("Configurar", "Configure"))
+                        Text(appState.aiProviderMode.displayName(language: lang))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -321,7 +335,7 @@ struct SettingsView: View {
                 Text(text("Cuenta", "Account"))
             } footer: {
                 if appState.hasBYOKAccess, appState.isChatGPTConnected {
-                    Text(text("El toggle del chat es independiente del proveedor de try-on.", "The chat toggle is independent from the try-on provider."))
+                    Text(text("Puedes alternar entre Premium y BYOK sin borrar claves.", "You can switch between Premium and BYOK without removing keys."))
                 }
             }
 

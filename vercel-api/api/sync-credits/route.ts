@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCredits, setCredits, getTier } from '../../lib/redis';
+import { NextRequest, NextResponse } from 'next/server.js';
+import { getCredits, setCredits, getTier } from '../../lib/redis.js';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +21,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    const body = await request.json() as {
+      receiptHash?: string;
+      cloudKitCredits?: number;
+      tier?: string;
+    };
     const { receiptHash, cloudKitCredits, tier } = body;
 
     if (!receiptHash || typeof cloudKitCredits !== 'number' || !tier) {
