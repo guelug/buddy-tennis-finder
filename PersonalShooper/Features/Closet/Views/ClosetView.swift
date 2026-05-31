@@ -467,6 +467,40 @@ private struct ClosetItemDetailView: View {
 
                     optimizeImageSection
 
+                    // AR Location button
+                    NavigationLink {
+                        ARWardrobeView()
+                            .onAppear {
+                                // Pre-select this item when AR opens
+                                NotificationCenter.default.post(name: .preselectARItem, object: item.id)
+                            }
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arkit")
+                                .font(.title2)
+                                .foregroundStyle(Theme.Colors.primary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(lang == .spanish ? "Marcar dónde está" : "Mark where it is")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(lang == .spanish ? "Usa AR para recordar dónde guardaste esta prenda" : "Use AR to remember where you stored this garment")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .padding(Theme.Spacing.md)
+                        .background(Theme.Colors.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                    }
+                    .buttonStyle(.premiumPressable)
+
                     VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
                         TextField(lang == .spanish ? "Nombre" : "Name", text: $item.name)
                             .font(.title2.weight(.semibold))

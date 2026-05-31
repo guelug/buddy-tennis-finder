@@ -26,6 +26,7 @@
 		374C8C3F159E42CC3107FCE0 /* EventKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D6E5F1F18EA2BFCCA1B55CC /* EventKit.framework */; };
 		3831A7980AE129987A0850EF /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */; };
 		3FEF6E4860AB91364E2E4011 /* DailyOutfitReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F6379FDA7965A63D928299 /* DailyOutfitReminderScheduler.swift */; };
+		4042209B5DBA825870E4A6B1 /* ARClothingPlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */; };
 		41394763B138850AE8CBCC2C /* PersonalShooperWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A10A268571DD14DAE2AC68 /* SettingsView.swift */; };
 		46C1F0712295BAB1F6BA9E95 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B668A8B26EAD43C074CA3718 /* Photos.framework */; };
@@ -210,6 +211,7 @@
 		FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = LocalSecrets.plist; sourceTree = "<group>"; };
 		FBABC5D5EE29FF5A45A135E0 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItem.swift; sourceTree = "<group>"; };
+		FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARClothingPlacement.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -601,6 +603,7 @@
 			isa = PBXGroup;
 			children = (
 				887D2B4D0108C64CA67CDCD2 /* Analysis.swift */,
+				FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */,
 				FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */,
 				BCE0DB96AC9E480300EB1EBA /* Conversation.swift */,
 				75191249CD415955E041E75E /* User.swift */,
@@ -829,6 +832,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4042209B5DBA825870E4A6B1 /* ARClothingPlacement.swift in Sources */,
 				9280A61E7CDBDD099FEF15CE /* ARViewModel.swift in Sources */,
 				DE4856C42D4622A5CE0A0395 /* ARWardrobeView.swift in Sources */,
 				350C1CD2B2224F77C3D21534 /* Analysis.swift in Sources */,
@@ -1002,7 +1006,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 27;
+				CURRENT_PROJECT_VERSION = 28;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1064,7 +1068,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 27;
+				CURRENT_PROJECT_VERSION = 28;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

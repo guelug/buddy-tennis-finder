@@ -1,6 +1,7 @@
 import SwiftUI
 import ARKit
 import RealityKit
+import SwiftData
 
 struct ARWardrobeView: View {
     @Environment(AppState.self) private var appState
@@ -8,6 +9,9 @@ struct ARWardrobeView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ARViewModel()
     @State private var showingClothingPicker = false
+    @State private var showingShelfNameInput = false
+    @State private var shelfNameInput = ""
+    @State private var pendingTapPosition: SIMD3<Float>?
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
@@ -22,67 +26,15 @@ struct ARWardrobeView: View {
                     ARViewContainer(viewModel: viewModel)
                         .ignoresSafeArea()
 
-                    // Overlay controls
+                    // Overlay UI
                     VStack {
+                        // Top info bar
+                        topInfoBar
+
                         Spacer()
 
-                        // Selected clothing indicator
-                        if let clothing = viewModel.selectedClothingItem {
-                            HStack {
-                                if let image = clothing.displayImage {
-                                    Image(uiImage: image)
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                        .frame(width: 60, height: 60)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                }
-                                Text(clothing.name)
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                            }
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                            .padding(.bottom, 100)
-                        }
-
-                        // Bottom toolbar
-                        HStack(spacing: Theme.Spacing.lg) {
-                            Button {
-                                viewModel.removePlacedClothing()
-                            } label: {
-                                Image(systemName: "trash")
-                                    .font(.title2)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 50, height: 50)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                            }
-
-                            Button {
-                                showingClothingPicker = true
-                            } label: {
-                                Image(systemName: "tshirt.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 60, height: 60)
-                                    .background(Theme.Colors.primary)
-                                    .clipShape(Circle())
-                            }
-
-                            Button {
-                                viewModel.placeClothing()
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 50, height: 50)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                            }
-                            .disabled(viewModel.selectedClothingItem == nil)
-                        }
-                        .padding(.bottom, 30)
+                        // Bottom controls
+                        bottomControls
                     }
                 } else {
                     ContentUnavailableView(
@@ -92,7 +44,7 @@ struct ARWardrobeView: View {
                     )
                 }
             }
-            .navigationTitle(isSpanish ? "Armario AR" : "AR Closet")
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -105,7 +57,26 @@ struct ARWardrobeView: View {
                 ClothingPickerSheet(viewModel: viewModel)
             }
             .alert(
-                isSpanish ? "No se pudo mostrar en AR" : "Couldn't show AR preview",
+                isSpanish ? "Guardar ubicación" : "Save Location",
+                isPresented: $showingShelfNameInput
+            ) {
+                TextField(isSpanish ? "Nombre del estante/cajón (opcional)" : "Shelf/drawer name (optional)", text: $shelfNameInput)
+                Button(isSpanish ? "Guardar" : "Save") {
+                    if let position = pendingTapPosition {
+                        viewModel.placeTag(at: position, shelfName: shelfNameInput.isEmpty ? nil : shelfNameInput)
+                        pendingTapPosition = nil
+                        shelfNameInput = ""
+                    }
+                }
+                Button(isSpanish ? "Cancelar" : "Cancel", role: .cancel) {
+                    pendingTapPosition = nil
+                    shelfNameInput = ""
+                }
+            } message: {
+                Text(isSpanish ? "¿Dónde guardaste esta prenda?" : "Where did you store this garment?")
+            }
+            .alert(
+                isSpanish ? "No se pudo guardar" : "Couldn't save",
                 isPresented: Binding(
                     get: { viewModel.errorMessage != nil },
                     set: { if !$0 { viewModel.errorMessage = nil } }
@@ -120,9 +91,161 @@ struct ARWardrobeView: View {
             .onAppear {
                 viewModel.configure(modelContext: modelContext)
             }
+            .onReceive(NotificationCenter.default.publisher(for: .arPlacementTapped)) { notification in
+                if let position = notification.object as? SIMD3<Float> {
+                    pendingTapPosition = position
+                    showingShelfNameInput = true
+                }
+            }
+        }
+    }
+
+    private var navigationTitle: String {
+        switch viewModel.currentMode {
+        case .browse:
+            return isSpanish ? "Armario AR" : "AR Closet"
+        case .place:
+            return isSpanish ? "Coloca: \(viewModel.selectedClothingItem?.name ?? "")" : "Place: \(viewModel.selectedClothingItem?.name ?? "")"
+        }
+    }
+
+    private var topInfoBar: some View {
+        VStack(spacing: 8) {
+            if viewModel.currentMode == .place {
+                HStack {
+                    Image(systemName: "hand.tap.fill")
+                    Text(isSpanish ? "Toca donde guardaste la prenda" : "Tap where you stored the garment")
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.blue.opacity(0.8))
+                .clipShape(Capsule())
+            } else if viewModel.placements.isEmpty {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                    Text(isSpanish ? "Selecciona una prenda para marcar dónde está" : "Select a garment to mark its location")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+            } else {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text(isSpanish ? "\(viewModel.placements.count) prendas ubicadas" : "\(viewModel.placements.count) garments located")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var bottomControls: some View {
+        VStack(spacing: 16) {
+            // Selected item indicator (place mode)
+            if viewModel.currentMode == .place,
+               let item = viewModel.selectedClothingItem {
+                HStack {
+                    if let image = item.displayImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 50, height: 50)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    VStack(alignment: .leading) {
+                        Text(item.name)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                        Text(isSpanish ? "Toca en la pantalla para ubicar" : "Tap on screen to place")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                    Spacer()
+                    Button {
+                        viewModel.selectedClothingItem = nil
+                        viewModel.currentMode = .browse
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding()
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal)
+            }
+
+            // Browse mode: show placed items list or select button
+            if viewModel.currentMode == .browse {
+                if !viewModel.placements.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(viewModel.placements) { placement in
+                                if let item = viewModel.clothingItems.first(where: { $0.id == placement.clothingItemID }) {
+                                    PlacedItemChip(
+                                        item: item,
+                                        shelfName: placement.shelfName,
+                                        isSelected: viewModel.selectedPlacement?.id == placement.id
+                                    ) {
+                                        viewModel.selectedPlacement = placement
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
+                HStack(spacing: Theme.Spacing.lg) {
+                    Button {
+                        showingClothingPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                            Text(isSpanish ? "Ubicar prenda" : "Locate garment")
+                        }
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(Theme.Colors.primary)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.premiumPressable)
+
+                    if let selected = viewModel.selectedPlacement {
+                        Button {
+                            viewModel.deletePlacement(selected)
+                            viewModel.selectedPlacement = nil
+                        } label: {
+                            Image(systemName: "trash.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white)
+                                .frame(width: 50, height: 50)
+                                .background(.red.opacity(0.8))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.premiumPressable)
+                    }
+                }
+                .padding(.bottom, 30)
+            }
         }
     }
 }
+
+// MARK: - AR Container
 
 struct ARViewContainer: UIViewRepresentable {
     let viewModel: ARViewModel
@@ -143,20 +266,102 @@ struct ARViewContainer: UIViewRepresentable {
 
         viewModel.arSession = arView.session
 
-        // Tap gesture to place clothing
-        arView.addGestureRecognizer(
-            UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
-        )
+        // Tap gesture
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        arView.addGestureRecognizer(tapGesture)
 
         return arView
     }
 
     func updateUIView(_ uiView: ARView, context: Context) {
-        if let anchor = viewModel.placedClothingAnchor {
-            if anchor.parent == nil {
-                uiView.scene.addAnchor(anchor)
+        // Update placed tags
+        updatePlacedTags(in: uiView)
+
+        // Highlight selected placement
+        if let selected = viewModel.selectedPlacement {
+            highlightTag(for: selected, in: uiView)
+        }
+    }
+
+    private func updatePlacedTags(in arView: ARView) {
+        // Remove old tag entities that are no longer in placements
+        let currentIDs = Set(viewModel.placements.map(\.id.uuidString))
+        for entity in arView.scene.anchors {
+            let name = entity.name
+            if name.hasPrefix("tag_") {
+                let id = String(name.dropFirst(4))
+                if !currentIDs.contains(id) {
+                    entity.removeFromParent()
+                }
             }
         }
+
+        // Add new tags
+        for placement in viewModel.placements {
+            let entityName = "tag_\(placement.id.uuidString)"
+            let exists = arView.scene.anchors.contains { $0.name == entityName }
+            if exists { continue }
+
+            let anchor = AnchorEntity(world: placement.simdPosition)
+            anchor.name = entityName
+
+            // Create tag visualization
+            let tagEntity = createTagEntity(for: placement, arView: arView)
+            anchor.addChild(tagEntity)
+            arView.scene.addAnchor(anchor)
+        }
+    }
+
+    private func highlightTag(for placement: ARClothingPlacement, in arView: ARView) {
+        let entityName = "tag_\(placement.id.uuidString)"
+        for entity in arView.scene.anchors {
+            if entity.name == entityName {
+                // Pulse animation
+                let pulse = Transform(scale: SIMD3<Float>(1.3, 1.3, 1.3))
+                entity.move(to: pulse, relativeTo: entity.parent, duration: 0.3, timingFunction: .easeInOut)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    let normal = Transform(scale: SIMD3<Float>(1, 1, 1))
+                    entity.move(to: normal, relativeTo: entity.parent, duration: 0.3, timingFunction: .easeInOut)
+                }
+            }
+        }
+    }
+
+    private func createTagEntity(for placement: ARClothingPlacement, arView: ARView) -> Entity {
+        let container = Entity()
+
+        // Pin stem
+        let stemMesh = MeshResource.generateCylinder(height: 0.15, radius: 0.005)
+        let stemMaterial = SimpleMaterial(color: .systemBlue, isMetallic: false)
+        let stem = ModelEntity(mesh: stemMesh, materials: [stemMaterial])
+        stem.position = SIMD3<Float>(0, 0.075, 0)
+        container.addChild(stem)
+
+        // Tag sphere (top)
+        let sphereMesh = MeshResource.generateSphere(radius: 0.025)
+        let sphereMaterial = SimpleMaterial(color: .systemBlue, isMetallic: false)
+        let sphere = ModelEntity(mesh: sphereMesh, materials: [sphereMaterial])
+        sphere.position = SIMD3<Float>(0, 0.15, 0)
+        container.addChild(sphere)
+
+        // Floating label (if we can find the item)
+        if let item = viewModel.clothingItems.first(where: { $0.id == placement.clothingItemID }),
+           let image = item.displayImage,
+           let cgImage = image.cgImage {
+            do {
+                let texture = try TextureResource(image: cgImage, options: .init(semantic: .color))
+                let planeMesh = MeshResource.generatePlane(width: 0.12, height: 0.12)
+                var material = UnlitMaterial(texture: texture)
+                material.faceCulling = .none
+                let photoPlane = ModelEntity(mesh: planeMesh, materials: [material])
+                photoPlane.position = SIMD3<Float>(0, 0.22, 0)
+                container.addChild(photoPlane)
+            } catch {
+                // Fallback: just show the sphere
+            }
+        }
+
+        return container
     }
 
     func makeCoordinator() -> Coordinator {
@@ -164,7 +369,7 @@ struct ARViewContainer: UIViewRepresentable {
     }
 
     class Coordinator: NSObject, ARSessionDelegate, @unchecked Sendable {
-        weak var viewModel: ARViewModel?
+        var viewModel: ARViewModel?
 
         init(viewModel: ARViewModel) {
             self.viewModel = viewModel
@@ -175,15 +380,49 @@ struct ARViewContainer: UIViewRepresentable {
             guard let arView = gesture.view as? ARView else { return }
             let location = gesture.location(in: arView)
 
-            // Raycast to find plane
-            if let result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first {
-                let position = result.worldTransform.columns.3
-                let simdPosition = SIMD3<Float>(position.x, position.y, position.z)
-                viewModel?.placeClothing(at: simdPosition)
+            // If in place mode, raycast and save position
+            if viewModel?.currentMode == .place {
+                if let result = arView.raycast(from: location, allowing: .estimatedPlane, alignment: .horizontal).first {
+                    let position = result.worldTransform.columns.3
+                    let simdPosition = SIMD3<Float>(position.x, position.y + 0.01, position.z)
+
+                    // Show shelf name input via notification
+                    NotificationCenter.default.post(name: .arPlacementTapped, object: simdPosition)
+                }
+            } else {
+                // Browse mode: select nearest tag
+                selectNearestTag(at: location, in: arView)
+            }
+        }
+
+        @MainActor
+        private func selectNearestTag(at location: CGPoint, in arView: ARView) {
+            // Find which tag is closest to the tap
+            var nearestDistance: CGFloat = .greatestFiniteMagnitude
+            var nearestPlacement: ARClothingPlacement?
+
+            for placement in viewModel?.placements ?? [] {
+                let entityName = "tag_\(placement.id.uuidString)"
+                guard let anchor = arView.scene.anchors.first(where: { $0.name == entityName }) else { continue }
+
+                // Project 3D position to 2D screen
+                let screenPos = arView.project(anchor.position(relativeTo: nil)) ?? CGPoint.zero
+                let distance = hypot(screenPos.x - location.x, screenPos.y - location.y)
+
+                if distance < nearestDistance && distance < 100 {
+                    nearestDistance = distance
+                    nearestPlacement = placement
+                }
+            }
+
+            if let placement = nearestPlacement {
+                viewModel?.selectedPlacement = placement
             }
         }
     }
 }
+
+// MARK: - Clothing Picker
 
 struct ClothingPickerSheet: View {
     let viewModel: ARViewModel
@@ -201,50 +440,65 @@ struct ClothingPickerSheet: View {
                     ContentUnavailableView(
                         isSpanish ? "Armario vacío" : "Empty closet",
                         systemImage: "cabinet",
-                        description: Text(isSpanish ? "Guarda prendas en el armario para verlas aquí en AR." : "Save garments in your closet to preview them here in AR.")
+                        description: Text(isSpanish ? "Guarda prendas en el armario para ubicarlas aquí en AR." : "Save garments in your closet to locate them here in AR.")
                     )
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: Theme.Spacing.sm) {
-                            ForEach(viewModel.clothingItems) { item in
-                                Button {
-                                    viewModel.selectClothing(item)
-                                    dismiss()
-                                } label: {
-                                    VStack {
-                                        if let image = item.displayImage {
-                                            Image(uiImage: image)
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                                .frame(width: 100, height: 100)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                        } else {
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(Color.gray.opacity(0.2))
-                                                .frame(width: 100, height: 100)
-                                                .overlay {
-                                                    Image(systemName: item.category.icon)
-                                                        .foregroundStyle(.secondary)
-                                                }
-                                        }
-
-                                        Text(item.name)
-                                            .font(.caption)
-                                            .lineLimit(1)
+                    List {
+                        ForEach(viewModel.clothingItems) { item in
+                            Button {
+                                viewModel.selectClothing(item)
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    if let image = item.displayImage {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 50, height: 50)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(width: 50, height: 50)
+                                            .overlay {
+                                                Image(systemName: item.category.icon)
+                                                    .foregroundStyle(.secondary)
+                                            }
                                     }
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.name)
+                                            .font(.headline)
+                                        Text(item.category.displayName)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+
+                                        // Show if already placed
+                                        if viewModel.findPlacement(for: item) != nil {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.green)
+                                                Text(isSpanish ? "Ya ubicada" : "Already located")
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.green)
+                                            }
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .buttonStyle(.plain)
                         }
-                        .padding()
                     }
                 }
             }
-            .navigationTitle(isSpanish ? "Seleccionar ropa" : "Select clothing")
+            .navigationTitle(isSpanish ? "Seleccionar prenda" : "Select garment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -255,4 +509,53 @@ struct ClothingPickerSheet: View {
             }
         }
     }
+}
+
+// MARK: - Placed Item Chip
+
+struct PlacedItemChip: View {
+    let item: ClothingItem
+    let shelfName: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let image = item.displayImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 40, height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.name)
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+
+                    if let shelf = shelfName {
+                        Text(shelf)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isSelected ? Theme.Colors.primary : Color(.systemBackground))
+            .foregroundStyle(isSelected ? .white : .primary)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Notification
+
+extension Notification.Name {
+    static let arPlacementTapped = Notification.Name("arPlacementTapped")
+    static let preselectARItem = Notification.Name("preselectARItem")
 }

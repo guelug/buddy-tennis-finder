@@ -3,21 +3,52 @@ import ARKit
 import RealityKit
 import SwiftData
 
+enum ARMode {
+    case browse      // Show saved tags
+    case place       // Place a new tag for selected item
+}
+
 @Observable
 @MainActor
 final class ARViewModel {
     var arSession: ARSession?
     var selectedClothingItem: ClothingItem?
-    var placedClothingAnchor: AnchorEntity?
     var isARSupported: Bool = ARWorldTrackingConfiguration.isSupported
     var errorMessage: String?
     var clothingItems: [ClothingItem] = []
+    var placements: [ARClothingPlacement] = []
+    var currentMode: ARMode = .browse
+    var selectedPlacement: ARClothingPlacement?
 
     private var modelContext: ModelContext?
+
+    var pendingTapPosition: SIMD3<Float>?
+    var preselectedItemID: UUID?
 
     func configure(modelContext: ModelContext) {
         self.modelContext = modelContext
         loadClothingItems()
+        loadPlacements()
+
+        // Listen for preselection from closet detail
+        NotificationCenter.default.addObserver(
+            forName: .preselectARItem,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let itemID = notification.object as? UUID {
+                self?.preselectedItemID = itemID
+                self?.selectPreselectedItem()
+            }
+        }
+    }
+
+    func selectPreselectedItem() {
+        guard let itemID = preselectedItemID,
+              let item = clothingItems.first(where: { $0.id == itemID }) else { return }
+        selectedClothingItem = item
+        currentMode = .place
+        preselectedItemID = nil
     }
 
     func loadClothingItems() {
@@ -26,64 +57,53 @@ final class ARViewModel {
         clothingItems = (try? context.fetch(descriptor)) ?? []
     }
 
-    func selectClothing(_ item: ClothingItem) {
-        selectedClothingItem = item
+    func loadPlacements() {
+        guard let context = modelContext else { return }
+        let descriptor = FetchDescriptor<ARClothingPlacement>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        placements = (try? context.fetch(descriptor)) ?? []
     }
 
-    func placeClothing(at position: SIMD3<Float>? = nil) {
-        guard let clothingItem = selectedClothingItem,
-              let image = clothingItem.displayImage ?? clothingItem.image,
-              let cgImage = image.cgImage else {
-            errorMessage = "No image is available for this garment."
+    func selectClothing(_ item: ClothingItem) {
+        selectedClothingItem = item
+        currentMode = .place
+    }
+
+    func placeTag(at position: SIMD3<Float>, shelfName: String? = nil) {
+        guard let item = selectedClothingItem else {
+            errorMessage = "No garment selected."
             return
         }
 
-        removePlacedClothing()
+        let placement = ARClothingPlacement(
+            clothingItemID: item.id,
+            position: position,
+            label: item.name,
+            shelfName: shelfName
+        )
 
-        let aspectRatio = max(Float(image.size.width / max(image.size.height, 1)), 0.2)
-        let height: Float = 0.75
-        let width = min(max(height * aspectRatio, 0.28), 0.95)
-        let mesh = MeshResource.generatePlane(width: width, height: height)
-
+        modelContext?.insert(placement)
         do {
-            let texture = try TextureResource(
-                image: cgImage,
-                withName: clothingItem.id.uuidString,
-                options: TextureResource.CreateOptions(semantic: .color)
-            )
-            var material = UnlitMaterial(texture: texture)
-            material.faceCulling = .none
-
-            let entity = ModelEntity(mesh: mesh, materials: [material])
-            entity.name = clothingItem.name
-            // Lift the plane so its base rests on the detected surface and it stands upright.
-            entity.position = SIMD3<Float>(0, height / 2, 0)
-
-            let anchor = AnchorEntity()
-            let basePosition = position ?? SIMD3<Float>(0, 0, -0.8)
-            anchor.position = basePosition
-
-            // Rotate the garment (yaw only) so it faces the user, like it's hanging in front of them.
-            if let cameraTransform = arSession?.currentFrame?.camera.transform {
-                let cameraPosition = cameraTransform.columns.3
-                let dx = cameraPosition.x - basePosition.x
-                let dz = cameraPosition.z - basePosition.z
-                if abs(dx) > 0.0001 || abs(dz) > 0.0001 {
-                    anchor.orientation = simd_quatf(angle: atan2(dx, dz), axis: SIMD3<Float>(0, 1, 0))
-                }
-            }
-
-            anchor.addChild(entity)
-            placedClothingAnchor = anchor
-            errorMessage = nil
+            try modelContext?.save()
+            placements.append(placement)
+            selectedClothingItem = nil
+            currentMode = .browse
         } catch {
-            errorMessage = "I couldn't prepare the AR preview for this garment."
+            errorMessage = "Couldn't save the location."
         }
     }
 
-    func removePlacedClothing() {
-        placedClothingAnchor?.removeFromParent()
-        placedClothingAnchor = nil
+    func deletePlacement(_ placement: ARClothingPlacement) {
+        modelContext?.delete(placement)
+        do {
+            try modelContext?.save()
+            placements.removeAll { $0.id == placement.id }
+        } catch {
+            errorMessage = "Couldn't remove the tag."
+        }
+    }
+
+    func findPlacement(for item: ClothingItem) -> ARClothingPlacement? {
+        placements.first { $0.clothingItemID == item.id }
     }
 
     func createARConfiguration() -> ARWorldTrackingConfiguration {
