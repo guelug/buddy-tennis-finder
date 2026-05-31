@@ -84,6 +84,7 @@
 		E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9943860D030691BD0D6D9D /* PalettePreferences.swift */; };
 		E95C4A6D205754EE6FB65CEE /* TryOnViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5FB969B5E70E76DC39DC291 /* TryOnViewModel.swift */; };
 		EB8D7B65C7D282E1369B0FE9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */; };
+		EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */; };
 		EE4BFA4A390C124966233A83 /* StyleImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5520711C133FC4F26B4CC57 /* StyleImageService.swift */; };
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
 		FAB2438FEB64E57DD5187064 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */; };
@@ -204,6 +205,7 @@
 		F8D383BDD5CF127A217023EF /* PrivacySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacySettingsView.swift; sourceTree = "<group>"; };
 		FAC8515ECFA5F640EACA07DA /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
 		FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBudgetManager.swift; sourceTree = "<group>"; };
+		FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = LocalSecrets.plist; sourceTree = "<group>"; };
 		FBABC5D5EE29FF5A45A135E0 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
 		FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -346,6 +348,7 @@
 			isa = PBXGroup;
 			children = (
 				F8B211635931589A61159A50 /* Info.plist */,
+				FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */,
 				468C44B82C05D68A858BA53F /* PersonalShooper.entitlements */,
 				5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */,
 				5E7EF87F44037C7A719EEABF /* App */,
@@ -802,6 +805,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				78731E3956A5ADA50089D44F /* Assets.xcassets in Resources */,
+				EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */,
 				FAB2438FEB64E57DD5187064 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -994,7 +998,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 24;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1056,7 +1060,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 24;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

@@ -52,6 +52,13 @@ struct BYOKSettingsView: View {
         )
     }
 
+    private var aiProviderModeBinding: Binding<AIProviderMode> {
+        Binding(
+            get: { appState.aiProviderMode },
+            set: { appState.setAIProviderMode($0) }
+        )
+    }
+
     private var lang: Language {
         appState.preferredLanguage
     }
@@ -88,6 +95,31 @@ struct BYOKSettingsView: View {
                     .padding(.vertical, 4)
                 }
             } else {
+                Section {
+                    Picker(text("Proveedor activo", "Active provider"), selection: aiProviderModeBinding) {
+                        ForEach(AIProviderMode.allCases) { mode in
+                            Text(mode.displayName(language: lang)).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: appState.aiProviderMode == .premium ? "crown.fill" : "key.fill")
+                            .foregroundStyle(appState.aiProviderMode == .premium ? .yellow : .blue)
+                            .frame(width: 22)
+
+                        Text(appState.aiProviderMode == .premium
+                            ? text("Premium usa el backend de TestFlight con cuotas de prueba. BYOK queda guardado para cuando quieras volver a usar tu propia key.", "Premium uses the TestFlight backend with test quotas. BYOK stays saved for whenever you want to switch back to your own key.")
+                            : text("BYOK usa la clave del proveedor seleccionado en este dispositivo. Premium queda disponible para alternar cuando quieras.", "BYOK uses the selected provider key on this device. Premium remains available so you can switch anytime.")
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text(text("Modo de IA", "AI Mode"))
+                }
+
                 // Info Section
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
@@ -117,14 +149,14 @@ struct BYOKSettingsView: View {
 
                     if appState.isBYOKEnabled {
                         HStack {
-                            Text(text("Plan", "Tier"))
+                            Text(text("Modo", "Mode"))
                             Spacer()
-                            Text("BYOK - Unlimited")
+                            Text(appState.aiProviderMode.displayName(language: lang))
                                 .foregroundStyle(.green)
                         }
                     }
                 } header: {
-                    Text(text("Estado BYOK", "BYOK Status"))
+                    Text(text("Estado", "Status"))
                 }
 
                 // API Keys Section
@@ -256,7 +288,7 @@ struct BYOKSettingsView: View {
                 }
             }
         }
-        .navigationTitle(text("Ajustes BYOK", "BYOK Settings"))
+        .navigationTitle(text("Proveedor de IA", "AI Provider"))
         .navigationBarTitleDisplayMode(.inline)
         .alert(text("Claves guardadas", "API Keys Saved"), isPresented: $showConfirmation) {
             Button("OK", role: .cancel) {}

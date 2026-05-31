@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/api/ai-chat", "dest": "/api/ai-chat/route.ts" },
     { "src": "/api/try-on", "dest": "/api/try-on/route.ts" },
     { "src": "/api/sync-credits", "dest": "/api/sync-credits/route.ts" }
   ],

@@ -106,14 +106,8 @@ struct ChatView: View {
 
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    // Pressing this both dismisses the keyboard AND sends the message when there's
-                    // text — saves a tap (the send arrow is right below "Done").
-                    Button(hasDraftText ? text("Enviar", "Send") : text("Listo", "Done")) {
-                        let shouldSend = hasDraftText && !viewModel.isLoading
+                    Button(text("Listo", "Done")) {
                         isInputFocused = false
-                        if shouldSend {
-                            Task { await viewModel.sendMessage(appState: appState, modelContext: modelContext) }
-                        }
                     }
                     .fontWeight(.semibold)
                 }
@@ -286,6 +280,7 @@ struct ChatView: View {
 
                 TextField(Strings.chatAskFashion(lang), text: $viewModel.inputText, axis: .vertical)
                     .textFieldStyle(.plain)
+                    .submitLabel(.send)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(Color(.systemBackground))
@@ -447,15 +442,36 @@ struct MessageBubbleView: View {
 
     @ViewBuilder
     private func messageText(isUser: Bool) -> some View {
-        if features.textSelectionEnabled {
-            Text(message.content)
-                .font(.body)
-                .foregroundStyle(isUser ? .white : .primary)
-                .textSelection(.enabled)
+        // Parse full markdown including lists, code blocks, etc.
+        if let attributed = try? AttributedString(
+            markdown: message.content,
+            options: AttributedString.MarkdownParsingOptions(
+                interpretedSyntax: .full,
+                failurePolicy: .returnPartiallyParsedIfPossible
+            )
+        ) {
+            if features.textSelectionEnabled {
+                Text(attributed)
+                    .font(.body)
+                    .foregroundStyle(isUser ? .white : .primary)
+                    .textSelection(.enabled)
+            } else {
+                Text(attributed)
+                    .font(.body)
+                    .foregroundStyle(isUser ? .white : .primary)
+            }
         } else {
-            Text(message.content)
-                .font(.body)
-                .foregroundStyle(isUser ? .white : .primary)
+            // Fallback si el markdown no se puede parsear
+            if features.textSelectionEnabled {
+                Text(message.content)
+                    .font(.body)
+                    .foregroundStyle(isUser ? .white : .primary)
+                    .textSelection(.enabled)
+            } else {
+                Text(message.content)
+                    .font(.body)
+                    .foregroundStyle(isUser ? .white : .primary)
+            }
         }
     }
 

@@ -13,3 +13,6 @@ PersonalShooper.xcodeproj/project.xcworkspace/xcuserdata/
 build/
 *.xcarchive
 DerivedData/
+dist/
+node_modules/
+.vercel/

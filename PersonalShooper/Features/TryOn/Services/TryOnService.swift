@@ -120,14 +120,15 @@ final class TryOnService: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         request.setValue(receiptData.base64EncodedString(), forHTTPHeaderField: "X-Receipt-Data")
+        if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
+            request.setValue(vendorId, forHTTPHeaderField: "X-User-ID")
+        }
         request.httpBody = body
 
-        // Add test mode header if configured
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["VERCEL_TEST_MODE"] == "true" {
+        if let testSecret = AppSecrets.vercelTestSecret {
             request.setValue("true", forHTTPHeaderField: "X-Test-Mode")
+            request.setValue(testSecret, forHTTPHeaderField: "X-Test-Secret")
         }
-        #endif
 
         // 5. Send request
         let (data, response): (Data, URLResponse)

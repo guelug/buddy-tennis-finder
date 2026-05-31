@@ -1,4 +1,5 @@
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:image=generate';
+const GEMINI_TEXT_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 export async function generateTryOn(
   clothingImage: Buffer,
@@ -40,7 +41,7 @@ export async function generateTryOn(
     throw new Error('GEMINI_ERROR');
   }
 
-  const data = await response.json();
+  const data = await response.json() as any;
 
   if (!data.image || !data.image.data) {
     throw new Error('NO_IMAGE Generated');
@@ -48,4 +49,60 @@ export async function generateTryOn(
 
   const imageBuffer = Buffer.from(data.image.data, 'base64');
   return imageBuffer;
+}
+
+export async function generateStyleChatWithGemini(
+  systemPrompt: string,
+  message: string
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  const response = await fetch(`${GEMINI_TEXT_API_URL}?key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: message }],
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: 520,
+        temperature: 0.7,
+      },
+    }),
+  });
+
+  if (response.status === 401) {
+    throw new Error('INVALID_API_KEY');
+  }
+
+  if (response.status === 429) {
+    throw new Error('RATE_LIMIT_EXCEEDED');
+  }
+
+  if (!response.ok) {
+    throw new Error('GEMINI_TEXT_ERROR');
+  }
+
+  const data = await response.json() as any;
+  const text = data?.candidates?.[0]?.content?.parts
+    ?.map((part: { text?: string }) => part.text)
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+
+  if (!text) {
+    throw new Error('EMPTY_GEMINI_RESPONSE');
+  }
+
+  return text;
 }

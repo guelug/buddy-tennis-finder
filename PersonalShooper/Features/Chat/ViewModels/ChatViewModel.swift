@@ -282,24 +282,18 @@ final class ChatViewModel {
 
     private func welcomeMessage(for appState: AppState) -> String {
         let isSpanish = appState.preferredLanguage == .spanish
-        let name = appState.currentUser?.displayName ?? (isSpanish ? "tu perfil" : "your profile")
-        let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
-
-        if profile.isCompleteEnough {
+        let name = appState.currentUser?.displayName
+        let assistantName = AssistantPersona.name(forUserNamed: name)
+        
+        if let name = name, !name.isEmpty {
             return isSpanish
-                ? "Hola \(name). Ya tengo parte de tu contexto de estilo guardado, así que puedo darte recomendaciones más finas. Si cambia tu rutina o tus eventos, dímelo aquí y actualizaré tu perfil."
-                : "Hi \(name). I already have part of your style context saved, so I can give you sharper recommendations. If your routine or events change, tell me here and I will update your profile."
+                ? "Hola **\(name)**, soy **\(assistantName)** 👋\n\nPuedo asesorarte de moda teniendo en cuenta tu armario y tus preferencias. Cuanto más uses el armario, mejor conoceré tu estilo y más personalizadas serán mis recomendaciones.\n\n¿En qué puedo ayudarte hoy?"
+                : "Hi **\(name)**, I'm **\(assistantName)** 👋\n\nI can give you fashion advice based on your closet and preferences. The more you use your closet, the better I'll understand your style and the more personalized my recommendations will be.\n\nWhat can I help you with today?"
         }
-
-        if let nextQuestion = profile.nextQuestion(in: appState.preferredLanguage) {
-            return isSpanish
-                ? "Hola \(name). Puedo asesorarte ya, pero si quieres respuestas realmente personalizadas, iré guardando algunos detalles opcionales sobre ti. \(nextQuestion)"
-                : "Hi \(name). I can help already, but if you want truly personalized advice, I can save a few optional details about you. \(nextQuestion)"
-        }
-
+        
         return isSpanish
-            ? "Hola \(name). Cuéntame qué necesitas y también puedo ir completando tu perfil mientras hablamos. Si me mandas una foto de una prenda y me pides añadirla al armario, también la guardaré."
-            : "Hi \(name). Tell me what you need, and I can also complete your profile as we chat. If you send me a garment photo and ask me to add it to your closet, I'll save it too."
+            ? "Hola, soy **\(assistantName)** 👋\n\nPuedo asesorarte de moda teniendo en cuenta tu armario y tus preferencias. Cuanto más uses el armario, mejor conoceré tu estilo.\n\n¿En qué puedo ayudarte hoy?"
+            : "Hi, I'm **\(assistantName)** 👋\n\nI can give you fashion advice based on your closet and preferences. The more you use your closet, the better I'll understand your style.\n\nWhat can I help you with today?"
     }
 
     private func composeAssistantResponse(base: String, savedFacts: [String], closetSummary: String?, appState: AppState) -> String {
@@ -334,15 +328,9 @@ final class ChatViewModel {
 
     /// Optional follow-up question appended after the AI's answer to keep enriching the profile.
     private func followUpQuestion(appState: AppState) -> String? {
-        let isSpanish = appState.preferredLanguage == .spanish
-        let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
-
-        guard let nextQuestion = profile.nextQuestion(in: appState.preferredLanguage) else {
-            return nil
-        }
-
-        let followUpPrefix = isSpanish ? "Si quieres, seguimos afinando:" : "If you want, we can keep refining:"
-        return "\(followUpPrefix) \(nextQuestion)"
+        // Disabled automatic follow-up questions to let the user drive the conversation
+        // The assistant will naturally learn about the user through normal chat
+        return nil
     }
 
     /// Streams the assistant reply token-by-token (Apple Intelligence) so it types out live,
@@ -615,8 +603,14 @@ final class ChatViewModel {
     }
 
     private func activeAIService(for appState: AppState) -> AIChatServiceProtocol {
+        if appState.aiProviderMode == .premium,
+           appState.useConnectedChatGPTForChat,
+           appState.isChatGPTConnected {
+            return ConnectedChatGPTService()
+        }
+
         // Check if BYOK is enabled and has a preferred provider
-        if appState.isBYOKEnabled {
+        if appState.aiProviderMode == .byok, appState.isBYOKEnabled {
             if let preferredProvider = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
                let provider = BYOKChatService.BYOKProvider(rawValue: preferredProvider) {
                 // Verify the key exists for this provider
