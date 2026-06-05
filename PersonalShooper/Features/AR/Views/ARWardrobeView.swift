@@ -33,9 +33,14 @@ struct ARWardrobeView: View {
                         // Top info bar
                         topInfoBar
 
-                        // Relocalization guidance (when restoring a saved space).
+                        // Relocalization / mapping guidance (shown whenever the space isn't
+                        // ready — covers both "first‑time map" and "restoring saved space").
                         if let hint = viewModel.spaceStatusHint, !viewModel.isSpaceReady {
-                            statusBanner(text: hint, systemImage: "viewfinder", tint: .orange)
+                            statusBanner(
+                                text: hint,
+                                systemImage: viewModel.isRelocalizing ? "arrow.triangle.2.circlepath" : "viewfinder",
+                                tint: viewModel.isRelocalizing ? .blue : .orange
+                            )
                         }
 
                         // "Get closer" guidance when LiDAR couldn't detect a precise surface.
@@ -111,6 +116,9 @@ struct ARWardrobeView: View {
             .onAppear {
                 viewModel.language = appState.preferredLanguage
                 viewModel.configure(modelContext: modelContext)
+            }
+            .onDisappear {
+                viewModel.persistCurrentSpace()
             }
             .onReceive(NotificationCenter.default.publisher(for: .arPlacementTapped)) { notification in
                 if let position = notification.object as? SIMD3<Float> {
@@ -398,26 +406,30 @@ struct ARViewContainer: UIViewRepresentable {
 
     func updateUIView(_ uiView: ARView, context: Context) {
         // Update placed tags
-        updatePlacedTags(in: uiView)
+        updatePlacedTags(in: uiView, spaceReady: viewModel.isSpaceReady)
 
         // Highlight selected placement
-        if let selected = viewModel.selectedPlacement {
+        if let selected = viewModel.selectedPlacement, viewModel.isSpaceReady {
             highlightTag(for: selected, in: uiView)
         }
     }
 
-    private func updatePlacedTags(in arView: ARView) {
-        // Remove old tag entities that are no longer in placements
+    private func updatePlacedTags(in arView: ARView, spaceReady: Bool) {
+        // While ARKit hasn't relocalized into (or freshly mapped) the saved space, the stored
+        // positions are in an old / unaligned coordinate space. Drawing them now would scatter
+        // tags at random spots and confuse the user, so we keep them hidden until ready.
         let currentIDs = Set(viewModel.placements.map(\.id.uuidString))
         for entity in arView.scene.anchors {
             let name = entity.name
             if name.hasPrefix("tag_") {
                 let id = String(name.dropFirst(4))
-                if !currentIDs.contains(id) {
+                if !currentIDs.contains(id) || !spaceReady {
                     entity.removeFromParent()
                 }
             }
         }
+
+        guard spaceReady else { return }
 
         // Add new tags
         for placement in viewModel.placements {
@@ -502,8 +514,21 @@ struct ARViewContainer: UIViewRepresentable {
         nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
             let transform = frame.camera.transform // simd_float4x4 is Sendable; copy before hopping.
             let mappingStatus = frame.worldMappingStatus
+            let readiness: CameraReadiness
+            switch frame.camera.trackingState {
+            case .normal:
+                readiness = .normal
+            case .notAvailable:
+                readiness = .unavailable
+            case .limited(let reason):
+                switch reason {
+                case .relocalizing: readiness = .relocalizing
+                case .initializing: readiness = .initializing
+                default: readiness = .limited
+                }
+            }
             Task { @MainActor in
-                self.viewModel?.updateSpaceStatus(mappingStatus)
+                self.viewModel?.updateTracking(readiness: readiness, mappingStatus: mappingStatus)
                 guard self.viewModel?.currentMode == .find else { return }
                 self.viewModel?.updateFindGuidance(cameraTransform: transform)
             }
@@ -519,7 +544,7 @@ struct ARViewContainer: UIViewRepresentable {
                 // Precise hit: a real detected surface (LiDAR mesh / known plane).
                 var result = arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .horizontal).first
                     ?? arView.raycast(from: location, allowing: .existingPlaneInfinite, alignment: .vertical).first
-                var isAccurate = result != nil
+                let isAccurate = result != nil
 
                 // Fallbacks so we ALWAYS place something (estimated plane, then camera ray).
                 if result == nil {

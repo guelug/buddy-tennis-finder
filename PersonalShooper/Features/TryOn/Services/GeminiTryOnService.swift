@@ -30,7 +30,7 @@ enum TryOnError: Error, LocalizedError {
 
 final class GeminiTryOnService: TryOnServiceProtocol {
     private let apiKey: String?
-    private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent"
+    private let baseURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent"
     private let session: URLSession
 
     init(apiKey: String? = nil, session: URLSession = .shared) {

@@ -449,18 +449,28 @@ private struct ClosetItemDetailView: View {
     @State private var detailFeedbackCounter = 0
     @State private var isOptimizing = false
 
+    /// Reactively tracks whether THIS garment has a saved AR location. Using `@Query` (instead of
+    /// a one-off `modelContext.fetch` inside a computed property) makes the body re-evaluate as
+    /// soon as the AR view inserts / removes a row in the shared SwiftData store, so the
+    /// "Find in AR" button shows up the moment the user pops back from the AR view.
+    @Query private var arPlacementsForItem: [ARClothingPlacement]
+
+    init(item: ClothingItem, lang: Language, onDelete: @escaping () -> Void) {
+        self.item = item
+        self.lang = lang
+        self.onDelete = onDelete
+        let itemIDString = item.id.uuidString
+        _arPlacementsForItem = Query(
+            filter: #Predicate<ARClothingPlacement> { $0.clothingItemIDString == itemIDString }
+        )
+    }
+
     private var canOptimize: Bool {
         appState.isPremium || appState.hasBYOKAccess
     }
 
-    /// True when this garment already has a saved AR location, so "Find in AR" is meaningful.
-    /// Query the STORED `clothingItemIDString` — `clothingItemID` is a computed property and can't
-    /// be used in a SwiftData predicate (it silently returns nothing).
     private var hasARPlacement: Bool {
-        let itemIDString = item.id.uuidString
-        var descriptor = FetchDescriptor<ARClothingPlacement>(predicate: #Predicate { $0.clothingItemIDString == itemIDString })
-        descriptor.fetchLimit = 1
-        return ((try? modelContext.fetch(descriptor))?.isEmpty == false)
+        !arPlacementsForItem.isEmpty
     }
 
     var body: some View {
@@ -684,6 +694,16 @@ private struct ClosetItemDetailView: View {
 
     private func optimizeImage() async {
         guard let source = item.tryOnGarmentImage ?? item.displayImage else { return }
+
+        // Without a configured image provider the generation just echoes the source back, which would
+        // otherwise fire a fake "success". Tell the user how to enable it instead.
+        guard StyleImageService.hasImageProvider() else {
+            errorMessage = lang == .spanish
+                ? "Para optimizar imágenes necesitas configurar tu propia clave de API en Ajustes → Clave propia (BYOK)."
+                : "To optimize images you need to add your own API key in Settings → Bring your own key (BYOK)."
+            return
+        }
+
         isOptimizing = true
         defer { isOptimizing = false }
 
