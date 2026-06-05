@@ -93,8 +93,7 @@ struct CapsuleWardrobeView: View {
                     .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(.black.opacity(0.08)))
                 Image(systemName: piece.category.icon)
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.95))
-                    .shadow(radius: 1)
+                    .foregroundStyle(iconTint(for: piece.color))
             }
 
             VStack(alignment: .leading, spacing: 3) {
@@ -122,5 +121,12 @@ struct CapsuleWardrobeView: View {
             RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
                 .strokeBorder(highlight ? Theme.Colors.primary.opacity(0.35) : .clear, lineWidth: 1)
         )
+    }
+
+    /// Black icon on light swatches, white on dark ones, so the category glyph stays legible.
+    private func iconTint(for color: CodableColor?) -> Color {
+        guard let color else { return .white.opacity(0.95) }
+        let luminance = 0.299 * color.red + 0.587 * color.green + 0.114 * color.blue
+        return luminance > 0.6 ? .black.opacity(0.6) : .white.opacity(0.95)
     }
 }

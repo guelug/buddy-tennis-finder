@@ -37,7 +37,7 @@ struct EditProfileView: View {
     }
 
     private var draftProfile: PersonalStylingProfile {
-        PersonalStylingProfile(
+        var profile = PersonalStylingProfile(
             age: Int(ageText),
             genderIdentity: selectedGender == .unspecified ? nil : selectedGender,
             heightCm: parseDouble(heightText),
@@ -58,6 +58,18 @@ struct EditProfileView: View {
             additionalNotes: additionalNotes.trimmingCharacters(in: .whitespacesAndNewlines),
             lastUpdatedFromChatAt: appState.currentUser?.personalStylingProfile.lastUpdatedFromChatAt
         )
+
+        // The init doesn't cover auto-derived/learned fields, so editing the profile must NOT wipe
+        // them — carry them over from the existing profile.
+        if let existing = appState.currentUser?.personalStylingProfile {
+            profile.bodyShapeRaw = existing.bodyShapeRaw
+            profile.faceShapeRaw = existing.faceShapeRaw
+            profile.contrastLevelRaw = existing.contrastLevelRaw
+            profile.learnedStyleSummary = existing.learnedStyleSummary
+            profile.learnedAtUsageDay = existing.learnedAtUsageDay
+        }
+
+        return profile
     }
 
     var body: some View {
