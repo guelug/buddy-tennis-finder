@@ -31,6 +31,7 @@
 		40A2958DD92AA095AF0461A1 /* OutfitWeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BBC1DD3428E0BC69EC95B25 /* OutfitWeatherService.swift */; };
 		41394763B138850AE8CBCC2C /* PersonalShooperWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A10A268571DD14DAE2AC68 /* SettingsView.swift */; };
+		462546734450AD199EE637F3 /* PaletteGenerationOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = C953B3EF34621286495A48CD /* PaletteGenerationOverlay.swift */; };
 		46C1F0712295BAB1F6BA9E95 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B668A8B26EAD43C074CA3718 /* Photos.framework */; };
 		52ABCBE5722A745FEA2EF801 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5054F6856E9D8B83341CA704 /* AppIntents.framework */; };
 		53DF86C0D2C0D34D009D4EAB /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBABC5D5EE29FF5A45A135E0 /* Strings.swift */; };
@@ -59,6 +60,7 @@
 		8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */; };
 		8EF22799197289A77575D099 /* PhotoUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A1849B39FF49CF07703B97 /* PhotoUploadView.swift */; };
 		9280A61E7CDBDD099FEF15CE /* ARViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FF91397AF47465ED682DC4 /* ARViewModel.swift */; };
+		9634C3723413210A4F81DB56 /* SkinColorScience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 240EFBF7F344857485B932CA /* SkinColorScience.swift */; };
 		96BB5EE762B7AA2D96BC261E /* StyleCompanionSharedModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21839F5E1A00CE50CB86ECE0 /* StyleCompanionSharedModels.swift */; };
 		97FD48193B1A838D067A65CC /* ChatWorkspaceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B513CBC4BAB4CB39A8A5F4 /* ChatWorkspaceService.swift */; };
 		9B0E4EA327E15139CC5747F2 /* TryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BECF652589720B2AB223F1A5 /* TryOnService.swift */; };
@@ -138,6 +140,7 @@
 		1C09A315901B54622384FDF8 /* TryOnView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnView.swift; sourceTree = "<group>"; };
 		21839F5E1A00CE50CB86ECE0 /* StyleCompanionSharedModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleCompanionSharedModels.swift; sourceTree = "<group>"; };
 		22B513CBC4BAB4CB39A8A5F4 /* ChatWorkspaceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatWorkspaceService.swift; sourceTree = "<group>"; };
+		240EFBF7F344857485B932CA /* SkinColorScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinColorScience.swift; sourceTree = "<group>"; };
 		29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStyleRecommendationIntent.swift; sourceTree = "<group>"; };
 		2A108E1DDE75B55664093E03 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -199,6 +202,7 @@
 		C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarView.swift; sourceTree = "<group>"; };
 		C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderService.swift; sourceTree = "<group>"; };
+		C953B3EF34621286495A48CD /* PaletteGenerationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationOverlay.swift; sourceTree = "<group>"; };
 		CCF43F9E1D797C468B6BA7DD /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyNoticeView.swift; sourceTree = "<group>"; };
 		D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PersonalShooperWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -575,6 +579,7 @@
 				0F9943860D030691BD0D6D9D /* PalettePreferences.swift */,
 				801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */,
 				E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */,
+				240EFBF7F344857485B932CA /* SkinColorScience.swift */,
 				7327AED235F37BA65C119031 /* SkinToneExtractor.swift */,
 				D5520711C133FC4F26B4CC57 /* StyleImageService.swift */,
 				6E038F5F31EB01F96281EE64 /* StyleUsageLearning.swift */,
@@ -610,6 +615,7 @@
 			children = (
 				6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */,
 				92543E17BB683B062F3EFB23 /* NoPaletteView.swift */,
+				C953B3EF34621286495A48CD /* PaletteGenerationOverlay.swift */,
 				07A463B1685183813B5F117D /* PaletteQuestionnaireView.swift */,
 				B5A1849B39FF49CF07703B97 /* PhotoUploadView.swift */,
 				CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */,
@@ -915,6 +921,7 @@
 				7BED6BEBADE3624FD121F2E2 /* OutfitCalendarEntry.swift in Sources */,
 				2CC230663AC80DB3B7E9DB1A /* OutfitCalendarView.swift in Sources */,
 				40A2958DD92AA095AF0461A1 /* OutfitWeatherService.swift in Sources */,
+				462546734450AD199EE637F3 /* PaletteGenerationOverlay.swift in Sources */,
 				626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */,
 				E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */,
 				1EFBD4E6E49781E2EB439F75 /* PaletteQuestionnaireView.swift in Sources */,
@@ -926,6 +933,7 @@
 				240302348AD244A108B8C9F5 /* ProfileStorageService.swift in Sources */,
 				76E4D05EC2F43CEC9F73D905 /* ProfileView.swift in Sources */,
 				449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */,
+				9634C3723413210A4F81DB56 /* SkinColorScience.swift in Sources */,
 				5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */,
 				FD6C8B36F65BFF1147894411 /* StorageBudgetManager.swift in Sources */,
 				00F8CB3BC698C971123A0C0E /* StoreKitManager.swift in Sources */,

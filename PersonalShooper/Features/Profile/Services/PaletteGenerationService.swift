@@ -15,7 +15,9 @@ final class PaletteGenerationService {
         language: Language,
         preferences: PalettePreferences = PalettePreferences()
     ) async -> PersonalPalette {
-        let seasonalType = ruleBasedExtractor.seasonalType(
+        // Prefer the precise 3-axis (depth × undertone × clarity) classification computed by the
+        // CIELAB/ITA° pipeline; fall back to the 2-axis mapping for analyses saved before it existed.
+        let seasonalType = analysis.seasonalType ?? ruleBasedExtractor.seasonalType(
             undertone: analysis.undertone,
             skinTone: analysis.skinToneCategory
         )

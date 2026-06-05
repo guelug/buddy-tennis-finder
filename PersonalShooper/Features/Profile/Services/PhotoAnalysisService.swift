@@ -41,6 +41,19 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
         let region = (try? await detectFaceRect(in: image)) ?? centerRegion(of: image)
         let cropImage = image.cropped(to: region) ?? image
 
+        // Sample skin-only pixels (YCbCr skin rule) and run the CIELAB / ITA° science pipeline.
+        let sampling = sampleSkin(from: cropImage)
+        if let science = SkinColorScience.analyze(skinSamples: sampling.skin, contrast: sampling.contrast) {
+            return SkinAnalysisResult(
+                dominantColors: sampling.skin.prefix(8).map { CodableColor(uiColor: $0) },
+                undertone: science.undertone,
+                undertoneConfidence: science.undertoneConfidence,
+                skinToneCategory: science.depth,
+                seasonalType: science.seasonalType
+            )
+        }
+
+        // Fallback: legacy brightness/RGB heuristic when skin sampling couldn't find enough pixels.
         let colors = (try? extractDominantColors(from: cropImage)) ?? []
         let undertone = skinToneExtractor.extractUndertone(from: colors)
         let skinToneCategory = classifySkinTone(averageBrightness: averageBrightness(of: colors))
@@ -50,8 +63,98 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
             dominantColors: colors.map { CodableColor(uiColor: $0) },
             undertone: undertone,
             undertoneConfidence: confidence,
-            skinToneCategory: skinToneCategory
+            skinToneCategory: skinToneCategory,
+            seasonalType: nil
         )
+    }
+
+    /// Samples skin-only pixels from a face crop using the classic YCbCr skin-color rule
+    /// (Cb ∈ [77,127], Cr ∈ [133,173]; Hsu et al. 2002), which is robust across a wide range of skin
+    /// tones and rejects hair, eyes, lips and background. Also returns a 0…1 `contrast` proxy — the
+    /// gap between median skin lightness and the darkest features (hair/brows) — to feed the
+    /// bright-vs-muted clarity axis.
+    private func sampleSkin(from image: UIImage) -> (skin: [UIColor], contrast: Double?) {
+        guard let cgImage = image.cgImage else { return ([], nil) }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        guard width > 0, height > 0 else { return ([], nil) }
+
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return ([], nil)
+        }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let data = context.data else { return ([], nil) }
+        let buffer = data.bindMemory(to: UInt8.self, capacity: width * height * bytesPerPixel)
+
+        var skin: [UIColor] = []
+        var skinLuminances: [Double] = []
+        var allLuminances: [Double] = []
+
+        // Grid sampling: aim for ~1500 probes regardless of image size.
+        let targetSamples = 1500
+        let step = max(1, Int((Double(width * height) / Double(targetSamples)).squareRoot()))
+
+        for y in stride(from: 0, to: height, by: step) {
+            for x in stride(from: 0, to: width, by: step) {
+                let offset = (y * width + x) * bytesPerPixel
+                let r = Int(buffer[offset])
+                let g = Int(buffer[offset + 1])
+                let b = Int(buffer[offset + 2])
+
+                let luma = (0.299 * Double(r) + 0.587 * Double(g) + 0.114 * Double(b)) / 255.0
+                allLuminances.append(luma)
+
+                if Self.isSkinPixel(r: r, g: g, b: b) {
+                    skin.append(UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: 1.0))
+                    skinLuminances.append(luma)
+                }
+            }
+        }
+
+        guard skin.count >= 3 else { return (skin, nil) }
+
+        let medianSkinLum = Self.median(skinLuminances)
+        let darkFeatureLum = Self.percentile(allLuminances, 0.05)
+        let contrast = max(0.0, min(1.0, medianSkinLum - darkFeatureLum))
+
+        return (skin, contrast)
+    }
+
+    /// YCbCr skin-color membership test (inputs are 0…255 sRGB).
+    private static func isSkinPixel(r: Int, g: Int, b: Int) -> Bool {
+        let rf = Double(r), gf = Double(g), bf = Double(b)
+        let cb = 128.0 - 0.168736 * rf - 0.331264 * gf + 0.5 * bf
+        let cr = 128.0 + 0.5 * rf - 0.418688 * gf - 0.081312 * bf
+        // Reject near-black / blown-out highlights that pass chroma but carry no tone information.
+        let luma = 0.299 * rf + 0.587 * gf + 0.114 * bf
+        guard luma > 40, luma < 245 else { return false }
+        return cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173
+    }
+
+    private static func median(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        let mid = sorted.count / 2
+        return sorted.count % 2 == 0 ? (sorted[mid - 1] + sorted[mid]) / 2.0 : sorted[mid]
+    }
+
+    private static func percentile(_ values: [Double], _ p: Double) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        let index = max(0, min(sorted.count - 1, Int((Double(sorted.count - 1) * p).rounded())))
+        return sorted[index]
     }
 
     /// Central square (~60%) of the image, used when no face is detected.
