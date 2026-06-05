@@ -89,6 +89,7 @@
 		CC9D66D330135D4E336908C6 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CCE329E228B17589B6409BA /* Speech.framework */; };
 		CEA32920C12B1B4ABF9B6F29 /* SavedOutfit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */; };
 		D37906D2C4BBDEBE9F4BFC6B /* MarkdownMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1229F005E5F1340CB1DB60CA /* MarkdownMessageView.swift */; };
+		D5D548D14130DD861F60ADE9 /* AnalysisAdjustView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D26B485C0A5BF1378F94C6 /* AnalysisAdjustView.swift */; };
 		D6F9CBD488DF834CCA65E1B2 /* CapsuleWardrobeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A8779B95F2595D34BE27A8 /* CapsuleWardrobeService.swift */; };
 		D935D25B000BBC82FF86CD3A /* CapsuleWardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8EAA17DACAF8C6962FE16F /* CapsuleWardrobeView.swift */; };
 		D9E50A6A37DE7A5F580BCAF2 /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A9C31A216ECCBD18B4C7B501 /* HealthKit.framework */; };
@@ -182,6 +183,7 @@
 		6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderSelectorView.swift; sourceTree = "<group>"; };
 		7327AED235F37BA65C119031 /* SkinToneExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinToneExtractor.swift; sourceTree = "<group>"; };
 		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		73D26B485C0A5BF1378F94C6 /* AnalysisAdjustView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisAdjustView.swift; sourceTree = "<group>"; };
 		75191249CD415955E041E75E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		75FF91397AF47465ED682DC4 /* ARViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARViewModel.swift; sourceTree = "<group>"; };
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
@@ -638,6 +640,7 @@
 		BBD514DB7A8AA2852AE94DD3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				73D26B485C0A5BF1378F94C6 /* AnalysisAdjustView.swift */,
 				AC8EAA17DACAF8C6962FE16F /* CapsuleWardrobeView.swift */,
 				6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */,
 				92543E17BB683B062F3EFB23 /* NoPaletteView.swift */,
@@ -913,6 +916,7 @@
 				DE4856C42D4622A5CE0A0395 /* ARWardrobeView.swift in Sources */,
 				F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */,
 				350C1CD2B2224F77C3D21534 /* Analysis.swift in Sources */,
+				D5D548D14130DD861F60ADE9 /* AnalysisAdjustView.swift in Sources */,
 				A2C3EEDB62D101461528CD39 /* AppSecrets.swift in Sources */,
 				B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */,
 				C442FDDA7CC335E1B4B9160D /* AppleIntelligenceService.swift in Sources */,

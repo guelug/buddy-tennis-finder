@@ -6,6 +6,7 @@ import SwiftUI
 struct StyleAnalysisView: View {
     @Environment(AppState.self) private var appState
     let user: User
+    @State private var showingAdjust = false
 
     private var lang: Language { appState.preferredLanguage }
     private var isSpanish: Bool { lang == .spanish }
@@ -88,6 +89,14 @@ struct StyleAnalysisView: View {
         .background(Theme.Colors.groupedBackground.ignoresSafeArea())
         .navigationTitle(isSpanish ? "Mi análisis" : "My Analysis")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isSpanish ? "Ajustar" : "Adjust") { showingAdjust = true }
+            }
+        }
+        .sheet(isPresented: $showingAdjust) {
+            AnalysisAdjustView(user: user)
+        }
     }
 
     private var header: some View {
