@@ -98,6 +98,9 @@ final class ClothingItem {
     /// AI-generated marketing thumbnail (white background, item facing front, full item visible).
     /// Premium/BYOK only. Generated on demand and cached; used for display in the closet.
     var optimizedImageData: Data?
+    /// Background-removed (transparent) cutout of the optimized thumbnail, so the garment can float
+    /// on any backdrop (light or dark). Stored as PNG to preserve the alpha channel.
+    var cutoutImageData: Data?
     var colorTags: [String]
     var styleTags: [String]
     var materialTags: [String]
@@ -156,9 +159,26 @@ final class ClothingItem {
         optimizedImageData != nil
     }
 
-    /// What the closet shows: prefer the polished marketing image, then the real photo, then cutout.
+    /// Transparent cutout of the garment (PNG with alpha), preserved exactly — no JPEG re-encoding.
+    var cutoutImage: UIImage? {
+        get {
+            guard let data = cutoutImageData else { return nil }
+            return UIImage(data: data)
+        }
+        set {
+            cutoutImageData = newValue?.pngData()
+        }
+    }
+
+    /// True when a transparent cutout exists, so the UI can use an adaptive (not forced-white) tile.
+    var hasCutout: Bool {
+        cutoutImageData != nil
+    }
+
+    /// What the closet shows: prefer the transparent cutout, then the polished marketing image, then
+    /// the real photo, then the original capture.
     var displayImage: UIImage? {
-        optimizedImage ?? realReferenceImage ?? image
+        cutoutImage ?? optimizedImage ?? realReferenceImage ?? image
     }
 
     /// The most accurate garment image to send to try-on (cutout/original, never the stylized one).

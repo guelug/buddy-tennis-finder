@@ -391,7 +391,7 @@ struct ClosetItemCard: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
-                    .background(Color.white)
+                    .background(item.hasCutout ? Color(.systemBackground) : Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                     .overlay(alignment: .topLeading) {
                         if item.hasOptimizedImage {
@@ -506,7 +506,7 @@ private struct ClosetItemDetailView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
-                            .background(Color.white)
+                            .background(item.hasCutout ? Color(.systemBackground) : Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                     }
 
@@ -755,9 +755,12 @@ private struct ClosetItemDetailView: View {
                 categoryHint: item.category.displayName.lowercased()
             )
             item.optimizedImage = optimized
+            // Remove the white background so the garment floats on any backdrop (light/dark).
+            item.cutoutImage = BackgroundRemover.removeBackground(from: optimized)
             detailFeedbackCounter += 1
             try? modelContext.save()
-            // Drives the overlay's before→after reveal.
+            // The overlay reveal uses the white-background version so it stays visible on the dark
+            // overlay backdrop; the closet then displays the transparent cutout.
             withAnimation { optimizedResult = optimized }
         } catch {
             showOptimizeOverlay = false
