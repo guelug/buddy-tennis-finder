@@ -382,6 +382,16 @@ struct ClosetItemCard: View {
                     .frame(height: 120)
                     .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                    .overlay(alignment: .topLeading) {
+                        if item.hasOptimizedImage {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(5)
+                                .background(Theme.Colors.primary, in: Circle())
+                                .padding(6)
+                        }
+                    }
             } else {
                 RoundedRectangle(cornerRadius: Theme.CornerRadius.medium)
                     .fill(Color.gray.opacity(0.2))
@@ -448,6 +458,9 @@ private struct ClosetItemDetailView: View {
     @State private var errorMessage: String?
     @State private var detailFeedbackCounter = 0
     @State private var isOptimizing = false
+    @State private var showOptimizeOverlay = false
+    @State private var optimizeSource: UIImage?
+    @State private var optimizedResult: UIImage?
 
     /// Reactively tracks whether THIS garment has a saved AR location. Using `@Query` (instead of
     /// a one-off `modelContext.fetch` inside a computed property) makes the body re-evaluate as
@@ -643,6 +656,16 @@ private struct ClosetItemDetailView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+            .fullScreenCover(isPresented: $showOptimizeOverlay) {
+                if let optimizeSource {
+                    ImageOptimizeOverlay(
+                        source: optimizeSource,
+                        optimized: optimizedResult,
+                        language: lang,
+                        onContinue: { showOptimizeOverlay = false }
+                    )
+                }
+            }
             .sensoryFeedback(.success, trigger: detailFeedbackCounter)
         }
     }
@@ -652,7 +675,7 @@ private struct ClosetItemDetailView: View {
         if canOptimize {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Button {
-                    Task { await optimizeImage() }
+                    startOptimize()
                 } label: {
                     HStack(spacing: 8) {
                         if isOptimizing {
@@ -692,7 +715,7 @@ private struct ClosetItemDetailView: View {
         return lang == .spanish ? "Optimizar imagen" : "Optimize image"
     }
 
-    private func optimizeImage() async {
+    private func startOptimize() {
         guard let source = item.tryOnGarmentImage ?? item.displayImage else { return }
 
         // Without a configured image provider the generation just echoes the source back, which would
@@ -704,7 +727,14 @@ private struct ClosetItemDetailView: View {
             return
         }
 
+        optimizeSource = source
+        optimizedResult = nil
         isOptimizing = true
+        showOptimizeOverlay = true
+        Task { await optimizeImage(source: source) }
+    }
+
+    private func optimizeImage(source: UIImage) async {
         defer { isOptimizing = false }
 
         do {
@@ -715,7 +745,10 @@ private struct ClosetItemDetailView: View {
             item.optimizedImage = optimized
             detailFeedbackCounter += 1
             try? modelContext.save()
+            // Drives the overlay's before→after reveal.
+            withAnimation { optimizedResult = optimized }
         } catch {
+            showOptimizeOverlay = false
             errorMessage = lang == .spanish
                 ? "No he podido optimizar la imagen: \(error.localizedDescription)"
                 : "I couldn't optimize the image: \(error.localizedDescription)"

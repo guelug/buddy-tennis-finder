@@ -15,6 +15,7 @@
 		0920EF86CEF6E09EA74C1778 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC8515ECFA5F640EACA07DA /* CloudKitManager.swift */; };
 		116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */; };
 		1B8427145F72DD383FBA32D7 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4ED6A1E503E280CED9735D85 /* Vision.framework */; };
+		1C8478B3D31F0BD60061229A /* ImageOptimizeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */; };
 		1EFBD4E6E49781E2EB439F75 /* PaletteQuestionnaireView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A463B1685183813B5F117D /* PaletteQuestionnaireView.swift */; };
 		1F87B1E27CEA7F44BB4F6B28 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D57994BF42D7F63E35E06E71 /* HealthKitService.swift */; };
 		22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F78EBA23E4FB4692771AFB /* MainTabView.swift */; };
@@ -151,6 +152,7 @@
 		29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStyleRecommendationIntent.swift; sourceTree = "<group>"; };
 		2A108E1DDE75B55664093E03 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOptimizeOverlay.swift; sourceTree = "<group>"; };
 		3C3A6D967523FBE144BC1419 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
 		3D7695543F9650283615229D /* NamedPaletteLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamedPaletteLibrary.swift; sourceTree = "<group>"; };
 		40F78EBA23E4FB4692771AFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
@@ -390,6 +392,7 @@
 			children = (
 				19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */,
 				7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */,
+				3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -936,6 +939,7 @@
 				1F87B1E27CEA7F44BB4F6B28 /* HealthKitService.swift in Sources */,
 				3831A7980AE129987A0850EF /* HomeView.swift in Sources */,
 				F5B9D703441B8315F47248CF /* ImageConsulting.swift in Sources */,
+				1C8478B3D31F0BD60061229A /* ImageOptimizeOverlay.swift in Sources */,
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,
