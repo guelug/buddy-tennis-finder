@@ -408,6 +408,15 @@ struct ProfileView: View {
                     SettingsRowContent(icon: "person.crop.rectangle.badge.magnifyingglass", title: text("Mi análisis de imagen", "My Image Analysis"), color: .purple)
                 }
                 .buttonStyle(.premiumPressable)
+
+                Divider().padding(.leading, 52)
+
+                NavigationLink {
+                    CapsuleWardrobeView()
+                } label: {
+                    SettingsRowContent(icon: "square.stack.3d.up.fill", title: text("Mi armario cápsula", "My Capsule Wardrobe"), color: .pink)
+                }
+                .buttonStyle(.premiumPressable)
             }
 
             Divider().padding(.leading, 52)
