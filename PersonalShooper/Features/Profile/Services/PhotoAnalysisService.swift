@@ -49,7 +49,10 @@ final class PhotoAnalysisService: PhotoAnalysisServiceProtocol {
                 undertone: science.undertone,
                 undertoneConfidence: science.undertoneConfidence,
                 skinToneCategory: science.depth,
-                seasonalType: science.seasonalType
+                seasonalType: science.seasonalType,
+                ita: science.ita,
+                chroma: science.chroma,
+                contrast: sampling.contrast
             )
         }
 

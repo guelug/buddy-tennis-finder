@@ -30,76 +30,45 @@ enum ImageConsulting {
         ]
     }
 
-    /// Derives a body-silhouette note from measurements, expressed as a neutral, body-positive
-    /// styling goal (never a judgment). Returns nil when there isn't enough data.
-    ///
+    /// Derives a body-shape from measurements when one wasn't auto-detected from a photo.
     /// Uses the standard image-consulting silhouette model from bust/chest, waist and hip balance.
-    static func bodyShapeNote(chestCm: Double?, waistCm: Double?, hipsCm: Double?, language: Language) -> String? {
+    static func bodyShape(chestCm: Double?, waistCm: Double?, hipsCm: Double?) -> BodyShape? {
         guard let chest = chestCm, let waist = waistCm, let hips = hipsCm,
               chest > 0, waist > 0, hips > 0 else { return nil }
 
-        let isSpanish = language == .spanish
-        let shape: Shape
-
         let topToHip = chest / hips
-        let waistToHip = waist / hips
-        let waistDefined = waistToHip <= 0.75
+        let waistDefined = (waist / hips) <= 0.75
 
-        if waist >= chest && waist >= hips {
-            shape = .apple
-        } else if topToHip >= 1.05 {
-            shape = .invertedTriangle
-        } else if topToHip <= 0.95 {
-            shape = .triangle
-        } else if waistDefined {
-            shape = .hourglass
-        } else {
-            shape = .rectangle
-        }
-
-        let name = shape.name(isSpanish: isSpanish)
-        let goal = shape.stylingGoal(isSpanish: isSpanish)
-        return isSpanish
-            ? "Silueta (derivada de las medidas, úsala solo para guiar el corte, nunca para juzgar el cuerpo): \(name) — \(goal)"
-            : "Silhouette (derived from measurements; use only to guide cut, never to judge the body): \(name) — \(goal)"
+        if waist >= chest && waist >= hips { return .oval }
+        if topToHip >= 1.05 { return .invertedTriangle }
+        if topToHip <= 0.95 { return .triangle }
+        return waistDefined ? .hourglass : .rectangle
     }
 
-    private enum Shape {
-        case hourglass, triangle, invertedTriangle, rectangle, apple
+    /// Body-silhouette prompt line, expressed as a neutral, body-positive styling goal.
+    static func bodyShapeNote(_ shape: BodyShape, language: Language) -> String {
+        language == .spanish
+            ? "Silueta (úsala solo para guiar el corte, nunca para juzgar el cuerpo): \(shape.displayName(language)) — \(shape.stylingGoal(language))"
+            : "Silhouette (use only to guide cut, never to judge the body): \(shape.displayName(language)) — \(shape.stylingGoal(language))"
+    }
 
-        func name(isSpanish: Bool) -> String {
-            switch self {
-            case .hourglass: return isSpanish ? "reloj de arena" : "hourglass"
-            case .triangle: return isSpanish ? "triángulo (pera)" : "triangle (pear)"
-            case .invertedTriangle: return isSpanish ? "triángulo invertido" : "inverted triangle"
-            case .rectangle: return isSpanish ? "rectángulo" : "rectangle"
-            case .apple: return isSpanish ? "óvalo (manzana)" : "oval (apple)"
-            }
-        }
+    /// Convenience that derives the body shape from measurements and returns the prompt line.
+    static func bodyShapeNote(chestCm: Double?, waistCm: Double?, hipsCm: Double?, language: Language) -> String? {
+        guard let shape = bodyShape(chestCm: chestCm, waistCm: waistCm, hipsCm: hipsCm) else { return nil }
+        return bodyShapeNote(shape, language: language)
+    }
 
-        func stylingGoal(isSpanish: Bool) -> String {
-            switch self {
-            case .hourglass:
-                return isSpanish
-                    ? "realza la cintura y mantén las proporciones equilibradas con prendas entalladas."
-                    : "emphasize the waist and keep proportions balanced with fitted shapes."
-            case .triangle:
-                return isSpanish
-                    ? "aporta estructura y volumen a los hombros y mantén la parte inferior limpia para equilibrar las caderas."
-                    : "add structure/volume to the shoulders and keep the lower half clean to balance the hips."
-            case .invertedTriangle:
-                return isSpanish
-                    ? "suaviza los hombros y añade volumen o detalle en la parte inferior para equilibrar."
-                    : "soften the shoulders and add volume or detail on the lower half to balance."
-            case .rectangle:
-                return isSpanish
-                    ? "crea curvas y define la cintura con capas, cinturones y prendas entalladas."
-                    : "create curves and define the waist with layering, belts and fitted pieces."
-            case .apple:
-                return isSpanish
-                    ? "alarga el torso con líneas verticales y prendas que deslizan, llevando la atención a piernas y escote."
-                    : "elongate the torso with vertical lines and skimming pieces, drawing attention to legs and neckline."
-            }
-        }
+    /// Face-shape prompt line for neckline / collar / accessory guidance.
+    static func faceShapeNote(_ shape: FaceShape, language: Language) -> String {
+        language == .spanish
+            ? "Forma de rostro: \(shape.displayName(language)) — \(shape.stylingGoal(language))"
+            : "Face shape: \(shape.displayName(language)) — \(shape.stylingGoal(language))"
+    }
+
+    /// Personal-contrast prompt line for value-combination guidance.
+    static func contrastNote(_ level: ContrastLevel, language: Language) -> String {
+        language == .spanish
+            ? "Contraste personal: \(level.displayName(language)) — \(level.stylingGoal(language))"
+            : "Personal contrast: \(level.displayName(language)) — \(level.stylingGoal(language))"
     }
 }

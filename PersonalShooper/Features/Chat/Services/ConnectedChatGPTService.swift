@@ -141,8 +141,14 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
             if let age = profile.age {
                 lines.append("Age: \(age)")
             }
-            if let shapeNote = ImageConsulting.bodyShapeNote(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm, language: context.language) {
-                lines.append(shapeNote)
+            if let shape = profile.bodyShape ?? ImageConsulting.bodyShape(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm) {
+                lines.append(ImageConsulting.bodyShapeNote(shape, language: context.language))
+            }
+            if let face = profile.faceShape {
+                lines.append(ImageConsulting.faceShapeNote(face, language: context.language))
+            }
+            if let contrast = profile.contrastLevel {
+                lines.append(ImageConsulting.contrastNote(contrast, language: context.language))
             }
             if !profile.occupation.isEmpty {
                 lines.append("Occupation: \(profile.occupation)")

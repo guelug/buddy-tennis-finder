@@ -443,6 +443,10 @@ struct PhotoUploadView: View {
             return
         }
 
+        // Auto-detect body silhouette (full-body photo), face shape (close-up) and personal
+        // contrast, and fold them into the styling profile so the stylist tailors fit + necklines.
+        await applyImageAnalysis(to: user, analysis: analysisResult)
+
         // The palette and skin analysis are tiny JSON blobs — always save them. The photo bytes
         // were already accounted for when persisted, so no storage-budget gate is needed here.
         user.skinAnalysis = analysisResult
@@ -460,6 +464,27 @@ struct PhotoUploadView: View {
                 ? "No he podido guardar tu paleta: \(error.localizedDescription)"
                 : "I couldn't save your palette: \(error.localizedDescription)"
         }
+    }
+
+    /// Runs the Vision-based image analyses and stores the results on the user's styling profile.
+    private func applyImageAnalysis(to user: User, analysis: SkinAnalysisResult) async {
+        var profile = user.personalStylingProfile
+
+        if let face = faceCloseUp, let faceShape = await FaceShapeAnalyzer.detectFaceShape(from: face) {
+            profile.faceShape = faceShape
+        }
+
+        if let body = fullBodyFront, let bodyShape = await BodyShapeAnalyzer.detectBodyShape(from: body) {
+            profile.bodyShape = bodyShape
+        } else if let measured = ImageConsulting.bodyShape(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm) {
+            profile.bodyShape = measured
+        }
+
+        if let contrast = analysis.contrast {
+            profile.contrastLevel = ContrastLevel.from(contrast: contrast)
+        }
+
+        user.updateStylingProfile(profile)
     }
 
     private func image(for step: UploadStep) -> UIImage? {

@@ -274,8 +274,14 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         if !measurements.isEmpty {
             values.append("Body measurements (use for sizing/fit, never comment on the user's body negatively): \(measurements.joined(separator: ", "))")
         }
-        if let shapeNote = ImageConsulting.bodyShapeNote(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm, language: language) {
-            values.append(shapeNote)
+        if let shape = profile.bodyShape ?? ImageConsulting.bodyShape(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm) {
+            values.append(ImageConsulting.bodyShapeNote(shape, language: language))
+        }
+        if let face = profile.faceShape {
+            values.append(ImageConsulting.faceShapeNote(face, language: language))
+        }
+        if let contrast = profile.contrastLevel {
+            values.append(ImageConsulting.contrastNote(contrast, language: language))
         }
         if !profile.occupation.isEmpty {
             values.append("Occupation: \(profile.occupation)")

@@ -335,12 +335,25 @@ struct ProfileView: View {
         let palette = await paletteService.generatePalette(from: analysis, language: lang, preferences: preferences)
 
         // Save the reported preferences into the styling profile so they persist for chat + reruns.
+        var profile = user.personalStylingProfile
         if !preferences.isEmpty {
-            var profile = user.personalStylingProfile
             profile.favoriteColors = Array(Set(profile.favoriteColors + preferences.lovedChoices.map { $0.name(in: lang) })).sorted()
             profile.avoidColors = Array(Set(profile.avoidColors + preferences.dislikedChoices.map { $0.name(in: lang) })).sorted()
-            user.updateStylingProfile(profile)
         }
+
+        // Auto-detect face shape, body silhouette and personal contrast from saved photos.
+        if let faceShape = await FaceShapeAnalyzer.detectFaceShape(from: face) {
+            profile.faceShape = faceShape
+        }
+        if let body = user.profilePhotos.fullBodyFront, let bodyShape = await BodyShapeAnalyzer.detectBodyShape(from: body) {
+            profile.bodyShape = bodyShape
+        } else if let measured = ImageConsulting.bodyShape(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm) {
+            profile.bodyShape = measured
+        }
+        if let contrast = analysis.contrast {
+            profile.contrastLevel = ContrastLevel.from(contrast: contrast)
+        }
+        user.updateStylingProfile(profile)
 
         user.skinAnalysis = analysis
         user.personalPalette = palette
@@ -382,6 +395,17 @@ struct ProfileView: View {
                         .navigationTitle(text("Mi paleta", "My Palette"))
                 } label: {
                     SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
+                }
+                .buttonStyle(.premiumPressable)
+            }
+
+            if let user = appState.currentUser, user.personalPalette != nil {
+                Divider().padding(.leading, 52)
+
+                NavigationLink {
+                    StyleAnalysisView(user: user)
+                } label: {
+                    SettingsRowContent(icon: "person.crop.rectangle.badge.magnifyingglass", title: text("Mi análisis de imagen", "My Image Analysis"), color: .purple)
                 }
                 .buttonStyle(.premiumPressable)
             }

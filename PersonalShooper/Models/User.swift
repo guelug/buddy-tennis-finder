@@ -206,6 +206,25 @@ struct PersonalStylingProfile: Codable, Equatable {
     /// Number of distinct usage-days at which the learned summary was last refreshed.
     var learnedAtUsageDay: Int = 0
 
+    /// Auto-detected image-analysis results (raw values kept Codable-stable). Declaration defaults
+    /// keep previously-saved profiles decodable.
+    var bodyShapeRaw: String? = nil
+    var faceShapeRaw: String? = nil
+    var contrastLevelRaw: String? = nil
+
+    var bodyShape: BodyShape? {
+        get { bodyShapeRaw.flatMap(BodyShape.init(rawValue:)) }
+        set { bodyShapeRaw = newValue?.rawValue }
+    }
+    var faceShape: FaceShape? {
+        get { faceShapeRaw.flatMap(FaceShape.init(rawValue:)) }
+        set { faceShapeRaw = newValue?.rawValue }
+    }
+    var contrastLevel: ContrastLevel? {
+        get { contrastLevelRaw.flatMap(ContrastLevel.init(rawValue:)) }
+        set { contrastLevelRaw = newValue?.rawValue }
+    }
+
     init(
         age: Int? = nil,
         genderIdentity: StyleGender? = nil,

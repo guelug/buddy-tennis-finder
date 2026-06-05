@@ -11,19 +11,31 @@ struct SkinAnalysisResult: Codable {
     /// Precise 12-season classification computed from CIELAB depth (ITA°), undertone, and clarity.
     /// Optional for backward compatibility with analyses saved before the science-based pipeline.
     var seasonalType: SeasonalType?
+    /// Individual Typology Angle in degrees (depth metric). Optional for backward compatibility.
+    var ita: Double?
+    /// CIELAB chroma C* of the skin (saturation/clarity input). Optional for backward compatibility.
+    var chroma: Double?
+    /// 0…1 natural value-contrast (skin lightness minus darkest-feature lightness).
+    var contrast: Double?
 
     init(
         dominantColors: [CodableColor],
         undertone: Undertone,
         undertoneConfidence: Double,
         skinToneCategory: SkinToneCategory,
-        seasonalType: SeasonalType? = nil
+        seasonalType: SeasonalType? = nil,
+        ita: Double? = nil,
+        chroma: Double? = nil,
+        contrast: Double? = nil
     ) {
         self.dominantColors = dominantColors
         self.undertone = undertone
         self.undertoneConfidence = undertoneConfidence
         self.skinToneCategory = skinToneCategory
         self.seasonalType = seasonalType
+        self.ita = ita
+        self.chroma = chroma
+        self.contrast = contrast
     }
 }
 
