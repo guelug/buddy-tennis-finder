@@ -109,7 +109,9 @@ struct ContentView: View {
             }
         }
         .environment(\.locale, Locale(identifier: appState.preferredLanguage.rawValue))
-        .preferredColorScheme(preferredColorScheme)
+        // Locked to light for now: optimized garment images use white backgrounds, which would read
+        // as white squares on a dark UI. Revisit once thumbnails support transparent/dark backdrops.
+        .preferredColorScheme(.light)
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation {

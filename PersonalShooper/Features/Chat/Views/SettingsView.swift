@@ -24,19 +24,8 @@ struct SettingsView: View {
         List {
             // Appearance Section
             Section {
-                // Theme Picker
-                Picker(text("Tema", "Theme"), selection: $selectedTheme) {
-                    ForEach(AppTheme.allCases) { theme in
-                        HStack {
-                            Image(systemName: theme.icon)
-                            Text(theme.displayName(language: lang))
-                        }
-                        .tag(theme)
-                    }
-                }
-                .onChange(of: selectedTheme) { _, newValue in
-                    applyTheme(newValue)
-                }
+                // Theme is temporarily locked to light so garment thumbnails (white-background
+                // product images) stay consistent and never render as white squares on dark.
 
                 // Language Picker
                 NavigationLink {

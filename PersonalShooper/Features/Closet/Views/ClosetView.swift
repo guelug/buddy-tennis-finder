@@ -391,7 +391,7 @@ struct ClosetItemCard: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
-                    .background(Color(.systemBackground))
+                    .background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                     .overlay(alignment: .topLeading) {
                         if item.hasOptimizedImage {
@@ -506,6 +506,7 @@ private struct ClosetItemDetailView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
+                            .background(Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                     }
 
