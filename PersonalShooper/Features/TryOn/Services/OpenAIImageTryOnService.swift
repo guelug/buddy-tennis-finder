@@ -96,12 +96,7 @@ final class OpenAIImageTryOnService {
     }
 
     func marketingImage(for garment: UIImage, categoryHint: String, apiKey: String) async throws -> UIImage {
-        let prompt = """
-        Create a clean e-commerce product photo of THIS EXACT \(categoryHint) on a pure white seamless studio background.
-        Keep the garment's color, pattern, fabric, logos and shape exactly as in the source — do not restyle or recolor.
-        Photograph it straight-on, centered, fully visible, evenly lit with a soft shadow. No mannequin, no person, no props, no text.
-        """
-        return try await editImage(garment, prompt: prompt, size: "1024x1024", apiKey: apiKey)
+        return try await editImage(garment, prompt: MarketingImagePrompt.build(categoryHint: categoryHint), size: "1024x1024", apiKey: apiKey)
     }
 
     private func buildMultipartBody(boundary: String, userImage: UIImage, clothingImage: UIImage) throws -> Data {

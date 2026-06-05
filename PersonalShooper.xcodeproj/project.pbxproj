@@ -103,6 +103,7 @@
 		EB8D7B65C7D282E1369B0FE9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */; };
 		EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */; };
 		EE4BFA4A390C124966233A83 /* StyleImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5520711C133FC4F26B4CC57 /* StyleImageService.swift */; };
+		F154106DC37C0BFC3A5DDD17 /* MarketingImagePrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = C45156A1511F0773440845E4 /* MarketingImagePrompt.swift */; };
 		F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */; };
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
 		F5B9D703441B8315F47248CF /* ImageConsulting.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0C9C27A7F650CF01C49E77 /* ImageConsulting.swift */; };
@@ -220,6 +221,7 @@
 		BCE0DB96AC9E480300EB1EBA /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		BECF652589720B2AB223F1A5 /* TryOnService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnService.swift; sourceTree = "<group>"; };
 		C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		C45156A1511F0773440845E4 /* MarketingImagePrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketingImagePrompt.swift; sourceTree = "<group>"; };
 		C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarView.swift; sourceTree = "<group>"; };
 		C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderService.swift; sourceTree = "<group>"; };
 		C953B3EF34621286495A48CD /* PaletteGenerationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationOverlay.swift; sourceTree = "<group>"; };
@@ -601,6 +603,7 @@
 				94A8779B95F2595D34BE27A8 /* CapsuleWardrobeService.swift */,
 				DEE3B87031F08BB71C792EB6 /* FaceShapeAnalyzer.swift */,
 				D57994BF42D7F63E35E06E71 /* HealthKitService.swift */,
+				C45156A1511F0773440845E4 /* MarketingImagePrompt.swift */,
 				3D7695543F9650283615229D /* NamedPaletteLibrary.swift */,
 				7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */,
 				0F9943860D030691BD0D6D9D /* PalettePreferences.swift */,
@@ -954,6 +957,7 @@
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,
 				D37906D2C4BBDEBE9F4BFC6B /* MarkdownMessageView.swift in Sources */,
+				F154106DC37C0BFC3A5DDD17 /* MarketingImagePrompt.swift in Sources */,
 				FCF7235DD9D851E88EEA06AE /* NamedPaletteLibrary.swift in Sources */,
 				A46152D996282676D8C8ED78 /* NoPaletteView.swift in Sources */,
 				A17E9F62BE725D71CC4F05C3 /* OnboardingView.swift in Sources */,

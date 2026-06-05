@@ -104,15 +104,8 @@ final class GeminiTryOnService: TryOnServiceProtocol {
             return garment
         }
 
-        let prompt = """
-        Create a clean, professional e-commerce product photo of THIS EXACT \(categoryHint).
-        Keep the garment's color, pattern, fabric, texture, logos, and shape exactly as in the source image — do not restyle or recolor it.
-        Place it on a pure white seamless studio background, photographed straight-on and centered, evenly lit, with a soft natural shadow.
-        Show the FULL item, head-on, as if displayed in a premium online store: a top should be shown front-facing as if worn/buttoned, shoes should face the viewer, trousers shown full-length. No mannequin, no person, no props, no text.
-        """
-
         let request = try buildRequest(
-            prompt: prompt,
+            prompt: MarketingImagePrompt.build(categoryHint: categoryHint),
             images: [try makeInlineImagePart(from: garment)],
             apiKey: apiKey
         )
