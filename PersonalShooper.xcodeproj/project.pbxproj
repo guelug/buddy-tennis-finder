@@ -96,6 +96,7 @@
 		EE4BFA4A390C124966233A83 /* StyleImageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5520711C133FC4F26B4CC57 /* StyleImageService.swift */; };
 		F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */; };
 		F556C0520A0F11D9E953452B /* PhotoAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */; };
+		F5B9D703441B8315F47248CF /* ImageConsulting.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0C9C27A7F650CF01C49E77 /* ImageConsulting.swift */; };
 		FAB2438FEB64E57DD5187064 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */; };
 		FB12C3559703A574FB6795C1 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */; };
 		FBCEDF6E4A1065AD39110EFA /* StyleUsageLearning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E038F5F31EB01F96281EE64 /* StyleUsageLearning.swift */; };
@@ -224,6 +225,7 @@
 		FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBudgetManager.swift; sourceTree = "<group>"; };
 		FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = LocalSecrets.plist; sourceTree = "<group>"; };
 		FBABC5D5EE29FF5A45A135E0 /* Strings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Strings.swift; sourceTree = "<group>"; };
+		FD0C9C27A7F650CF01C49E77 /* ImageConsulting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConsulting.swift; sourceTree = "<group>"; };
 		FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingItem.swift; sourceTree = "<group>"; };
 		FF4CAFB822A3E2AB7DDE2D5C /* ARClothingPlacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARClothingPlacement.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -670,6 +672,7 @@
 				790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */,
 				22B513CBC4BAB4CB39A8A5F4 /* ChatWorkspaceService.swift */,
 				A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */,
+				FD0C9C27A7F650CF01C49E77 /* ImageConsulting.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -910,6 +913,7 @@
 				59DAC8F2BDD2A49E39AA5E7D /* GeminiTryOnService.swift in Sources */,
 				1F87B1E27CEA7F44BB4F6B28 /* HealthKitService.swift in Sources */,
 				3831A7980AE129987A0850EF /* HomeView.swift in Sources */,
+				F5B9D703441B8315F47248CF /* ImageConsulting.swift in Sources */,
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,

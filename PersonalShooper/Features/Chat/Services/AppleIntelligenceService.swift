@@ -182,7 +182,7 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     }
 
     private func systemInstructions(for language: Language, assistantName: String) -> String {
-        [
+        var lines = [
             "You are \(assistantName), the personal stylist inside Personal Shopper, a premium iOS fashion app.",
             "Introduce yourself as \(assistantName) only if the user greets you or asks who you are; otherwise get straight to styling.",
             "The user may share their own name; never assume your name and the user's name are the same person.",
@@ -192,10 +192,15 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
                 : "Always reply in clear, natural, specific English.",
             "Use the user's saved style profile, palette, calendar context, and closet inventory when present.",
             "Give concrete outfit formulas, color pairings, fit guidance, and wardrobe actions.",
+        ]
+        lines.append(contentsOf: ImageConsulting.professionalGuidelines(language: language))
+        lines.append(contentsOf: [
+            "When formatting helps (comparisons, capsule plans, size charts), use Markdown tables; otherwise keep prose tight.",
             "Prioritize privacy: do not ask for sensitive personal data unrelated to style, and do not claim external access.",
             "If a closet item is relevant, name it directly and explain why it works.",
             "Keep responses concise enough for mobile chat."
-        ].joined(separator: "\n")
+        ])
+        return lines.joined(separator: "\n")
     }
 
     private func userPrompt(for message: String, context: ChatContext) -> String {
@@ -268,6 +273,9 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         if let chest = profile.chestCm { measurements.append("chest \(Int(chest.rounded())) cm") }
         if !measurements.isEmpty {
             values.append("Body measurements (use for sizing/fit, never comment on the user's body negatively): \(measurements.joined(separator: ", "))")
+        }
+        if let shapeNote = ImageConsulting.bodyShapeNote(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm, language: language) {
+            values.append(shapeNote)
         }
         if !profile.occupation.isEmpty {
             values.append("Occupation: \(profile.occupation)")
