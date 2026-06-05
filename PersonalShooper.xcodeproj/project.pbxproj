@@ -56,6 +56,7 @@
 		795D5E329C4DD71E97A844AD /* ClothingClassifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */; };
 		79782D3867F585D71C8ACCBB /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A108E1DDE75B55664093E03 /* Theme.swift */; };
 		7BED6BEBADE3624FD121F2E2 /* OutfitCalendarEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */; };
+		7FCE5503C98AEBFDE07786A1 /* OutfitsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D43D1D121040B621C339053 /* OutfitsView.swift */; };
 		82F3DCCBCF8B11A65CF252F1 /* ClothingCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */; };
 		84916E8331EBF2BF1D33E101 /* BYOKChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */; };
 		899E324BD2572DE2E6C5CB92 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4089E6DAF71F0651193DF6A /* ChatView.swift */; };
@@ -86,6 +87,7 @@
 		CA008943BC67D78156ED8EB5 /* Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCE0DB96AC9E480300EB1EBA /* Conversation.swift */; };
 		CC0B7E44E01CC434943435C9 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75191249CD415955E041E75E /* User.swift */; };
 		CC9D66D330135D4E336908C6 /* Speech.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CCE329E228B17589B6409BA /* Speech.framework */; };
+		CEA32920C12B1B4ABF9B6F29 /* SavedOutfit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */; };
 		D37906D2C4BBDEBE9F4BFC6B /* MarkdownMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1229F005E5F1340CB1DB60CA /* MarkdownMessageView.swift */; };
 		D6F9CBD488DF834CCA65E1B2 /* CapsuleWardrobeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94A8779B95F2595D34BE27A8 /* CapsuleWardrobeService.swift */; };
 		D935D25B000BBC82FF86CD3A /* CapsuleWardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC8EAA17DACAF8C6962FE16F /* CapsuleWardrobeView.swift */; };
@@ -155,6 +157,7 @@
 		3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOptimizeOverlay.swift; sourceTree = "<group>"; };
 		3C3A6D967523FBE144BC1419 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
 		3D7695543F9650283615229D /* NamedPaletteLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NamedPaletteLibrary.swift; sourceTree = "<group>"; };
+		402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedOutfit.swift; sourceTree = "<group>"; };
 		40F78EBA23E4FB4692771AFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		468C44B82C05D68A858BA53F /* PersonalShooper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PersonalShooper.entitlements; sourceTree = "<group>"; };
 		4ED6A1E503E280CED9735D85 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
@@ -166,6 +169,7 @@
 		5746CEAA41E96B2BC367DB40 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		58C921E5264D4517384FDC8F /* StyleAnalysisTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleAnalysisTypes.swift; sourceTree = "<group>"; };
 		5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarEntry.swift; sourceTree = "<group>"; };
+		5D43D1D121040B621C339053 /* OutfitsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitsView.swift; sourceTree = "<group>"; };
 		5F862D43B99551B439DD1416 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
@@ -393,6 +397,7 @@
 				19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */,
 				7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */,
 				3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */,
+				5D43D1D121040B621C339053 /* OutfitsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -672,6 +677,7 @@
 				FEF58E4B0DA60D35304E89F4 /* ClothingItem.swift */,
 				BCE0DB96AC9E480300EB1EBA /* Conversation.swift */,
 				5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */,
+				402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */,
 				58C921E5264D4517384FDC8F /* StyleAnalysisTypes.swift */,
 				75191249CD415955E041E75E /* User.swift */,
 			);
@@ -951,6 +957,7 @@
 				7BED6BEBADE3624FD121F2E2 /* OutfitCalendarEntry.swift in Sources */,
 				2CC230663AC80DB3B7E9DB1A /* OutfitCalendarView.swift in Sources */,
 				40A2958DD92AA095AF0461A1 /* OutfitWeatherService.swift in Sources */,
+				7FCE5503C98AEBFDE07786A1 /* OutfitsView.swift in Sources */,
 				462546734450AD199EE637F3 /* PaletteGenerationOverlay.swift in Sources */,
 				626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */,
 				E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */,
@@ -962,6 +969,7 @@
 				BF76F75BF73CF46001279010 /* PrivacySettingsView.swift in Sources */,
 				240302348AD244A108B8C9F5 /* ProfileStorageService.swift in Sources */,
 				76E4D05EC2F43CEC9F73D905 /* ProfileView.swift in Sources */,
+				CEA32920C12B1B4ABF9B6F29 /* SavedOutfit.swift in Sources */,
 				449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */,
 				9634C3723413210A4F81DB56 /* SkinColorScience.swift in Sources */,
 				5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */,

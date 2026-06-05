@@ -8,6 +8,7 @@ struct ClosetView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var items: [ClothingItem]
     @State private var selectedCategory: ClothingCategory?
     @State private var showingAddItem = false
+    @State private var showingOutfits = false
     @State private var showingSubscription = false
     @State private var searchText = ""
     @State private var pendingDeletionItem: ClothingItem?
@@ -154,6 +155,13 @@ struct ClosetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: Strings.closetSearch(lang))
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingOutfits = true
+                    } label: {
+                        Image(systemName: "square.stack.3d.up")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         startAddingItem()
@@ -164,6 +172,9 @@ struct ClosetView: View {
             }
             .sheet(isPresented: $showingAddItem) {
                 ClothingCaptureView()
+            }
+            .sheet(isPresented: $showingOutfits) {
+                OutfitsView()
             }
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()

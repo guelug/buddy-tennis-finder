@@ -47,7 +47,8 @@ struct PersonalShooperApp: App {
             TryOnResult.self,
             StyleProgressMission.self,
             OutfitCalendarEntry.self,
-            ARClothingPlacement.self
+            ARClothingPlacement.self,
+            SavedOutfit.self
         ])
         
         do {
