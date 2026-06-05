@@ -63,7 +63,7 @@ final class OpenAIImageTryOnService {
         appendField("prompt", value: prompt, boundary: boundary, to: &body)
         appendField("size", value: size, boundary: boundary, to: &body)
         appendField("quality", value: "medium", boundary: boundary, to: &body)
-        appendField("response_format", value: "b64_json", boundary: boundary, to: &body)
+        // gpt-image-1 always returns base64 and REJECTS `response_format` ("Unknown parameter").
         appendField("input_fidelity", value: "high", boundary: boundary, to: &body)
         appendFileField("image[]", fileName: "source.png", mimeType: "image/png", data: png, boundary: boundary, to: &body)
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
@@ -116,7 +116,7 @@ final class OpenAIImageTryOnService {
         appendField("prompt", value: prompt, boundary: boundary, to: &body)
         appendField("size", value: "1024x1536", boundary: boundary, to: &body)
         appendField("quality", value: "medium", boundary: boundary, to: &body)
-        appendField("response_format", value: "b64_json", boundary: boundary, to: &body)
+        // gpt-image-1 always returns base64 and REJECTS `response_format` ("Unknown parameter").
         appendField("input_fidelity", value: "high", boundary: boundary, to: &body)
         appendFileField("image[]", fileName: "person.png", mimeType: "image/png", data: userPNG, boundary: boundary, to: &body)
         appendFileField("image[]", fileName: "garment.png", mimeType: "image/png", data: clothingPNG, boundary: boundary, to: &body)
