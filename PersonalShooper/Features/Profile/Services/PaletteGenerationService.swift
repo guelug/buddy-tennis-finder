@@ -149,6 +149,21 @@ final class PaletteGenerationService {
             lines.append("Sampled skin tones (for context only, do NOT recommend these): \(swatches).")
         }
 
+        // Ground the model in the season's professional wardrobe direction so it personalizes within
+        // the right family instead of drifting. These are real garment colors, never skin tones.
+        let recipe = NamedPaletteLibrary.recipe(for: seasonalType)
+        let anchors = (recipe.best + recipe.statements)
+            .prefix(7)
+            .map { "\($0.1) \($0.0)" }
+            .joined(separator: ", ")
+        if !anchors.isEmpty {
+            lines.append("Professional anchor garment colors for a \(seasonalType.displayName) (stay within this family; you may refine or vary the exact shades, but keep the same temperature, depth and clarity): \(anchors).")
+        }
+        let avoidAnchors = recipe.avoid.map { $0.1 }.joined(separator: ", ")
+        if !avoidAnchors.isEmpty {
+            lines.append("Colors that typically wash out a \(seasonalType.displayName): \(avoidAnchors).")
+        }
+
         // The user's self-reported experience outranks the automatic skin read.
         let loved = preferences.lovedChoices.map { $0.name(in: .english) }
         if !loved.isEmpty {
