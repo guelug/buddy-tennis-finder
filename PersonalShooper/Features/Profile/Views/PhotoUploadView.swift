@@ -30,6 +30,9 @@ struct PhotoUploadView: View {
     @State private var cropItem: CropItem?
     @State private var pendingCameraImage: UIImage?
     @State private var showPaletteQuestionnaire = false
+    @State private var pendingPreferences: PalettePreferences?
+    @State private var showGenerationOverlay = false
+    @State private var generatedPalette: PersonalPalette?
 
     private let photoAnalysisService = PhotoAnalysisService()
     private let paletteService = PaletteGenerationService()
@@ -105,9 +108,24 @@ struct PhotoUploadView: View {
                 }
             }
             .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
-            .sheet(isPresented: $showPaletteQuestionnaire) {
+            .sheet(isPresented: $showPaletteQuestionnaire, onDismiss: startAnalysisIfPending) {
                 PaletteQuestionnaireView(language: appState.preferredLanguage) { preferences in
-                    Task { await analyzePhotos(preferences: preferences) }
+                    // Defer the heavy analysis until the questionnaire sheet has fully dismissed, then
+                    // present the premium generation overlay (avoids a present-while-dismiss clash).
+                    pendingPreferences = preferences
+                }
+            }
+            .fullScreenCover(isPresented: $showGenerationOverlay) {
+                if let face = faceCloseUp {
+                    PaletteGenerationOverlay(
+                        selfie: face,
+                        palette: generatedPalette,
+                        language: appState.preferredLanguage,
+                        onContinue: {
+                            showGenerationOverlay = false
+                            dismiss()
+                        }
+                    )
                 }
             }
             .fullScreenCover(isPresented: $showCamera, onDismiss: presentCropForCapturedImage) {
@@ -382,13 +400,23 @@ struct PhotoUploadView: View {
         }
     }
 
-    private func analyzePhotos(preferences: PalettePreferences) async {
-        guard let face = faceCloseUp else {
+    /// Kicks off analysis after the questionnaire sheet has dismissed, presenting the premium overlay.
+    private func startAnalysisIfPending() {
+        guard let preferences = pendingPreferences else { return }
+        pendingPreferences = nil
+
+        guard faceCloseUp != nil else {
             errorMessage = isSpanish ? "Se requiere una foto de primer plano del rostro." : "A close-up face photo is required."
             return
         }
 
-        isAnalyzing = true
+        generatedPalette = nil
+        showGenerationOverlay = true
+        Task { await analyzePhotos(preferences: preferences) }
+    }
+
+    private func analyzePhotos(preferences: PalettePreferences) async {
+        guard let face = faceCloseUp else { return }
 
         // Photos are already persisted progressively during cropping, but make sure the latest
         // state is saved before we attempt the (heavier) palette analysis.
@@ -410,8 +438,8 @@ struct PhotoUploadView: View {
         persistColorPreferences(preferences)
 
         guard let user = appState.currentUser else {
+            showGenerationOverlay = false
             errorMessage = isSpanish ? "No he encontrado tu perfil de usuario." : "I couldn't find your user profile."
-            isAnalyzing = false
             return
         }
 
@@ -424,10 +452,10 @@ struct PhotoUploadView: View {
         do {
             try modelContext.save()
             appState.updateUser(user)
-            isAnalyzing = false
-            dismiss()
+            // Hand the finished palette to the overlay, which plays the reveal and then dismisses.
+            withAnimation { generatedPalette = palette }
         } catch {
-            isAnalyzing = false
+            showGenerationOverlay = false
             errorMessage = isSpanish
                 ? "No he podido guardar tu paleta: \(error.localizedDescription)"
                 : "I couldn't save your palette: \(error.localizedDescription)"

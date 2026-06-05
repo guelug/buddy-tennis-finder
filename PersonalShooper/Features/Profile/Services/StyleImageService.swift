@@ -41,6 +41,13 @@ enum StyleImageService {
         geminiKey() != nil && openAIKey() != nil
     }
 
+    /// True when at least one image-capable provider key is available. When false, image
+    /// generation/editing can't run, so callers should surface a "configure a key" message instead
+    /// of silently returning the source image and pretending the operation succeeded.
+    static func hasImageProvider() -> Bool {
+        geminiKey() != nil || openAIKey() != nil
+    }
+
     static func cleanStudioReference(from person: UIImage) async throws -> UIImage {
         switch resolvedEngine() {
         case .gemini:

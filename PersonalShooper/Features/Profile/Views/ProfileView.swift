@@ -10,6 +10,9 @@ struct ProfileView: View {
     @State private var isGeneratingPalette = false
     @State private var paletteMessage: String?
     @State private var showPaletteQuestionnaire = false
+    @State private var pendingPreferences: PalettePreferences?
+    @State private var showGenerationOverlay = false
+    @State private var generatedPalette: PersonalPalette?
     private let photoAnalysisService = PhotoAnalysisService()
     private let paletteService = PaletteGenerationService()
 
@@ -51,12 +54,32 @@ struct ProfileView: View {
             .sheet(isPresented: $showingPhotoUpload) {
                 PhotoUploadView(startStep: editingPhotoStep)
             }
-            .sheet(isPresented: $showPaletteQuestionnaire) {
+            .sheet(isPresented: $showPaletteQuestionnaire, onDismiss: startGenerationIfPending) {
                 PaletteQuestionnaireView(language: lang, initial: savedColorPreferences) { preferences in
-                    Task { await generatePalette(preferences: preferences) }
+                    pendingPreferences = preferences
+                }
+            }
+            .fullScreenCover(isPresented: $showGenerationOverlay) {
+                if let face = appState.currentUser?.profilePhotos.faceCloseUp {
+                    PaletteGenerationOverlay(
+                        selfie: face,
+                        palette: generatedPalette,
+                        language: lang,
+                        onContinue: { showGenerationOverlay = false }
+                    )
                 }
             }
         }
+    }
+
+    /// Starts generation after the questionnaire sheet dismisses, presenting the premium overlay.
+    private func startGenerationIfPending() {
+        guard let preferences = pendingPreferences else { return }
+        pendingPreferences = nil
+        guard appState.currentUser?.profilePhotos.faceCloseUp != nil else { return }
+        generatedPalette = nil
+        showGenerationOverlay = true
+        Task { await generatePalette(preferences: preferences) }
     }
 
     /// Pre-fills the questionnaire with any color preferences already saved in the styling profile.
@@ -327,7 +350,10 @@ struct ProfileView: View {
             try modelContext.save()
             appState.updateUser(user)
             paletteMessage = text("Tu paleta personal está lista.", "Your personal palette is ready.")
+            // Trigger the premium reveal in the overlay.
+            withAnimation { generatedPalette = palette }
         } catch {
+            showGenerationOverlay = false
             paletteMessage = text("No he podido guardar la paleta.", "I couldn't save the palette.")
         }
     }

@@ -8,6 +8,23 @@ struct SkinAnalysisResult: Codable {
     let undertone: Undertone
     let undertoneConfidence: Double
     let skinToneCategory: SkinToneCategory
+    /// Precise 12-season classification computed from CIELAB depth (ITA°), undertone, and clarity.
+    /// Optional for backward compatibility with analyses saved before the science-based pipeline.
+    var seasonalType: SeasonalType?
+
+    init(
+        dominantColors: [CodableColor],
+        undertone: Undertone,
+        undertoneConfidence: Double,
+        skinToneCategory: SkinToneCategory,
+        seasonalType: SeasonalType? = nil
+    ) {
+        self.dominantColors = dominantColors
+        self.undertone = undertone
+        self.undertoneConfidence = undertoneConfidence
+        self.skinToneCategory = skinToneCategory
+        self.seasonalType = seasonalType
+    }
 }
 
 // MARK: - Personal Palette
