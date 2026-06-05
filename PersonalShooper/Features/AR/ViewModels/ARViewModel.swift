@@ -267,6 +267,37 @@ final class ARViewModel {
         placements.first { $0.clothingItemID == item.id }
     }
 
+    /// True when there's something to reset (a saved map and/or existing placements). Drives whether
+    /// the "reset space" escape hatch is offered.
+    var canResetSpace: Bool {
+        ARWorldMapStore.hasSavedMap || !placements.isEmpty
+    }
+
+    /// Escape hatch for when relocalization can't complete (e.g. the user is in a different room, or
+    /// the saved map is stale): wipe the saved world map AND the placements — their positions live in
+    /// a coordinate space that no longer exists, so keeping them would just scatter tags — then
+    /// restart the session fresh so the user can map and re-mark from scratch. Destructive, so the
+    /// caller confirms first.
+    func resetSpace() {
+        ARWorldMapStore.clear()
+        for placement in placements {
+            modelContext?.delete(placement)
+        }
+        try? modelContext?.save()
+        placements.removeAll()
+        selectedPlacement = nil
+        selectedClothingItem = nil
+        findTarget = nil
+        currentMode = .browse
+        expectsRelocalization = false
+        isRelocalizing = false
+        isSpaceReady = false
+        pendingWorldMapSave = false
+        // No saved map now, so this returns a fresh-mapping configuration.
+        let configuration = createARConfiguration()
+        arSession?.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+    }
+
     func createARConfiguration() -> ARWorldTrackingConfiguration {
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal, .vertical]

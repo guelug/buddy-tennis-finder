@@ -14,6 +14,7 @@ struct ARWardrobeView: View {
     @State private var shelfNameInput = ""
     @State private var pendingTapPosition: SIMD3<Float>?
     @State private var showCloserHint = false
+    @State private var showingResetConfirm = false
 
     private var isSpanish: Bool {
         appState.preferredLanguage == .spanish
@@ -74,6 +75,20 @@ struct ARWardrobeView: View {
                         dismiss()
                     }
                 }
+
+                if viewModel.isARSupported && viewModel.canResetSpace {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button(role: .destructive) {
+                                showingResetConfirm = true
+                            } label: {
+                                Label(isSpanish ? "Restablecer espacio" : "Reset space", systemImage: "arrow.counterclockwise")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
             }
             .sheet(isPresented: $showingClothingPicker) {
                 ClothingPickerSheet(viewModel: viewModel, purpose: .locate)
@@ -112,6 +127,19 @@ struct ARWardrobeView: View {
                 }
             } message: {
                 Text(viewModel.errorMessage ?? "")
+            }
+            .alert(
+                isSpanish ? "¿Restablecer el espacio?" : "Reset the space?",
+                isPresented: $showingResetConfirm
+            ) {
+                Button(isSpanish ? "Restablecer" : "Reset", role: .destructive) {
+                    viewModel.resetSpace()
+                }
+                Button(isSpanish ? "Cancelar" : "Cancel", role: .cancel) {}
+            } message: {
+                Text(isSpanish
+                     ? "Borraré el mapa guardado y todas las ubicaciones marcadas para empezar de cero. Esto no se puede deshacer."
+                     : "I'll erase the saved map and all marked locations so you can start fresh. This can't be undone.")
             }
             .onAppear {
                 viewModel.language = appState.preferredLanguage
