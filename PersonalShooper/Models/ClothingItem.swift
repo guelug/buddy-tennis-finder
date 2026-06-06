@@ -111,6 +111,9 @@ final class ClothingItem {
     var brandName: String?
     var notes: String?
     var metadataSummary: String?
+    /// Optional purchase price, used for the cost-per-wear metric. Declaration default keeps older
+    /// saved items decodable.
+    var price: Double? = nil
     var createdAt: Date
     var isFavorite: Bool
     var timesWorn: Int
@@ -175,6 +178,12 @@ final class ClothingItem {
     /// True when a transparent cutout exists, so the UI can use an adaptive (not forced-white) tile.
     var hasCutout: Bool {
         cutoutImageData != nil
+    }
+
+    /// Purchase price amortized over confirmed wears — the classic "cost per wear" value metric.
+    var costPerWear: Double? {
+        guard let price, price > 0 else { return nil }
+        return price / Double(max(timesWorn, 1))
     }
 
     /// What the closet shows: prefer the transparent cutout, then the polished marketing image, then

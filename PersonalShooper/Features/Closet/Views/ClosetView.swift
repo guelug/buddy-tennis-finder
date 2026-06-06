@@ -15,10 +15,15 @@ struct ClosetView: View {
     @State private var deletionErrorMessage: String?
     @State private var selectedItem: ClothingItem?
     @State private var sortMode: ClosetSortMode = .recent
+    @State private var onPaletteOnly = false
     @State private var closetFeedbackCounter = 0
 
     private var lang: Language {
         appState.preferredLanguage
+    }
+
+    private var paletteColorNames: Set<String> {
+        PaletteMatching.colorNames(for: appState.currentUser?.personalPalette)
     }
 
     var filteredItems: [ClothingItem] {
@@ -28,6 +33,10 @@ struct ClosetView: View {
         }
         if !searchText.isEmpty {
             result = result.filter { $0.matches(searchText: searchText) }
+        }
+        if onPaletteOnly {
+            let names = paletteColorNames
+            result = result.filter { PaletteMatching.isOnPalette($0, names: names) }
         }
         return result.sorted(using: sortMode)
     }
@@ -96,12 +105,31 @@ struct ClosetView: View {
                             .pickerStyle(.segmented)
                             .animation(.snappy(duration: 0.22), value: sortMode)
 
+                            if !paletteColorNames.isEmpty {
+                                Button {
+                                    withAnimation(.snappy(duration: 0.22)) { onPaletteOnly.toggle() }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: onPaletteOnly ? "checkmark.seal.fill" : "checkmark.seal")
+                                        Text(lang == .spanish ? "Solo en mi paleta" : "Only in my palette")
+                                            .font(.subheadline.weight(.medium))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .frame(maxWidth: .infinity)
+                                    .background(onPaletteOnly ? Theme.Colors.primary : Theme.Colors.primary.opacity(0.1))
+                                    .foregroundStyle(onPaletteOnly ? .white : Theme.Colors.primary)
+                                    .clipShape(Capsule())
+                                }
+                                .buttonStyle(.premiumPressable)
+                            }
+
                             LazyVGrid(columns: [
                                 GridItem(.flexible()),
                                 GridItem(.flexible())
                             ], spacing: Theme.Spacing.sm) {
                                 ForEach(filteredItems) { item in
-                                    ClosetItemCard(item: item, lang: lang)
+                                    ClosetItemCard(item: item, lang: lang, isOnPalette: PaletteMatching.isOnPalette(item, names: paletteColorNames))
                                         .transition(.scale(scale: 0.96).combined(with: .opacity))
                                         .onTapGesture {
                                             selectedItem = item
@@ -382,6 +410,7 @@ struct CategoryChip: View {
 struct ClosetItemCard: View {
     let item: ClothingItem
     let lang: Language
+    var isOnPalette: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -419,9 +448,19 @@ struct ClosetItemCard: View {
                 .fontWeight(.medium)
                 .lineLimit(1)
 
-            Text(Strings.categoryDisplayName(item.category, lang))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Text(Strings.categoryDisplayName(item.category, lang))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                if isOnPalette {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.green)
+                    Text(lang == .spanish ? "En paleta" : "On palette")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.green)
+                }
+            }
 
             if !item.searchHighlightLine.isEmpty {
                 Text(item.searchHighlightLine)

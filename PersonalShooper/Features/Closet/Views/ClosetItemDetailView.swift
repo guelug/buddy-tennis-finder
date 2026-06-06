@@ -139,6 +139,20 @@ struct ClosetItemDetailView: View {
                         Toggle(isOn: $item.isFavorite) {
                             Label(lang == .spanish ? "Favorita" : "Favorite", systemImage: "heart")
                         }
+
+                        HStack {
+                            Label(lang == .spanish ? "Precio" : "Price", systemImage: "tag")
+                                .font(.subheadline)
+                            Spacer()
+                            TextField(
+                                lang == .spanish ? "Opcional" : "Optional",
+                                value: $item.price,
+                                format: .number.precision(.fractionLength(0...2))
+                            )
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 90)
+                        }
                     }
                     .padding()
                     .background(Theme.Colors.cardBackground)
@@ -332,6 +346,23 @@ struct ClosetItemDetailView: View {
                 metric(title: lang == .spanish ? "Usos" : "Wears", value: "\(item.timesWorn)")
                 metric(title: lang == .spanish ? "Sugerida" : "Suggested", value: "\(item.recommendationAppearanceCount)")
                 metric(title: lang == .spanish ? "Aceptada" : "Accepted", value: "\(item.recommendationSuccessfulWearCount)")
+            }
+
+            if let costPerWear = item.costPerWear {
+                HStack {
+                    Label(lang == .spanish ? "Coste por puesta" : "Cost per wear", systemImage: "eurosign.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(costPerWear, format: .number.precision(.fractionLength(0...2)))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(item.timesWorn >= 5 ? .green : .primary)
+                }
+                if item.timesWorn == 0 {
+                    Text(lang == .spanish ? "Aún sin usar — el coste por puesta baja cada vez que la llevas." : "Not worn yet — cost per wear drops every time you wear it.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let lastWornAt = item.lastWornAt {
