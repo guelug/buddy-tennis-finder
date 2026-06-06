@@ -6,7 +6,10 @@ import SwiftData
 /// versus slots they already have covered.
 struct CapsuleWardrobeView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.modelContext) private var modelContext
     @Query private var closetItems: [ClothingItem]
+    @Query private var shoppingItems: [ShoppingItem]
+    @State private var showingList = false
 
     private var lang: Language { appState.preferredLanguage }
     private var isSpanish: Bool { lang == .spanish }
@@ -56,6 +59,32 @@ struct CapsuleWardrobeView: View {
         .background(Theme.Colors.groupedBackground.ignoresSafeArea())
         .navigationTitle(isSpanish ? "Armario cápsula" : "Capsule Wardrobe")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingList = true } label: {
+                    Image(systemName: "cart")
+                }
+            }
+        }
+        .sheet(isPresented: $showingList) {
+            ShoppingListView()
+        }
+    }
+
+    private func isOnList(_ piece: CapsuleWardrobeService.CapsulePiece) -> Bool {
+        shoppingItems.contains { $0.title == piece.title && !$0.isPurchased }
+    }
+
+    private func addToList(_ piece: CapsuleWardrobeService.CapsulePiece) {
+        guard !isOnList(piece) else { return }
+        let item = ShoppingItem(
+            title: piece.title,
+            categoryRaw: piece.category.rawValue,
+            colorHint: piece.color?.name,
+            reason: piece.reason
+        )
+        modelContext.insert(item)
+        try? modelContext.save()
     }
 
     private var header: some View {
@@ -110,6 +139,22 @@ struct CapsuleWardrobeView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if highlight {
+                    Button {
+                        withAnimation { addToList(piece) }
+                    } label: {
+                        Label(
+                            isOnList(piece) ? (isSpanish ? "En la lista" : "On the list") : (isSpanish ? "Añadir a la lista" : "Add to list"),
+                            systemImage: isOnList(piece) ? "checkmark.circle.fill" : "cart.badge.plus"
+                        )
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isOnList(piece) ? .green : Theme.Colors.primary)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isOnList(piece))
+                    .padding(.top, 2)
+                }
             }
             Spacer(minLength: 0)
         }

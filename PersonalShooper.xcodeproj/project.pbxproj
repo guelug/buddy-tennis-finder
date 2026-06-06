@@ -18,6 +18,7 @@
 		116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */; };
 		1B8427145F72DD383FBA32D7 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4ED6A1E503E280CED9735D85 /* Vision.framework */; };
 		1C8478B3D31F0BD60061229A /* ImageOptimizeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */; };
+		1E632932467AC925612216CA /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D200365E50087EA9E0F91A /* ShoppingListView.swift */; };
 		1EFBD4E6E49781E2EB439F75 /* PaletteQuestionnaireView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07A463B1685183813B5F117D /* PaletteQuestionnaireView.swift */; };
 		1F87B1E27CEA7F44BB4F6B28 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D57994BF42D7F63E35E06E71 /* HealthKitService.swift */; };
 		22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F78EBA23E4FB4692771AFB /* MainTabView.swift */; };
@@ -83,6 +84,7 @@
 		AE1A38F64A3FC4C81444AD1A /* GarmentThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511DF7D9997F882534CBBF89 /* GarmentThumbnail.swift */; };
 		B30E813019A960043DB3ED34 /* DailyOutfitLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4D2E55E40D8444C9CAEB2E /* DailyOutfitLiveActivityController.swift */; };
 		B34A434CBFAA5DE5942A36EC /* OpenAIImageTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B978023E09ED14E975CBAC7F /* OpenAIImageTryOnService.swift */; };
+		B4A94DA2204672B4E8DEFBE6 /* DailyLookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E2E7D1C428A67D047EEFF9A /* DailyLookView.swift */; };
 		B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B363A0CA274E97397EC9DB8 /* AppState.swift */; };
 		BD8BD09B73ECD97BDCEB4749 /* ClosetItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736495D84380A103172C92F4 /* ClosetItemDetailView.swift */; };
 		BEA3F10BE637E9E1ADB5CA26 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BF2365E84C77E4390352F14 /* CoreML.framework */; };
@@ -109,6 +111,7 @@
 		E2C7E9AFF491BCF89D060A87 /* PaletteMatching.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F41D37153D74393F7927655 /* PaletteMatching.swift */; };
 		E30D1D20F87153CA6B684B54 /* ChatViewModel+MessageParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B79EAA904F150ADE7B3FE3F /* ChatViewModel+MessageParsing.swift */; };
 		E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9943860D030691BD0D6D9D /* PalettePreferences.swift */; };
+		E495CFF70CF9EEE3F4A14814 /* ShoppingItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A618E69C151306EE6937180 /* ShoppingItem.swift */; };
 		E95C4A6D205754EE6FB65CEE /* TryOnViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5FB969B5E70E76DC39DC291 /* TryOnViewModel.swift */; };
 		EB8D7B65C7D282E1369B0FE9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */; };
 		EBDBB8A8EE39AC246A419BAC /* LocalSecrets.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB3C70C84EEE2DD594C836CE /* LocalSecrets.plist */; };
@@ -189,6 +192,7 @@
 		511DF7D9997F882534CBBF89 /* GarmentThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarmentThumbnail.swift; sourceTree = "<group>"; };
 		51DA98831057F6A061CE6E19 /* StylistContextFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StylistContextFormatter.swift; sourceTree = "<group>"; };
 		5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		52D200365E50087EA9E0F91A /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
 		543F8B12199F96858BEEAAE4 /* BackgroundRemover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRemover.swift; sourceTree = "<group>"; };
 		56173F3B4C47A44171AD4425 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -215,6 +219,7 @@
 		766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionView.swift; sourceTree = "<group>"; };
 		79075C46212C745CA9E5BEF1 /* BodyShapeAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyShapeAnalyzer.swift; sourceTree = "<group>"; };
 		790B3A3D0AEA3565A91D612F /* BYOKChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKChatService.swift; sourceTree = "<group>"; };
+		7A618E69C151306EE6937180 /* ShoppingItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingItem.swift; sourceTree = "<group>"; };
 		7AD0B1B15B659FA75BE4E4A8 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingCaptureView.swift; sourceTree = "<group>"; };
 		7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationService.swift; sourceTree = "<group>"; };
@@ -232,6 +237,7 @@
 		94A8779B95F2595D34BE27A8 /* CapsuleWardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleWardrobeService.swift; sourceTree = "<group>"; };
 		94CF616C04805D4E7D6AECCF /* ARWorldMapStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARWorldMapStore.swift; sourceTree = "<group>"; };
 		9930D7303F4819B3BD45519F /* DailyStyleRecommendationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStyleRecommendationService.swift; sourceTree = "<group>"; };
+		9E2E7D1C428A67D047EEFF9A /* DailyLookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyLookView.swift; sourceTree = "<group>"; };
 		A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectedChatGPTService.swift; sourceTree = "<group>"; };
 		A4089E6DAF71F0651193DF6A /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		A4E452014CF18174AE0ABBFD /* StyleAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleAnalysisView.swift; sourceTree = "<group>"; };
@@ -439,8 +445,10 @@
 				736495D84380A103172C92F4 /* ClosetItemDetailView.swift */,
 				19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */,
 				7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */,
+				9E2E7D1C428A67D047EEFF9A /* DailyLookView.swift */,
 				3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */,
 				5D43D1D121040B621C339053 /* OutfitsView.swift */,
+				52D200365E50087EA9E0F91A /* ShoppingListView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -728,6 +736,7 @@
 				BCE0DB96AC9E480300EB1EBA /* Conversation.swift */,
 				5A0B0FBE0E8E36BB78F3EFB2 /* OutfitCalendarEntry.swift */,
 				402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */,
+				7A618E69C151306EE6937180 /* ShoppingItem.swift */,
 				58C921E5264D4517384FDC8F /* StyleAnalysisTypes.swift */,
 				75191249CD415955E041E75E /* User.swift */,
 			);
@@ -1023,6 +1032,7 @@
 				0920EF86CEF6E09EA74C1778 /* CloudKitManager.swift in Sources */,
 				697D39AA4E36A52BB8C914C5 /* ConnectedChatGPTService.swift in Sources */,
 				CA008943BC67D78156ED8EB5 /* Conversation.swift in Sources */,
+				B4A94DA2204672B4E8DEFBE6 /* DailyLookView.swift in Sources */,
 				B30E813019A960043DB3ED34 /* DailyOutfitLiveActivityController.swift in Sources */,
 				3FEF6E4860AB91364E2E4011 /* DailyOutfitReminderScheduler.swift in Sources */,
 				116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */,
@@ -1064,6 +1074,8 @@
 				CEA32920C12B1B4ABF9B6F29 /* SavedOutfit.swift in Sources */,
 				449F539D13948DFADF5497B6 /* SettingsView.swift in Sources */,
 				978AC1DCE7EA78A2CF35F493 /* ShareSheet.swift in Sources */,
+				E495CFF70CF9EEE3F4A14814 /* ShoppingItem.swift in Sources */,
+				1E632932467AC925612216CA /* ShoppingListView.swift in Sources */,
 				9634C3723413210A4F81DB56 /* SkinColorScience.swift in Sources */,
 				5E7EED82D85CF519E9382DF8 /* SkinToneExtractor.swift in Sources */,
 				FD6C8B36F65BFF1147894411 /* StorageBudgetManager.swift in Sources */,

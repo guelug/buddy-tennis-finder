@@ -9,6 +9,7 @@ struct ClosetView: View {
     @State private var selectedCategory: ClothingCategory?
     @State private var showingAddItem = false
     @State private var showingOutfits = false
+    @State private var showingDailyLook = false
     @State private var showingSubscription = false
     @State private var searchText = ""
     @State private var pendingDeletionItem: ClothingItem?
@@ -101,6 +102,10 @@ struct ClosetView: View {
                         VStack(spacing: Theme.Spacing.md) {
                             ClosetStatsStrip(stats: closetStats, lang: lang)
 
+                            if rotationCandidateCount > 0 && searchText.isEmpty && sortMode != .leastWorn {
+                                rotationBanner
+                            }
+
                             Picker("", selection: $sortMode) {
                                 ForEach(ClosetSortMode.allCases) { mode in
                                     Text(mode.title(lang)).tag(mode)
@@ -188,8 +193,17 @@ struct ClosetView: View {
             .searchable(text: $searchText, prompt: Strings.closetSearch(lang))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingOutfits = true
+                    Menu {
+                        Button {
+                            showingDailyLook = true
+                        } label: {
+                            Label(lang == .spanish ? "Look del día" : "Look of the day", systemImage: "sparkles")
+                        }
+                        Button {
+                            showingOutfits = true
+                        } label: {
+                            Label(lang == .spanish ? "Mis looks" : "My looks", systemImage: "square.stack.3d.up")
+                        }
                     } label: {
                         Image(systemName: "square.stack.3d.up")
                     }
@@ -235,6 +249,9 @@ struct ClosetView: View {
             }
             .sheet(isPresented: $showingOutfits) {
                 OutfitsView()
+            }
+            .sheet(isPresented: $showingDailyLook) {
+                DailyLookView()
             }
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()
@@ -320,6 +337,43 @@ struct ClosetView: View {
         } else {
             showingAddItem = true
         }
+    }
+
+    // MARK: - Rotation nudge
+
+    /// Garments that exist for at least 2 weeks but are barely (or never) worn — candidates to rotate.
+    private var rotationCandidateCount: Int {
+        let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+        return items.filter { $0.createdAt < twoWeeksAgo && ($0.timesWorn == 0 || $0.hiddenUsagePercentage < 25) }.count
+    }
+
+    private var rotationBanner: some View {
+        Button {
+            withAnimation(.snappy(duration: 0.25)) { sortMode = .leastWorn }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.title3)
+                    .foregroundStyle(Theme.Colors.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lang == .spanish ? "Hora de rotar tu armario" : "Time to rotate your closet")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(lang == .spanish
+                         ? "\(rotationCandidateCount) prendas apenas las usas. Toca para verlas y darles uso."
+                         : "\(rotationCandidateCount) garments are barely worn. Tap to see them and give them a wear.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+            }
+            .padding(Theme.Spacing.md)
+            .background(Theme.Colors.primary.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        }
+        .buttonStyle(.premiumPressable)
     }
 
     // MARK: - Batch optimize
