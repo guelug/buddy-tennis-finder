@@ -95,7 +95,7 @@ final class ClothingClassificationService: @unchecked Sendable {
             let request = VNClassifyImageRequest { request, error in
                 if let error {
                     #if DEBUG
-                    print("ClothingClassificationService classify callback failed: \(error.localizedDescription)")
+                    AppLog.classification.error("classify callback failed: \(error.localizedDescription, privacy: .public)")
                     #endif
                     continuation.resume(returning: ([], 0.4))
                     return
@@ -112,7 +112,7 @@ final class ClothingClassificationService: @unchecked Sendable {
                 try handler.perform([request])
             } catch {
                 #if DEBUG
-                print("ClothingClassificationService classify perform failed: \(error.localizedDescription)")
+                AppLog.classification.error("classify perform failed: \(error.localizedDescription, privacy: .public)")
                 #endif
                 continuation.resume(returning: ([], 0.4))
             }

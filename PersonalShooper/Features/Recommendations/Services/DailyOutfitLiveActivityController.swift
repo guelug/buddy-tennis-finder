@@ -74,7 +74,7 @@ final class DailyOutfitLiveActivityController {
                 _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
             } catch {
                 #if DEBUG
-                print("DailyOutfitLiveActivityController failed to start: \(error.localizedDescription)")
+                AppLog.liveActivity.error("failed to start: \(error.localizedDescription, privacy: .public)")
                 #endif
             }
         }

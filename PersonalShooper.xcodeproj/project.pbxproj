@@ -76,8 +76,10 @@
 		A2C3EEDB62D101461528CD39 /* AppSecrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0193CFAD6A6CBFF02EB135C /* AppSecrets.swift */; };
 		A46152D996282676D8C8ED78 /* NoPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92543E17BB683B062F3EFB23 /* NoPaletteView.swift */; };
 		A6A2F4E02E2B0D8A2589737B /* BodyShapeAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79075C46212C745CA9E5BEF1 /* BodyShapeAnalyzer.swift */; };
+		AB162F23AF3005C58965752C /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5728B3ADA89CC47A1F49B8D /* AppLog.swift */; };
 		AB99AD099C7EFC2391875FC1 /* PrivacyNoticeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */; };
 		ACCEAC36A82E95A6D479E8C8 /* PersonalShooperWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3791AD898833449685E1931 /* PersonalShooperWidgets.swift */; };
+		AE1A38F64A3FC4C81444AD1A /* GarmentThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 511DF7D9997F882534CBBF89 /* GarmentThumbnail.swift */; };
 		B30E813019A960043DB3ED34 /* DailyOutfitLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4D2E55E40D8444C9CAEB2E /* DailyOutfitLiveActivityController.swift */; };
 		B34A434CBFAA5DE5942A36EC /* OpenAIImageTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B978023E09ED14E975CBAC7F /* OpenAIImageTryOnService.swift */; };
 		B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B363A0CA274E97397EC9DB8 /* AppState.swift */; };
@@ -180,6 +182,7 @@
 		4ED6A1E503E280CED9735D85 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
 		4F02C52326CCBAD4FE94EE7F /* PersonalShooperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalShooperApp.swift; sourceTree = "<group>"; };
 		5054F6856E9D8B83341CA704 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
+		511DF7D9997F882534CBBF89 /* GarmentThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarmentThumbnail.swift; sourceTree = "<group>"; };
 		51DA98831057F6A061CE6E19 /* StylistContextFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StylistContextFormatter.swift; sourceTree = "<group>"; };
 		5282E7D8283CAD8C53A8C2D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		53B431330B6114373317E0BF /* ClothingClassificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassificationService.swift; sourceTree = "<group>"; };
@@ -229,6 +232,7 @@
 		A4E452014CF18174AE0ABBFD /* StyleAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleAnalysisView.swift; sourceTree = "<group>"; };
 		A9C31A216ECCBD18B4C7B501 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		AC8EAA17DACAF8C6962FE16F /* CapsuleWardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapsuleWardrobeView.swift; sourceTree = "<group>"; };
+		B5728B3ADA89CC47A1F49B8D /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
 		B5A1849B39FF49CF07703B97 /* PhotoUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoUploadView.swift; sourceTree = "<group>"; };
 		B61150CC96A83FB5725565FE /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		B668A8B26EAD43C074CA3718 /* Photos.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Photos.framework; path = System/Library/Frameworks/Photos.framework; sourceTree = SDKROOT; };
@@ -620,6 +624,7 @@
 		A074EF61D2BFD75720ACA085 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				B5728B3ADA89CC47A1F49B8D /* AppLog.swift */,
 				09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */,
 				8DDF9FDCD8E01003E6C79E4D /* KeychainHelper.swift */,
 				FB2A62568EEF8B5371F8C149 /* StorageBudgetManager.swift */,
@@ -775,6 +780,7 @@
 		E750490213254BA0AAAC4702 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				511DF7D9997F882534CBBF89 /* GarmentThumbnail.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -983,6 +989,7 @@
 				F49362CD3749B18ED79343C7 /* ARWorldMapStore.swift in Sources */,
 				350C1CD2B2224F77C3D21534 /* Analysis.swift in Sources */,
 				D5D548D14130DD861F60ADE9 /* AnalysisAdjustView.swift in Sources */,
+				AB162F23AF3005C58965752C /* AppLog.swift in Sources */,
 				A2C3EEDB62D101461528CD39 /* AppSecrets.swift in Sources */,
 				B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */,
 				C442FDDA7CC335E1B4B9160D /* AppleIntelligenceService.swift in Sources */,
@@ -1013,6 +1020,7 @@
 				653F52F805B613307D414401 /* EditProfileView.swift in Sources */,
 				FFD82B67A01BA38AB0B966D7 /* FaceShapeAnalyzer.swift in Sources */,
 				57B4002CEC6FFB05083D4CEA /* GarmentBackgroundRemovalService.swift in Sources */,
+				AE1A38F64A3FC4C81444AD1A /* GarmentThumbnail.swift in Sources */,
 				59DAC8F2BDD2A49E39AA5E7D /* GeminiTryOnService.swift in Sources */,
 				1F87B1E27CEA7F44BB4F6B28 /* HealthKitService.swift in Sources */,
 				3831A7980AE129987A0850EF /* HomeView.swift in Sources */,

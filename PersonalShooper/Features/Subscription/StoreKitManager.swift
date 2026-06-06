@@ -133,7 +133,7 @@ final class StoreKitManager: ObservableLike {
             await getCurrentTier()
             await transaction.finish()
         } catch {
-            print("Transaction verification failed: \(error)")
+            AppLog.storeKit.error("Transaction verification failed: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -149,7 +149,7 @@ final class StoreKitManager: ObservableLike {
             products = try await Product.products(for: productIDs)
                 .sorted { $0.price < $1.price }
         } catch {
-            print("Failed to load products: \(error)")
+            AppLog.storeKit.error("Failed to load products: \(String(describing: error), privacy: .public)")
         }
     }
 

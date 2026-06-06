@@ -84,18 +84,7 @@ struct OutfitsView: View {
 
     private func thumb(_ item: ClothingItem) -> some View {
         VStack(spacing: 4) {
-            if let image = item.displayImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 70, height: 70)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            } else {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.gray.opacity(0.15))
-                    .frame(width: 70, height: 70)
-                    .overlay(Image(systemName: item.category.icon).foregroundStyle(.secondary))
-            }
+            GarmentThumbnail(item: item, size: 70)
             Text(item.name).font(.caption2).lineLimit(1).frame(width: 70)
         }
     }
@@ -201,18 +190,7 @@ struct OutfitBuilderView: View {
         } label: {
             VStack(spacing: 4) {
                 ZStack(alignment: .topTrailing) {
-                    if let image = item.displayImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 84, height: 84)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.gray.opacity(0.15))
-                            .frame(width: 84, height: 84)
-                            .overlay(Image(systemName: item.category.icon).foregroundStyle(.secondary))
-                    }
+                    GarmentThumbnail(item: item, size: 84, corner: 12)
                     if onPalette {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.caption2)

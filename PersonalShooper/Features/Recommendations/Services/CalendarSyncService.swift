@@ -52,7 +52,7 @@ final class CalendarSyncService {
                 eventStore.requestFullAccessToEvents { granted, error in
                     if let error {
                         #if DEBUG
-                        print("CalendarSyncService.requestAccessIfNeeded failed: \(error.localizedDescription)")
+                        AppLog.calendar.error("requestAccessIfNeeded failed: \(error.localizedDescription, privacy: .public)")
                         #endif
                         continuation.resume(returning: false)
                         return
