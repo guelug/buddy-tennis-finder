@@ -17,6 +17,10 @@ struct ClosetView: View {
     @State private var sortMode: ClosetSortMode = .recent
     @State private var onPaletteOnly = false
     @State private var closetFeedbackCounter = 0
+    @State private var confirmBatchOptimize = false
+    @State private var isBatchOptimizing = false
+    @State private var batchDone = 0
+    @State private var batchTotal = 0
 
     private var lang: Language {
         appState.preferredLanguage
@@ -190,6 +194,19 @@ struct ClosetView: View {
                         Image(systemName: "square.stack.3d.up")
                     }
                 }
+                if canBatchOptimize {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button {
+                                confirmBatchOptimize = true
+                            } label: {
+                                Label(lang == .spanish ? "Optimizar todas (\(unoptimizedCount))" : "Optimize all (\(unoptimizedCount))", systemImage: "wand.and.stars")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         startAddingItem()
@@ -197,6 +214,21 @@ struct ClosetView: View {
                         Image(systemName: "plus")
                     }
                 }
+            }
+            .overlay {
+                if isBatchOptimizing {
+                    batchOptimizeOverlay
+                }
+            }
+            .confirmationDialog(
+                lang == .spanish ? "Optimizar \(unoptimizedCount) imágenes" : "Optimize \(unoptimizedCount) images",
+                isPresented: $confirmBatchOptimize,
+                titleVisibility: .visible
+            ) {
+                Button(lang == .spanish ? "Optimizar todas" : "Optimize all") { startBatchOptimize() }
+                Button(lang == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
+            } message: {
+                Text(lang == .spanish ? "Generaré una miniatura tipo tienda para cada prenda usando tu API. Puede tardar y consumir créditos." : "I'll generate a store-style thumbnail for each garment using your API. It may take a while and use credits.")
             }
             .sheet(isPresented: $showingAddItem) {
                 ClothingCaptureView()
@@ -287,6 +319,65 @@ struct ClosetView: View {
             showingSubscription = true
         } else {
             showingAddItem = true
+        }
+    }
+
+    // MARK: - Batch optimize
+
+    private var unoptimizedItems: [ClothingItem] {
+        items.filter { !$0.hasOptimizedImage && ($0.tryOnGarmentImage ?? $0.displayImage) != nil }
+    }
+
+    private var unoptimizedCount: Int { unoptimizedItems.count }
+
+    private var canBatchOptimize: Bool {
+        (appState.isPremium || appState.hasBYOKAccess) && StyleImageService.hasImageProvider() && unoptimizedCount > 0
+    }
+
+    @ViewBuilder
+    private var batchOptimizeOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+            VStack(spacing: Theme.Spacing.md) {
+                ProgressView(value: Double(batchDone), total: Double(max(batchTotal, 1)))
+                    .progressViewStyle(.linear)
+                    .tint(Theme.Colors.primary)
+                    .frame(width: 200)
+                Text(lang == .spanish ? "Optimizando \(batchDone)/\(batchTotal)…" : "Optimizing \(batchDone)/\(batchTotal)…")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+            }
+            .padding(Theme.Spacing.xl)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        }
+    }
+
+    private func startBatchOptimize() {
+        let targets = unoptimizedItems
+        guard !targets.isEmpty else { return }
+        batchTotal = targets.count
+        batchDone = 0
+        isBatchOptimizing = true
+
+        Task {
+            for item in targets {
+                guard let source = item.tryOnGarmentImage ?? item.displayImage else { batchDone += 1; continue }
+                do {
+                    let optimized = try await StyleImageService.marketingImage(
+                        for: source,
+                        categoryHint: item.category.displayName.lowercased()
+                    )
+                    item.optimizedImage = optimized
+                    item.cutoutImage = BackgroundRemover.removeBackground(from: optimized)
+                    try? modelContext.save()
+                } catch {
+                    // Skip failures (e.g. moderation) and keep going through the rest.
+                }
+                batchDone += 1
+            }
+            isBatchOptimizing = false
+            closetFeedbackCounter += 1
         }
     }
 

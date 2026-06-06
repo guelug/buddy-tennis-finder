@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 /// Saved looks the user assembled from their closet, plus an entry point to build a new one.
 struct OutfitsView: View {
@@ -8,6 +9,7 @@ struct OutfitsView: View {
     @Query(sort: \SavedOutfit.createdAt, order: .reverse) private var outfits: [SavedOutfit]
     @Query private var closetItems: [ClothingItem]
     @State private var showingBuilder = false
+    @State private var shareImage: UIImage?
 
     private var isSpanish: Bool { appState.preferredLanguage == .spanish }
     private var itemsByID: [UUID: ClothingItem] { Dictionary(closetItems.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
@@ -46,7 +48,43 @@ struct OutfitsView: View {
             .sheet(isPresented: $showingBuilder) {
                 OutfitBuilderView()
             }
+            .sheet(isPresented: Binding(get: { shareImage != nil }, set: { if !$0 { shareImage = nil } })) {
+                if let shareImage {
+                    ShareSheet(items: [shareImage])
+                }
+            }
         }
+    }
+
+    /// Renders a shareable collage image of a look (title + garment grid) via ImageRenderer.
+    @MainActor
+    private func renderCollage(name: String, occasion: String?, items: [ClothingItem]) -> UIImage? {
+        let content = VStack(spacing: 18) {
+            Text(name)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(.black)
+            if let occasion, !occasion.isEmpty {
+                Text(occasion)
+                    .font(.system(size: 18))
+                    .foregroundStyle(.secondary)
+            }
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                ForEach(items) { item in
+                    GarmentThumbnail(item: item, size: 165, corner: 18)
+                }
+            }
+            Text(isSpanish ? "Creado con Personal Shopper" : "Created with Personal Shopper")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.top, 4)
+        }
+        .padding(32)
+        .frame(width: 620)
+        .background(Color.white)
+
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 3
+        return renderer.uiImage
     }
 
     private func outfitCard(_ outfit: SavedOutfit) -> some View {
@@ -61,6 +99,11 @@ struct OutfitsView: View {
                 }
                 Spacer()
                 Menu {
+                    Button {
+                        shareImage = renderCollage(name: outfit.name, occasion: outfit.occasion, items: items)
+                    } label: {
+                        Label(isSpanish ? "Compartir" : "Share", systemImage: "square.and.arrow.up")
+                    }
                     Button(role: .destructive) { delete(outfit) } label: {
                         Label(isSpanish ? "Eliminar" : "Delete", systemImage: "trash")
                     }
