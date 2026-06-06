@@ -66,8 +66,10 @@ final class TryOnService: ObservableObject {
         lastError = nil
         defer { isProcessing = false }
 
-        // 1. Verify credits
-        guard remainingCredits > 0 else {
+        // 1. Verify local credits. TestFlight beta builds use backend quotas, so the
+        // local StoreKit counter must not block server-side trial access.
+        let usesBackendTestQuota = AppSecrets.vercelTestSecret != nil
+        guard usesBackendTestQuota || remainingCredits > 0 else {
             let error = TryOnError.noCredits
             lastError = error
             throw error
@@ -198,6 +200,12 @@ final class TryOnService: ObservableObject {
     }
 
     func refreshCredits() async {
+        if AppSecrets.vercelTestSecret != nil {
+            currentTier = .premium
+            remainingCredits = SubscriptionTier.pro.monthlyImages
+            return
+        }
+
         currentTier = storeKitManager.currentTier
         remainingCredits = storeKitManager.remainingCredits
     }

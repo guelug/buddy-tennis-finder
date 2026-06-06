@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server.js';
-import { verifyReceipt, hashReceipt, getCreditsForTier } from '../../lib/apple.js';
+import { verifyReceipt, hashReceipt, getCreditsForTier, type ReceiptTier } from '../../lib/apple.js';
 import { getCredits, decrementCredits, getTier, checkRateLimit } from '../../lib/redis.js';
 import { generateTryOn } from '../../lib/gemini.js';
 import { generateTryOnWithOpenRouter } from '../../lib/openrouter.js';
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     // If stored tier is higher than receipt tier, use stored tier (user downgraded)
     const effectiveTier = (storedTier && getTierPriority(storedTier) > getTierPriority(currentTier)
       ? storedTier
-      : currentTier) as 'free' | 'premium' | 'pro';
+      : currentTier) as ReceiptTier;
 
     // Check credits
     const credits = await getCredits(receiptHash);
@@ -113,7 +113,6 @@ export async function POST(request: NextRequest) {
     if (credits === null) {
       // First time - initialize credits
       const initialCredits = getCreditsForTier(effectiveTier);
-      await decrementCredits(receiptHash); // This will set to initial - 1, so we need to set first
       const { setCredits } = await import('../../lib/redis.js');
       await setCredits(receiptHash, initialCredits - 1, effectiveTier);
 
@@ -194,6 +193,7 @@ function getTierPriority(tier: string): number {
     free: 1,
     premium: 2,
     pro: 3,
+    lifetime: 4,
     test: 4,
   };
   return priorities[tier] || 0;

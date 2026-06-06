@@ -57,11 +57,8 @@ final class AppState {
             tryOnProvider = provider
         }
 
-        // Check ChatGPT connection
-        let hasServerAI = AppSecrets.vercelAPIBaseURL != nil
-        isChatGPTConnected = hasServerAI || UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
-        useConnectedChatGPTForChat = hasServerAI || UserDefaults.standard.bool(forKey: "chatgpt_chat_enabled")
         aiProviderMode = AIProviderMode(rawValue: UserDefaults.standard.string(forKey: "ai_provider_mode") ?? "") ?? .premium
+        refreshAIProviderAvailability()
         chatPreparedFeatures = ChatPreparedFeatures(
             textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
             richMediaMessagesEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_rich_media_enabled"),
@@ -219,7 +216,12 @@ final class AppState {
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue = enabled && (hasBYOKAccess || currentTier.hasBYOK) && isBYOKEnabled
+        let effectiveValue: Bool
+        if aiProviderMode == .premium {
+            effectiveValue = enabled && isChatGPTConnected
+        } else {
+            effectiveValue = enabled && (hasBYOKAccess || currentTier.hasBYOK) && isBYOKEnabled
+        }
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
@@ -261,14 +263,28 @@ final class AppState {
 
     private func syncSubscriptionState() {
         currentTier = storeKitManager.currentTier
-        isPremium = storeKitManager.isPremium
+        isPremium = storeKitManager.isPremium || AppSecrets.vercelTestSecret != nil
         hasBYOKAccess = storeKitManager.hasBYOKPurchase
         isBYOKEnabled = storeKitManager.isBYOKActive
 
-        if !hasBYOKAccess {
+        refreshAIProviderAvailability()
+    }
+
+    private func refreshAIProviderAvailability() {
+        let hasPremiumBackend = AppSecrets.vercelAPIBaseURL != nil
+        isChatGPTConnected = hasPremiumBackend
+            || UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil
+            || AppSecrets.openAIAPIKey != nil
+
+        switch aiProviderMode {
+        case .premium:
+            useConnectedChatGPTForChat = isChatGPTConnected
+        case .byok:
+            isBYOKEnabled = storeKitManager.isBYOKActive
             useConnectedChatGPTForChat = false
-            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
         }
+
+        UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
     }
 
     private func persistStyleCompanionConfiguration() {

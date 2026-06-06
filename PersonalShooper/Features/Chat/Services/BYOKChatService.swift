@@ -105,93 +105,10 @@ final class BYOKChatService: AIChatServiceProtocol {
             "If useful garments exist, mention them by name and combine them. Keep the answer concise and actionable.",
         ])
 
-        if let preferredName = context.preferredName, !preferredName.isEmpty {
-            lines.append("User name: \(preferredName)")
-        }
-
-        if let gender = context.userGender {
-            lines.append("The user is \(gender.stylingDescriptor).")
-        }
-
-        if let palette = context.userPalette {
-            var paletteLine = "Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone."
-            let best = palette.recommendedColors.prefix(6).compactMap { $0.name }.joined(separator: ", ")
-            if !best.isEmpty { paletteLine += " Best colors: \(best)." }
-            if let avoid = palette.colorsToAvoid, !avoid.isEmpty {
-                paletteLine += " Colors to avoid: \(avoid.prefix(3).compactMap { $0.name }.joined(separator: ", "))."
-            }
-            lines.append(paletteLine)
-            lines.append("Favor the user's best colors and avoid recommending their unflattering colors.")
-        }
-
-        if let profile = context.personalStylingProfile {
-            if let age = profile.age { lines.append("Age: \(age)") }
-            if let shape = profile.bodyShape ?? ImageConsulting.bodyShape(chestCm: profile.chestCm, waistCm: profile.waistCm, hipsCm: profile.hipsCm) {
-                lines.append(ImageConsulting.bodyShapeNote(shape, language: context.language))
-            }
-            if let face = profile.faceShape {
-                lines.append(ImageConsulting.faceShapeNote(face, language: context.language))
-            }
-            if let contrast = profile.contrastLevel {
-                lines.append(ImageConsulting.contrastNote(contrast, language: context.language))
-            }
-            if !profile.occupation.isEmpty { lines.append("Occupation: \(profile.occupation)") }
-            if !profile.lifestyleSummary.isEmpty { lines.append("Routine: \(profile.lifestyleSummary)") }
-            if !profile.usualSocialPlans.isEmpty { lines.append("Usual events: \(profile.usualSocialPlans.joined(separator: ", "))") }
-            if !profile.preferredStyles.isEmpty { lines.append("Preferred styles: \(profile.preferredStyles.joined(separator: ", "))") }
-            if !profile.desiredImpression.isEmpty { lines.append("Desired impression: \(profile.desiredImpression.joined(separator: ", "))") }
-            if !profile.fitPriorities.isEmpty { lines.append("Fit priorities: \(profile.fitPriorities.joined(separator: ", "))") }
-            if !profile.favoriteColors.isEmpty { lines.append("Favorite colors: \(profile.favoriteColors.joined(separator: ", "))") }
-            if !profile.avoidColors.isEmpty { lines.append("Avoid colors: \(profile.avoidColors.joined(separator: ", "))") }
-            if !profile.styleGoals.isEmpty { lines.append("Style goals: \(profile.styleGoals)") }
-            if !profile.shoppingChallenges.isEmpty { lines.append("Shopping challenges: \(profile.shoppingChallenges)") }
-            if !profile.additionalNotes.isEmpty { lines.append("Extra notes: \(profile.additionalNotes)") }
-            if !profile.learnedStyleSummary.isEmpty { lines.append(profile.learnedStyleSummary) }
-        }
-
-        if let recommendation = context.dailyRecommendation,
-           !recommendation.outfitFormula.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            lines.append("Today's suggested outfit formula (for your reference, do not read it back verbatim): \(recommendation.outfitFormula)")
-        }
-
-        if !context.todayEvents.isEmpty {
-            let eventSummary = context.todayEvents.prefix(3).map {
-                "\($0.title) (\($0.timeWindowText))"
-            }.joined(separator: ", ")
-            lines.append("Today's synced events: \(eventSummary)")
-        }
-
-        if !context.closetItems.isEmpty {
-            lines.append("closet_context JSON: \(closetContextJSON(for: context.closetItems))")
-        } else {
-            lines.append("closet_context JSON: {\"items\":[],\"instruction\":\"The user's closet is empty. Do not invent owned garments.\"}")
-        }
+        lines.append(contentsOf: StylistContextFormatter.userFacts(for: context))
+        lines.append(StylistContextFormatter.closetContextLine(for: context.closetItems))
 
         return lines.joined(separator: "\n")
-    }
-
-    private func closetContextJSON(for items: [ClothingItemSummary]) -> String {
-        let payload = [
-            "items": items.prefix(30).map { item in
-                [
-                    "id": item.id.uuidString,
-                    "name": item.name,
-                    "category": item.category.displayName,
-                    "colors": item.colorTags,
-                    "styles": item.styleTags
-                ] as [String: Any]
-            },
-            "instruction": "Use only these items as owned garments. If they do not match the user request, say so and suggest additions."
-        ] as [String: Any]
-
-        guard
-            let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
-            let json = String(data: data, encoding: .utf8)
-        else {
-            return "{\"items\":[]}"
-        }
-
-        return json
     }
 
     // MARK: - Gemini

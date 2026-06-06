@@ -5,26 +5,30 @@ export interface ReceiptData {
   productId: string;
   purchaseDate: string;
   expirationDate?: string;
-  tier: 'free' | 'premium' | 'pro';
+  tier: ReceiptTier;
 }
 
-const TIER_MAP: Record<string, 'free' | 'premium' | 'pro'> = {
+export type ReceiptTier = 'free' | 'premium' | 'pro' | 'lifetime';
+
+const TIER_MAP: Record<string, ReceiptTier> = {
   'com.personalshooper.free': 'free',
   'com.personalshooper.premium.monthly': 'premium',
   'com.personalshooper.pro.monthly': 'pro',
+  'com.personalshooper.lifetime': 'lifetime',
 };
 
-const CREDITS_MAP: Record<string, number> = {
+const CREDITS_MAP: Record<ReceiptTier, number> = {
   free: 5,
   premium: 50,
   pro: 200,
+  lifetime: 100,
 };
 
 export function hashReceipt(receipt: string): string {
   return crypto.createHash('sha256').update(receipt).digest('hex');
 }
 
-export function getCreditsForTier(tier: 'free' | 'premium' | 'pro'): number {
+export function getCreditsForTier(tier: ReceiptTier): number {
   return CREDITS_MAP[tier] ?? 0;
 }
 
