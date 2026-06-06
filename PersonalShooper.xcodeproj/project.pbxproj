@@ -83,6 +83,7 @@
 		B30E813019A960043DB3ED34 /* DailyOutfitLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A4D2E55E40D8444C9CAEB2E /* DailyOutfitLiveActivityController.swift */; };
 		B34A434CBFAA5DE5942A36EC /* OpenAIImageTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B978023E09ED14E975CBAC7F /* OpenAIImageTryOnService.swift */; };
 		B7956C019E4DCC97CCD786F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B363A0CA274E97397EC9DB8 /* AppState.swift */; };
+		BD8BD09B73ECD97BDCEB4749 /* ClosetItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 736495D84380A103172C92F4 /* ClosetItemDetailView.swift */; };
 		BEA3F10BE637E9E1ADB5CA26 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BF2365E84C77E4390352F14 /* CoreML.framework */; };
 		BF76F75BF73CF46001279010 /* PrivacySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D383BDD5CF127A217023EF /* PrivacySettingsView.swift */; };
 		BFA610C11777216A9B784D25 /* ImageIO.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 696BA670288F6524877B1351 /* ImageIO.framework */; };
@@ -203,6 +204,7 @@
 		6E7DD8E4BD58EFE0B4841017 /* AppleIntelligenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceService.swift; sourceTree = "<group>"; };
 		6FFA05B1D029A7DF4330D050 /* TryOnProviderSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderSelectorView.swift; sourceTree = "<group>"; };
 		7327AED235F37BA65C119031 /* SkinToneExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinToneExtractor.swift; sourceTree = "<group>"; };
+		736495D84380A103172C92F4 /* ClosetItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClosetItemDetailView.swift; sourceTree = "<group>"; };
 		73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PersonalShooper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		73D26B485C0A5BF1378F94C6 /* AnalysisAdjustView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisAdjustView.swift; sourceTree = "<group>"; };
 		75191249CD415955E041E75E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
@@ -430,6 +432,7 @@
 		467E13B4DBAA7420CFEEC9EE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				736495D84380A103172C92F4 /* ClosetItemDetailView.swift */,
 				19BB0EC9E5FD96FD35B95960 /* ClosetView.swift */,
 				7EF7BAD7DB2535F793FD5A3B /* ClothingCaptureView.swift */,
 				3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */,
@@ -1005,6 +1008,7 @@
 				E30D1D20F87153CA6B684B54 /* ChatViewModel+MessageParsing.swift in Sources */,
 				5578E15F8309AE0BD9035D4F /* ChatViewModel.swift in Sources */,
 				97FD48193B1A838D067A65CC /* ChatWorkspaceService.swift in Sources */,
+				BD8BD09B73ECD97BDCEB4749 /* ClosetItemDetailView.swift in Sources */,
 				07E84A906C1FECF5ED4370AE /* ClosetView.swift in Sources */,
 				82F3DCCBCF8B11A65CF252F1 /* ClothingCaptureView.swift in Sources */,
 				0046FA085D42C4C14D838071 /* ClothingClassificationService.swift in Sources */,
