@@ -14,6 +14,7 @@
 		0908D4952A169DDEA803A597 /* StyleAnalysisTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58C921E5264D4517384FDC8F /* StyleAnalysisTypes.swift */; };
 		0920EF86CEF6E09EA74C1778 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC8515ECFA5F640EACA07DA /* CloudKitManager.swift */; };
 		0EF0B05083FC52ED970F4E91 /* BackgroundRemover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 543F8B12199F96858BEEAAE4 /* BackgroundRemover.swift */; };
+		107C8D4FD22077D12DDBFE62 /* SkinColorScienceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBC3335D463126AE1A640EAD /* SkinColorScienceTests.swift */; };
 		116A6FBB581CE095292569FA /* DailyStyleRecommendationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */; };
 		1B8427145F72DD383FBA32D7 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4ED6A1E503E280CED9735D85 /* Vision.framework */; };
 		1C8478B3D31F0BD60061229A /* ImageOptimizeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */; };
@@ -45,6 +46,7 @@
 		5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C3A6D967523FBE144BC1419 /* Language.swift */; };
 		6119AF129AC9A908E3A2F527 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56173F3B4C47A44171AD4425 /* WidgetKit.framework */; };
 		626D8986BB8EDEE1E72645DF /* PaletteGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */; };
+		63AA920246AC4977B7888F64 /* StyleLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013991A56EF0EB5D07F9CAD4 /* StyleLogicTests.swift */; };
 		648D6C49BD792F7A3CE4AE3D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56173F3B4C47A44171AD4425 /* WidgetKit.framework */; };
 		653F52F805B613307D414401 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */; };
 		697D39AA4E36A52BB8C914C5 /* ConnectedChatGPTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */; };
@@ -100,6 +102,7 @@
 		DC287BA429B7BA24485C0EB7 /* DailyStyleRecommendationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9930D7303F4819B3BD45519F /* DailyStyleRecommendationService.swift */; };
 		DCD8FB0D2EBF406EEF3A87A1 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F862D43B99551B439DD1416 /* CoreLocation.framework */; };
 		DE4856C42D4622A5CE0A0395 /* ARWardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D482CF83781BBC2FFC1FA7C /* ARWardrobeView.swift */; };
+		E30D1D20F87153CA6B684B54 /* ChatViewModel+MessageParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B79EAA904F150ADE7B3FE3F /* ChatViewModel+MessageParsing.swift */; };
 		E41BDD069AA2B2227756FB05 /* PalettePreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F9943860D030691BD0D6D9D /* PalettePreferences.swift */; };
 		E95C4A6D205754EE6FB65CEE /* TryOnViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5FB969B5E70E76DC39DC291 /* TryOnViewModel.swift */; };
 		EB8D7B65C7D282E1369B0FE9 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1493BFC2DCA2E075EB295B3 /* AVFoundation.framework */; };
@@ -126,6 +129,13 @@
 			remoteGlobalIDString = D19B5E2F93C0CE249A6DE4B2;
 			remoteInfo = PersonalShooperWidgets;
 		};
+		D0B052D0D3907414D4971C3C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D3798DEE3DF08AD1AEAF67C9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7C0A0F217713BCEEDE032529;
+			remoteInfo = PersonalShooper;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -143,6 +153,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		013991A56EF0EB5D07F9CAD4 /* StyleLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleLogicTests.swift; sourceTree = "<group>"; };
 		07644CA6E4DED93F1DF5E841 /* GeminiTryOnService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiTryOnService.swift; sourceTree = "<group>"; };
 		07A463B1685183813B5F117D /* PaletteQuestionnaireView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteQuestionnaireView.swift; sourceTree = "<group>"; };
 		09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarmentBackgroundRemovalService.swift; sourceTree = "<group>"; };
@@ -157,6 +168,7 @@
 		240EFBF7F344857485B932CA /* SkinColorScience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinColorScience.swift; sourceTree = "<group>"; };
 		29234E3D44AC31BAF09AC91C /* DailyStyleRecommendationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStyleRecommendationIntent.swift; sourceTree = "<group>"; };
 		2A108E1DDE75B55664093E03 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		2B79EAA904F150ADE7B3FE3F /* ChatViewModel+MessageParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewModel+MessageParsing.swift"; sourceTree = "<group>"; };
 		34AFCF10CCF52E8D34E8B4F7 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		3B45FB9ED05B6BF15BF24E73 /* ImageOptimizeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOptimizeOverlay.swift; sourceTree = "<group>"; };
 		3C3A6D967523FBE144BC1419 /* Language.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Language.swift; sourceTree = "<group>"; };
@@ -164,6 +176,7 @@
 		402A2E8DC37000ED0BA1AFBD /* SavedOutfit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedOutfit.swift; sourceTree = "<group>"; };
 		40F78EBA23E4FB4692771AFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		468C44B82C05D68A858BA53F /* PersonalShooper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PersonalShooper.entitlements; sourceTree = "<group>"; };
+		48816E82309D526E53A76582 /* PersonalShooperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PersonalShooperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4ED6A1E503E280CED9735D85 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
 		4F02C52326CCBAD4FE94EE7F /* PersonalShooperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalShooperApp.swift; sourceTree = "<group>"; };
 		5054F6856E9D8B83341CA704 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
@@ -229,6 +242,7 @@
 		C60D3A6162BD54D67849660B /* OutfitCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitCalendarView.swift; sourceTree = "<group>"; };
 		C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryOnProviderService.swift; sourceTree = "<group>"; };
 		C953B3EF34621286495A48CD /* PaletteGenerationOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationOverlay.swift; sourceTree = "<group>"; };
+		CBC3335D463126AE1A640EAD /* SkinColorScienceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinColorScienceTests.swift; sourceTree = "<group>"; };
 		CCF43F9E1D797C468B6BA7DD /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CD9EDE3552ACC31FF37EA6C0 /* PrivacyNoticeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyNoticeView.swift; sourceTree = "<group>"; };
 		D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PersonalShooperWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -368,6 +382,15 @@
 			path = Calendar;
 			sourceTree = "<group>";
 		};
+		26446BAEE004C183292DD1C2 /* PersonalShooperTests */ = {
+			isa = PBXGroup;
+			children = (
+				CBC3335D463126AE1A640EAD /* SkinColorScienceTests.swift */,
+				013991A56EF0EB5D07F9CAD4 /* StyleLogicTests.swift */,
+			);
+			path = PersonalShooperTests;
+			sourceTree = "<group>";
+		};
 		352453E30488D6BB26248AAB /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -489,6 +512,7 @@
 			isa = PBXGroup;
 			children = (
 				DE3DB318DDEB8829D50DAF8E /* ChatViewModel.swift */,
+				2B79EAA904F150ADE7B3FE3F /* ChatViewModel+MessageParsing.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -530,6 +554,7 @@
 			isa = PBXGroup;
 			children = (
 				73717A299BB71F7BD77AAAD1 /* PersonalShooper.app */,
+				48816E82309D526E53A76582 /* PersonalShooperTests.xctest */,
 				D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */,
 			);
 			name = Products;
@@ -549,6 +574,7 @@
 			isa = PBXGroup;
 			children = (
 				4C456B982B166B907573DAB8 /* PersonalShooper */,
+				26446BAEE004C183292DD1C2 /* PersonalShooperTests */,
 				C6E387D2C19199104A1C1174 /* PersonalShooperWidgets */,
 				E0C0E280F57A65C3E933ADCE /* Frameworks */,
 				7B7E65336DEA0D9AAFDCE8B0 /* Products */,
@@ -851,6 +877,24 @@
 			productReference = D0875A8396A9D56BC3A5EDC4 /* PersonalShooperWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		EE0C31434F1EFA2F799304B6 /* PersonalShooperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 770C30B07D43D7CC1FF47C3D /* Build configuration list for PBXNativeTarget "PersonalShooperTests" */;
+			buildPhases = (
+				5705E786AF048D010B18FCB6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AF4627490D25060F0987925D /* PBXTargetDependency */,
+			);
+			name = PersonalShooperTests;
+			packageProductDependencies = (
+			);
+			productName = PersonalShooperTests;
+			productReference = 48816E82309D526E53A76582 /* PersonalShooperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -867,6 +911,9 @@
 					D19B5E2F93C0CE249A6DE4B2 = {
 						DevelopmentTeam = Y6VZTXTFW8;
 						ProvisioningStyle = Automatic;
+					};
+					EE0C31434F1EFA2F799304B6 = {
+						DevelopmentTeam = Y6VZTXTFW8;
 					};
 				};
 			};
@@ -888,6 +935,7 @@
 			projectRoot = "";
 			targets = (
 				7C0A0F217713BCEEDE032529 /* PersonalShooper */,
+				EE0C31434F1EFA2F799304B6 /* PersonalShooperTests */,
 				D19B5E2F93C0CE249A6DE4B2 /* PersonalShooperWidgets */,
 			);
 		};
@@ -907,6 +955,15 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5705E786AF048D010B18FCB6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				107C8D4FD22077D12DDBFE62 /* SkinColorScienceTests.swift in Sources */,
+				63AA920246AC4977B7888F64 /* StyleLogicTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BB2884DF6BE2CEB8CBBF5DB3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -938,6 +995,7 @@
 				D6F9CBD488DF834CCA65E1B2 /* CapsuleWardrobeService.swift in Sources */,
 				D935D25B000BBC82FF86CD3A /* CapsuleWardrobeView.swift in Sources */,
 				899E324BD2572DE2E6C5CB92 /* ChatView.swift in Sources */,
+				E30D1D20F87153CA6B684B54 /* ChatViewModel+MessageParsing.swift in Sources */,
 				5578E15F8309AE0BD9035D4F /* ChatViewModel.swift in Sources */,
 				97FD48193B1A838D067A65CC /* ChatWorkspaceService.swift in Sources */,
 				07E84A906C1FECF5ED4370AE /* ClosetView.swift in Sources */,
@@ -1011,6 +1069,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AF4627490D25060F0987925D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7C0A0F217713BCEEDE032529 /* PersonalShooper */;
+			targetProxy = D0B052D0D3907414D4971C3C /* PBXContainerItemProxy */;
+		};
 		B989E3411B563C83DDDBE97A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D19B5E2F93C0CE249A6DE4B2 /* PersonalShooperWidgets */;
@@ -1059,6 +1122,23 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
+		};
+		4DDE78C838D22D465A36F83C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.personalshooper.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PersonalShooper.app/PersonalShooper";
+			};
+			name = Debug;
 		};
 		70B5CE97A9AAE43B3E3DF3BF /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1211,6 +1291,23 @@
 			};
 			name = Debug;
 		};
+		B9A7A3CBFF57281BD2E8E857 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.personalshooper.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PersonalShooper.app/PersonalShooper";
+			};
+			name = Release;
+		};
 		ECC78588E5F760AF6E18544B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1240,6 +1337,15 @@
 			buildConfigurations = (
 				2E916F42B52A9358D3F4EAE7 /* Debug */,
 				ECC78588E5F760AF6E18544B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		770C30B07D43D7CC1FF47C3D /* Build configuration list for PBXNativeTarget "PersonalShooperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DDE78C838D22D465A36F83C /* Debug */,
+				B9A7A3CBFF57281BD2E8E857 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

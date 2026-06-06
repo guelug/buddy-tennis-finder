@@ -30,7 +30,7 @@ final class Message {
     var roleRaw: String
     var content: String
     var imageURLString: String?
-    var imageData: Data?
+    @Attribute(.externalStorage) var imageData: Data?
     var linkedClosetItemIDString: String?
     var linkedTryOnResultIDString: String?
     var metadataData: Data?

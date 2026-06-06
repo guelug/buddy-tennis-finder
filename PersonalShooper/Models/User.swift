@@ -6,16 +6,17 @@ import UIKit
 final class User {
     var id: UUID
     var displayName: String
-    var faceCloseUpData: Data?
-    var faceProfileData: Data?
-    var fullBodyFrontData: Data?
-    var fullBodyBackData: Data?
+    // Profile photos live in external storage so the User row stays light.
+    @Attribute(.externalStorage) var faceCloseUpData: Data?
+    @Attribute(.externalStorage) var faceProfileData: Data?
+    @Attribute(.externalStorage) var fullBodyFrontData: Data?
+    @Attribute(.externalStorage) var fullBodyBackData: Data?
     var skinAnalysisData: Data?
     var personalPaletteData: Data?
     var personalStylingProfileData: Data?
     /// AI-cleaned full-body reference (person on a neutral studio backdrop, no mirror/clutter) used
     /// for try-on. Generated once for premium/BYOK users and cached here. Optional/hidden from the UI.
-    var cleanBodyReferenceData: Data?
+    @Attribute(.externalStorage) var cleanBodyReferenceData: Data?
     var stylePreferences: [String]
     var subscriptionTierRaw: String
     var preferredLanguageRaw: String

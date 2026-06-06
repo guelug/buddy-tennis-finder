@@ -93,14 +93,16 @@ final class ClothingItem {
     var id: UUID
     var name: String
     var categoryRaw: String
-    var imageData: Data?
-    var realReferenceImageData: Data?
+    // Image blobs use external storage so SwiftData keeps them as files on disk and faults them
+    // lazily, instead of bloating the row that @Query loads for the whole closet.
+    @Attribute(.externalStorage) var imageData: Data?
+    @Attribute(.externalStorage) var realReferenceImageData: Data?
     /// AI-generated marketing thumbnail (white background, item facing front, full item visible).
     /// Premium/BYOK only. Generated on demand and cached; used for display in the closet.
-    var optimizedImageData: Data?
+    @Attribute(.externalStorage) var optimizedImageData: Data?
     /// Background-removed (transparent) cutout of the optimized thumbnail, so the garment can float
     /// on any backdrop (light or dark). Stored as PNG to preserve the alpha channel.
-    var cutoutImageData: Data?
+    @Attribute(.externalStorage) var cutoutImageData: Data?
     var colorTags: [String]
     var styleTags: [String]
     var materialTags: [String]
@@ -295,8 +297,8 @@ final class StyleProgressMission {
     var id: UUID
     var title: String
     var linkedItemIDStrings: [String]
-    var baselineImageData: Data?
-    var followUpImageData: Data?
+    @Attribute(.externalStorage) var baselineImageData: Data?
+    @Attribute(.externalStorage) var followUpImageData: Data?
     var detectedItemIDStrings: [String]
     var notes: String?
     var targetMonths: Int
@@ -381,9 +383,9 @@ final class TryOnResult {
     var clothingCategoryRaw: String?
     var closetItemIDString: String?
     var referenceDescriptor: String
-    var clothingImageData: Data
-    var userPhotoData: Data
-    var resultImageData: Data
+    @Attribute(.externalStorage) var clothingImageData: Data
+    @Attribute(.externalStorage) var userPhotoData: Data
+    @Attribute(.externalStorage) var resultImageData: Data
     var editHistoryData: Data?
     var createdAt: Date
 
