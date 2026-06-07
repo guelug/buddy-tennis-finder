@@ -41,6 +41,12 @@ enum StyleImageService {
         geminiKey() != nil && openAIKey() != nil
     }
 
+    /// Engine for marketing thumbnails: prefer Gemini (Nano Banana 2) for speed/cost, regardless of
+    /// the user's general image-provider preference. Falls back to OpenAI only if no Gemini key.
+    static func marketingEngine() -> Engine {
+        geminiKey() != nil ? .gemini : .openai
+    }
+
     /// True when at least one image-capable provider key is available. When false, image
     /// generation/editing can't run, so callers should surface a "configure a key" message instead
     /// of silently returning the source image and pretending the operation succeeded.
@@ -59,7 +65,10 @@ enum StyleImageService {
     }
 
     static func marketingImage(for garment: UIImage, categoryHint: String) async throws -> UIImage {
-        switch resolvedEngine() {
+        // Thumbnails are a high-volume utility where SPEED matters most. Gemini's Nano Banana 2
+        // (gemini-3.1-flash-image) is far faster and cheaper than OpenAI's gpt-image-2 for this, so
+        // prefer Gemini whenever a Gemini key exists — even if try-on uses a different provider.
+        switch marketingEngine() {
         case .gemini:
             return try await GeminiTryOnService(apiKey: geminiKey()).marketingImage(for: garment, categoryHint: categoryHint)
         case .openai:

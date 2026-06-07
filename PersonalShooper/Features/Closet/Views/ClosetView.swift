@@ -78,7 +78,36 @@ struct ClosetView: View {
                 }
                 .background(Theme.Colors.cardBackground)
 
-                if filteredItems.isEmpty {
+                if filteredItems.isEmpty && !items.isEmpty {
+                    // Items exist but a filter is hiding them — don't make it look like the closet is
+                    // empty; explain and offer to clear the filter.
+                    VStack(spacing: Theme.Spacing.md) {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 56))
+                            .foregroundStyle(Color.gray.opacity(0.5))
+                        Text(onPaletteOnly
+                             ? (lang == .spanish ? "Ninguna prenda coincide con tu paleta" : "No garments match your palette")
+                             : (lang == .spanish ? "Sin resultados para este filtro" : "No results for this filter"))
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                        Text(lang == .spanish ? "Ajusta los filtros para ver tus prendas." : "Adjust the filters to see your garments.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button {
+                            withAnimation(.snappy(duration: 0.22)) {
+                                onPaletteOnly = false
+                                selectedCategory = nil
+                                searchText = ""
+                            }
+                        } label: {
+                            Label(lang == .spanish ? "Quitar filtros" : "Clear filters", systemImage: "xmark.circle")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding()
+                    .background(Theme.Colors.groupedBackground)
+                } else if filteredItems.isEmpty {
                     VStack(spacing: Theme.Spacing.md) {
                         Image(systemName: "cabinet.fill")
                             .font(.system(size: 60))
