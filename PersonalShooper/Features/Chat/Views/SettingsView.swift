@@ -20,6 +20,33 @@ struct SettingsView: View {
         appState.preferredLanguage
     }
 
+    private var aiModeIcon: String {
+        switch appState.aiProviderMode {
+        case .appleFoundation: return "apple.logo"
+        case .byok: return "key.fill"
+        case .premiumExternal: return "crown.fill"
+        }
+    }
+
+    private var aiModeColor: Color {
+        switch appState.aiProviderMode {
+        case .appleFoundation: return .primary
+        case .byok: return .blue
+        case .premiumExternal: return Theme.Colors.premiumGold
+        }
+    }
+
+    private var aiModeDescription: String {
+        switch appState.aiProviderMode {
+        case .appleFoundation:
+            return text("Usa Apple Intelligence en el dispositivo para consejos privados de estilo.", "Uses on-device Apple Intelligence for private style advice.")
+        case .byok:
+            return text("Usa la clave BYOK y el proveedor elegido en este dispositivo.", "Uses the BYOK key and provider selected on this device.")
+        case .premiumExternal:
+            return text("Usa el backend externo de fallback cuando está activado.", "Uses the external fallback backend when enabled.")
+        }
+    }
+
     var body: some View {
         List {
             // Appearance Section
@@ -88,7 +115,7 @@ struct SettingsView: View {
             } header: {
                 Text(text("Probador virtual", "Virtual Try-On"))
             } footer: {
-                Text(text("Google: mejor calidad. Vista local: composición gratuita. BYOK: usa tu propia clave de OpenAI.", "Google: best quality. Local Preview: free composition. BYOK: uses your own OpenAI API key."))
+                Text(text("Google: mejor calidad. Apple Image Playground: generación gratuita y privada en el dispositivo. BYOK: usa tu propia clave de OpenAI.", "Google: best quality. Apple Image Playground: free, private on-device generation. BYOK: uses your own OpenAI API key."))
             }
 
             Section {
@@ -289,19 +316,15 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
 
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: appState.aiProviderMode == .premium ? "crown.fill" : "key.fill")
-                            .foregroundStyle(appState.aiProviderMode == .premium ? .yellow : .blue)
+                        Image(systemName: aiModeIcon)
+                            .foregroundStyle(aiModeColor)
                             .frame(width: 24)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(appState.aiProviderMode == .premium ? "Premium" : "BYOK")
+                            Text(appState.aiProviderMode.displayName(language: lang))
                                 .font(.subheadline)
-                            Text(
-                                appState.aiProviderMode == .premium
-                                    ? text("Usa el backend premium de TestFlight con cuotas de prueba.", "Uses the TestFlight premium backend with test quotas.")
-                                    : text("Usa la clave BYOK y el proveedor elegido en este dispositivo.", "Uses the BYOK key and provider selected on this device.")
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            Text(aiModeDescription)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -544,9 +567,9 @@ struct TryOnProviderInfoView: View {
                     ProviderInfoCard(
                         icon: "apple.logo",
                         color: .orange,
-                        name: isSpanish ? "Vista local" : "Local Preview",
-                        description: isSpanish ? "Composición gratuita en el dispositivo para previsualizar una prenda sin llamar a un proveedor externo." : "Free on-device composition for previewing a garment without calling an external provider.",
-                        features: isSpanish ? ["100% gratis", "Funciona sin conexión", "Vista rápida", "No necesita cuenta"] : ["100% free", "Works offline", "Quick preview", "No account needed"],
+                        name: "Apple Image Playground",
+                        description: isSpanish ? "Generación gratuita y privada en el dispositivo para previsualizar una prenda sin llamar a un proveedor externo." : "Free, private on-device generation for previewing a garment without calling an external provider.",
+                        features: isSpanish ? ["100% gratis", "Privado (no sale la foto)", "Funciona sin conexión", "Vista rápida", "No necesita cuenta"] : ["100% free", "Private (photo never leaves device)", "Works offline", "Quick preview", "No account needed"],
                         badge: "FREE"
                     )
 

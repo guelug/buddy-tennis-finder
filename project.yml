@@ -12,7 +12,7 @@ settings:
     SWIFT_VERSION: "6.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "56"
+    CURRENT_PROJECT_VERSION: "57"
     ENABLE_USER_SCRIPT_SANDBOXING: false
     DEVELOPMENT_TEAM: "Y6VZTXTFW8"
     SWIFT_STRICT_CONCURRENCY: "complete"
@@ -49,6 +49,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         SWIFT_EMIT_LOC_STRINGS: true
         ENABLE_PREVIEWS: YES
+        OTHER_LDFLAGS[sdk=iphoneos*]: -weak_framework VisualIntelligence
     entitlements:
       path: PersonalShooper/PersonalShooper.entitlements
       properties:
@@ -74,6 +75,8 @@ targets:
       - sdk: CoreLocation.framework
       - sdk: AppIntents.framework
       - sdk: WidgetKit.framework
+      - sdk: ImagePlayground.framework
+        weak: true
       - target: PersonalShooperWidgets
 
   PersonalShooperTests:
@@ -137,3 +140,12 @@ schemes:
       config: Debug
     archive:
       config: Release
+  PersonalShooperTests:
+    build:
+      targets:
+        PersonalShooperTests: all
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - PersonalShooperTests

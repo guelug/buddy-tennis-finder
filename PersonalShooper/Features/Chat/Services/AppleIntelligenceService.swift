@@ -1,6 +1,19 @@
 import Foundation
 import FoundationModels
 import NaturalLanguage
+import UIKit
+
+#if canImport(_FoundationModels_UIKit)
+import _FoundationModels_UIKit
+#endif
+
+#if canImport(_Vision_FoundationModels)
+import _Vision_FoundationModels
+#endif
+
+#if canImport(_CoreSpotlight_FoundationModels)
+import _CoreSpotlight_FoundationModels
+#endif
 
 // MARK: - AI Service Errors
 enum AIError: LocalizedError {
@@ -46,6 +59,7 @@ protocol AIChatServiceProtocol {
 protocol FoundationModelsServiceProtocol: AIChatServiceProtocol {
     var isStreaming: Bool { get }
     func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error>
+    func streamMessage(_ message: String, image: UIImage?, context: ChatContext) -> AsyncThrowingStream<String, Error>
     func prewarm() async
 }
 
@@ -115,15 +129,32 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     }
 
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
+        try await sendMessage(message, image: nil, context: context)
+    }
+
+    func sendMessage(_ message: String, image: UIImage?, context: ChatContext) async throws -> String {
         guard isAvailable else {
             throw AIError.modelNotAvailable
         }
 
         let session = activeSession(for: context)
-        let response = try await session.respond(
-            to: userPrompt(for: message, context: context),
-            options: GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
-        )
+        let response: LanguageModelSession.Response<String>
+
+#if canImport(_FoundationModels_UIKit)
+        if #available(iOS 27.0, *), let image {
+            response = try await session.respond(
+                options: generationOptions,
+                contextOptions: contextOptions(for: message)
+            ) {
+                userPrompt(for: message, context: context)
+                Attachment(image).label("User supplied style image")
+            }
+        } else {
+            response = try await textResponse(from: session, message: message, context: context)
+        }
+#else
+        response = try await textResponse(from: session, message: message, context: context)
+#endif
 
         let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
@@ -134,6 +165,10 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     }
 
     func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error> {
+        streamMessage(message, image: nil, context: context)
+    }
+
+    func streamMessage(_ message: String, image: UIImage?, context: ChatContext) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             Task { @MainActor in
                 guard self.isAvailable else {
@@ -143,9 +178,11 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
 
                 do {
                     var lastContent = ""
-                    let stream = self.activeSession(for: context).streamResponse(
-                        to: self.userPrompt(for: message, context: context),
-                        options: GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
+                    let stream = self.responseStream(
+                        from: self.activeSession(for: context),
+                        message: message,
+                        image: image,
+                        context: context
                     )
 
                     for try await snapshot in stream {
@@ -165,10 +202,43 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         }
     }
 
+    private var generationOptions: GenerationOptions {
+        GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
+    }
+
     private func activeSession(for context: ChatContext) -> LanguageModelSession {
         if let session {
             return session
         }
+
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            let instructions = systemInstructions(
+                for: context.language,
+                assistantName: AssistantPersona.name(forUserNamed: context.preferredName)
+            )
+            let tools = iOS27SystemTools()
+
+            if shouldPreferPrivateCloudCompute(for: context),
+               let privateCloudModel = privateCloudModelIfAvailable() {
+                let session = LanguageModelSession(
+                    model: privateCloudModel,
+                    tools: tools,
+                    instructions: instructions
+                )
+                self.session = session
+                return session
+            }
+
+            let session = LanguageModelSession(
+                model: model,
+                tools: tools,
+                instructions: instructions
+            )
+            self.session = session
+            return session
+        }
+#endif
 
         let session = LanguageModelSession(
             model: model,
@@ -180,6 +250,110 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         self.session = session
         return session
     }
+
+    private func textResponse(
+        from session: LanguageModelSession,
+        message: String,
+        context: ChatContext
+    ) async throws -> LanguageModelSession.Response<String> {
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            return try await session.respond(
+                to: userPrompt(for: message, context: context),
+                options: generationOptions,
+                contextOptions: contextOptions(for: message)
+            )
+        }
+#endif
+
+        return try await session.respond(
+            to: userPrompt(for: message, context: context),
+            options: generationOptions
+        )
+    }
+
+    private func responseStream(
+        from session: LanguageModelSession,
+        message: String,
+        image: UIImage?,
+        context: ChatContext
+    ) -> LanguageModelSession.ResponseStream<String> {
+#if canImport(_FoundationModels_UIKit)
+        if #available(iOS 27.0, *), let image {
+            return session.streamResponse(
+                options: generationOptions,
+                contextOptions: contextOptions(for: message)
+            ) {
+                userPrompt(for: message, context: context)
+                Attachment(image).label("User supplied style image")
+            }
+        }
+#endif
+
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            return session.streamResponse(
+                to: userPrompt(for: message, context: context),
+                options: generationOptions,
+                contextOptions: contextOptions(for: message)
+            )
+        }
+#endif
+
+        return session.streamResponse(
+            to: userPrompt(for: message, context: context),
+            options: generationOptions
+        )
+    }
+
+#if compiler(>=6.4)
+    @available(iOS 27.0, *)
+    private func contextOptions(for message: String) -> ContextOptions {
+        ContextOptions(reasoningLevel: reasoningLevel(for: message))
+    }
+
+    @available(iOS 27.0, *)
+    private func reasoningLevel(for message: String) -> ContextOptions.ReasoningLevel {
+        let normalized = message.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+        let deepSignals = [
+            "capsule", "capsula", "travel", "viaje", "wedding", "boda",
+            "wardrobe", "armario", "plan", "calendar", "calendario",
+            "compare", "compara", "analyze", "analiza", "shopping", "compras"
+        ]
+
+        return deepSignals.contains { normalized.contains($0) } ? .moderate : .light
+    }
+
+    @available(iOS 27.0, *)
+    private func shouldPreferPrivateCloudCompute(for context: ChatContext) -> Bool {
+        !context.closetItems.isEmpty || !context.todayEvents.isEmpty || context.personalStylingProfile != nil
+    }
+
+    @available(iOS 27.0, *)
+    private func privateCloudModelIfAvailable() -> PrivateCloudComputeLanguageModel? {
+        let privateCloudModel = PrivateCloudComputeLanguageModel()
+        return privateCloudModel.isAvailable ? privateCloudModel : nil
+    }
+
+    @available(iOS 27.0, *)
+    private func iOS27SystemTools() -> [any Tool] {
+        var tools: [any Tool] = []
+
+        tools.append(ClosetSearchTool())
+        tools.append(WardrobeStatsTool())
+
+#if canImport(_Vision_FoundationModels)
+        tools.append(OCRTool(description: "Read text visible in fashion labels, receipts, garment tags, or screenshots."))
+        tools.append(BarcodeReaderTool(description: "Read barcodes or QR codes on garment tags and shopping labels when useful."))
+#endif
+
+#if canImport(_CoreSpotlight_FoundationModels)
+        tools.append(SpotlightSearchTool())
+#endif
+
+        return tools
+    }
+#endif
 
     private func systemInstructions(for language: Language, assistantName: String) -> String {
         var lines = [
@@ -195,9 +369,10 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         ]
         lines.append(contentsOf: ImageConsulting.professionalGuidelines(language: language))
         lines.append(contentsOf: [
-            "When formatting helps (comparisons, capsule plans, size charts), use Markdown tables; otherwise keep prose tight.",
+            "When formatting helps (comparisons, capsule plans, packing lists), use Markdown tables and checklists; otherwise keep prose tight.",
             "Prioritize privacy: do not ask for sensitive personal data unrelated to style, and do not claim external access.",
             "If a closet item is relevant, name it directly and explain why it works.",
+            "You have a 'search_closet' tool to find garments by category, occasion, color, style, or free-text query. Use it whenever you need specific closet items instead of guessing.",
             "Keep responses concise enough for mobile chat."
         ])
         return lines.joined(separator: "\n")
@@ -246,11 +421,11 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         }
 
         if !context.closetItems.isEmpty {
-            let closet = context.closetItems.prefix(20).map { item in
+            let closet = context.closetItems.prefix(5).map { item in
                 let details = (item.colorTags + item.styleTags).prefix(5).joined(separator: ", ")
                 return "- \(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
             }.joined(separator: "\n")
-            sections.append("Current closet inventory:\n\(closet)")
+            sections.append("Recent closet highlights (use the 'search_closet' tool if you need more):\n\(closet)")
         }
 
         sections.append("User message: \(message)")
@@ -894,6 +1069,64 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
             "neutral": "neutral"
         ]
         return translations[english] ?? english
+    }
+}
+
+// MARK: - Foundation Models Tools (iOS 27+)
+
+@available(iOS 27.0, *)
+struct ClosetSearchTool: Tool {
+    let name = "search_closet"
+    let description = "Search the user's wardrobe for garments matching category, occasion, color, style, or a free-text query. Returns matching items with their names and tags."
+
+    @Generable
+    struct Arguments {
+        @Guide(description: "Clothing category to filter by, e.g. tops, bottoms, dresses, shoes, accessories")
+        let category: String?
+        @Guide(description: "Occasion to filter by, e.g. work, casual, party, wedding, sport")
+        let occasion: String?
+        @Guide(description: "Color to filter by, e.g. black, navy, beige")
+        let colorPreference: String?
+        @Guide(description: "Style to filter by, e.g. casual, formal, minimal, elegant")
+        let stylePreference: String?
+        @Guide(description: "Free-text query to match against garment name, brand, notes, or tags")
+        let query: String?
+    }
+
+    func call(arguments: Arguments) async throws -> String {
+        let service = ClosetSearchService()
+        let results = service.searchItems(
+            category: arguments.category,
+            occasion: arguments.occasion,
+            colorPreference: arguments.colorPreference,
+            stylePreference: arguments.stylePreference,
+            query: arguments.query,
+            limit: 10
+        )
+
+        guard !results.isEmpty else {
+            return "No matching garments found in the closet."
+        }
+
+        let lines = results.map { item in
+            let details = (item.colorTags + item.styleTags).prefix(4).joined(separator: ", ")
+            return "- \(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
+        }
+
+        return "Found \(results.count) garment(s):\n" + lines.joined(separator: "\n")
+    }
+}
+
+@available(iOS 27.0, *)
+struct WardrobeStatsTool: Tool {
+    let name = "wardrobe_stats"
+    let description = "Get high-level statistics about the user's wardrobe: total items, favorites, most worn, never worn, and breakdown by category."
+
+    @Generable
+    struct Arguments {}
+
+    func call(arguments: Arguments) async throws -> String {
+        ClosetSearchService().wardrobeStats()
     }
 }
 

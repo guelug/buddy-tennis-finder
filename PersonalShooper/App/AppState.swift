@@ -1,6 +1,8 @@
 import SwiftUI
 import WidgetKit
 import StoreKit
+import AppIntents
+import CoreSpotlight
 
 @Observable
 @MainActor
@@ -19,7 +21,8 @@ final class AppState {
     var tryOnProvider: TryOnProvider = .google
     var isChatGPTConnected: Bool = false
     var useConnectedChatGPTForChat: Bool = false
-    var aiProviderMode: AIProviderMode = .premium
+    var aiProviderMode: AIProviderMode = .appleFoundation
+    var isVercelFallbackEnabled: Bool = false
     var chatPreparedFeatures = ChatPreparedFeatures()
     var isCalendarSyncEnabled: Bool = false
     var areDailyWidgetsEnabled: Bool = true
@@ -57,7 +60,15 @@ final class AppState {
             tryOnProvider = provider
         }
 
-        aiProviderMode = AIProviderMode(rawValue: UserDefaults.standard.string(forKey: "ai_provider_mode") ?? "") ?? .premium
+        if let savedMode = UserDefaults.standard.string(forKey: "ai_provider_mode"),
+           let mode = AIProviderMode(rawValue: savedMode) {
+            aiProviderMode = mode
+        } else {
+            // Migrate old default / premium mode to the new Apple Foundation default.
+            aiProviderMode = .appleFoundation
+            UserDefaults.standard.set(AIProviderMode.appleFoundation.rawValue, forKey: "ai_provider_mode")
+        }
+        isVercelFallbackEnabled = UserDefaults.standard.bool(forKey: "vercel_fallback_enabled")
         refreshAIProviderAvailability()
         chatPreparedFeatures = ChatPreparedFeatures(
             textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
@@ -194,6 +205,7 @@ final class AppState {
         )
         lastStyleRefreshAt = Date()
 
+        refreshClosetSystemIndex(closetItems: closetItems)
         SharedStyleCompanionStore.saveEvents(todayCalendarEvents)
         SharedStyleCompanionStore.saveRecommendation(latestDailyRecommendation)
         persistStyleCompanionConfiguration()
@@ -216,12 +228,7 @@ final class AppState {
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue: Bool
-        if aiProviderMode == .premium {
-            effectiveValue = enabled && isChatGPTConnected
-        } else {
-            effectiveValue = enabled && (hasBYOKAccess || currentTier.hasBYOK) && isBYOKEnabled
-        }
+        let effectiveValue = (aiProviderMode == .premiumExternal) && enabled && isChatGPTConnected
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
@@ -231,14 +238,22 @@ final class AppState {
         UserDefaults.standard.set(mode.rawValue, forKey: "ai_provider_mode")
 
         switch mode {
-        case .premium:
-            useConnectedChatGPTForChat = isChatGPTConnected
-            UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
-        case .byok:
-            isBYOKEnabled = storeKitManager.isBYOKConfigured
+        case .appleFoundation:
             useConnectedChatGPTForChat = false
             UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
+        case .byok:
+            isBYOKEnabled = storeKitManager.isBYOKActive
+            useConnectedChatGPTForChat = false
+            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
+        case .premiumExternal:
+            useConnectedChatGPTForChat = isChatGPTConnected
+            UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
         }
+    }
+
+    func setVercelFallbackEnabled(_ enabled: Bool) {
+        isVercelFallbackEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: "vercel_fallback_enabled")
     }
 
     func isTryOnProviderAvailable(_ provider: TryOnProvider) -> Bool {
@@ -263,25 +278,26 @@ final class AppState {
 
     private func syncSubscriptionState() {
         currentTier = storeKitManager.currentTier
-        isPremium = storeKitManager.isPremium || AppSecrets.vercelTestSecret != nil
+        isPremium = storeKitManager.isPremium
         hasBYOKAccess = storeKitManager.hasBYOKPurchase
         isBYOKEnabled = storeKitManager.isBYOKActive
 
         refreshAIProviderAvailability()
     }
 
-    private func refreshAIProviderAvailability() {
-        let hasPremiumBackend = AppSecrets.vercelAPIBaseURL != nil
-        isChatGPTConnected = hasPremiumBackend
-            || UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil
-            || AppSecrets.openAIAPIKey != nil
+    func refreshAIProviderAvailability() {
+        let hasVercelBackend = AppSecrets.vercelAPIBaseURL != nil && isVercelFallbackEnabled
+        let hasStoredToken = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil
+        isChatGPTConnected = hasVercelBackend || hasStoredToken || AppSecrets.openAIAPIKey != nil
 
         switch aiProviderMode {
-        case .premium:
-            useConnectedChatGPTForChat = isChatGPTConnected
+        case .appleFoundation:
+            useConnectedChatGPTForChat = false
         case .byok:
             isBYOKEnabled = storeKitManager.isBYOKActive
             useConnectedChatGPTForChat = false
+        case .premiumExternal:
+            useConnectedChatGPTForChat = isChatGPTConnected
         }
 
         UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
@@ -304,20 +320,57 @@ final class AppState {
     private func reloadWidgets() {
         WidgetCenter.shared.reloadAllTimelines()
     }
+
+    private func refreshClosetSystemIndex(closetItems: [ClothingItem]) {
+        let snapshots = closetItems.map { $0.styleCompanionSnapshot(language: preferredLanguage) }
+        SharedStyleCompanionStore.saveClosetIndex(snapshots)
+
+        guard #available(iOS 18.0, *) else { return }
+
+        let entities = snapshots.map(ClosetItemEntity.init)
+        Task.detached(priority: .utility) {
+            try? await CSSearchableIndex.default().indexAppEntities(entities)
+        }
+    }
+}
+
+private extension ClothingItem {
+    func styleCompanionSnapshot(language: Language) -> StyleCompanionClosetItemSnapshot {
+        StyleCompanionClosetItemSnapshot(
+            id: id.uuidString,
+            name: name,
+            categoryRaw: categoryRaw,
+            categoryDisplayName: Strings.categoryDisplayName(category, language),
+            colorTags: colorTags,
+            styleTags: styleTags,
+            materialTags: materialTags,
+            occasionTags: occasionTags,
+            detailTags: detailTags,
+            brandName: brandName,
+            notes: notes,
+            metadataSummary: metadataSummary,
+            isFavorite: isFavorite,
+            timesWorn: timesWorn,
+            createdAt: createdAt
+        )
+    }
 }
 
 enum AIProviderMode: String, CaseIterable, Identifiable {
-    case premium
+    case appleFoundation
     case byok
+    case premiumExternal
 
     var id: String { rawValue }
 
     func displayName(language: Language) -> String {
         switch self {
-        case .premium:
-            return language == .spanish ? "Premium" : "Premium"
+        case .appleFoundation:
+            return language == .spanish ? "Apple Intelligence" : "Apple Intelligence"
         case .byok:
             return "BYOK"
+        case .premiumExternal:
+            return language == .spanish ? "Premium externo" : "External Premium"
         }
     }
 }

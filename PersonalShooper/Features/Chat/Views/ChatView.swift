@@ -2,9 +2,16 @@ import SwiftUI
 import SwiftData
 import AVFoundation
 
+#if canImport(ImagePlayground)
+import ImagePlayground
+#endif
+
 struct ChatView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var modelContext
+#if canImport(ImagePlayground)
+    @Environment(\.supportsImagePlayground) private var supportsImagePlayground
+#endif
     var selectedTab: Binding<Int>? = nil
     @State private var viewModel = ChatViewModel()
     @State private var speechController = ChatSpeechController()
@@ -12,6 +19,9 @@ struct ChatView: View {
     @State private var showingAttachmentOptions = false
     @State private var showingAttachmentPicker = false
     @State private var attachmentSource: UIImagePickerController.SourceType = .photoLibrary
+#if canImport(ImagePlayground)
+    @State private var showingImagePlayground = false
+#endif
 
     private var lang: Language {
         appState.preferredLanguage
@@ -115,6 +125,7 @@ struct ChatView: View {
         }
         .task {
             viewModel.prepare(appState: appState, modelContext: modelContext)
+            applyPendingPromptIfNeeded()
         }
         .onChange(of: appState.currentUser?.updatedAt) { _, _ in
             viewModel.setContext(from: appState)
@@ -139,6 +150,20 @@ struct ChatView: View {
                 viewModel.attachedImage = image
             }
         }
+#if canImport(ImagePlayground)
+        .imagePlaygroundSheet(
+            isPresented: $showingImagePlayground,
+            concepts: imagePlaygroundConcepts,
+            onCompletion: { url in
+                if let data = try? Data(contentsOf: url),
+                   let image = UIImage(data: data) {
+                    viewModel.attachedImage = image
+                }
+            }
+        )
+        .imagePlaygroundGenerationStyle(.illustration, in: [.illustration, .sketch, .animation, .externalProvider])
+        .personalShooperImagePlaygroundOptions()
+#endif
         .onDisappear {
             speechController.stop()
         }
@@ -278,6 +303,21 @@ struct ChatView: View {
                 }
                 .buttonStyle(.premiumPressable)
 
+#if canImport(ImagePlayground)
+                if supportsImagePlayground {
+                    Button {
+                        showingImagePlayground = true
+                    } label: {
+                        Image(systemName: "wand.and.sparkles")
+                            .font(.title3)
+                            .foregroundStyle(Theme.Colors.primary)
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.premiumPressable)
+                    .accessibilityLabel(text("Crear inspiración visual", "Create visual inspiration"))
+                }
+#endif
+
                 TextField(Strings.chatAskFashion(lang), text: $viewModel.inputText, axis: .vertical)
                     .textFieldStyle(.plain)
                     .submitLabel(.send)
@@ -330,6 +370,31 @@ struct ChatView: View {
         lang == .spanish ? spanish : english
     }
 
+#if canImport(ImagePlayground)
+    private var imagePlaygroundConcepts: [ImagePlaygroundConcept] {
+        let draft = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallback = text(
+            "Inspiración de outfit completo, estilismo premium, colores equilibrados y prendas realistas.",
+            "Complete outfit inspiration, premium styling, balanced colors, and realistic garments."
+        )
+
+        return [
+            .text(draft.isEmpty ? fallback : draft),
+            .extracted(from: text("moda, outfit, estilismo personal", "fashion, outfit, personal styling"))
+        ]
+    }
+
+#endif
+
+    private func applyPendingPromptIfNeeded() {
+        guard let prompt = SharedStyleCompanionStore.consumePendingChatPrompt() else {
+            return
+        }
+
+        viewModel.inputText = prompt
+        isInputFocused = true
+    }
+
     private func messageRow(for message: Message) -> some View {
         MessageBubbleView(
             message: message,
@@ -341,6 +406,31 @@ struct ChatView: View {
         .id(message.id)
     }
 }
+
+#if canImport(ImagePlayground)
+private extension View {
+    @ViewBuilder
+    func personalShooperImagePlaygroundOptions() -> some View {
+        if #available(iOS 26.4, *) {
+            self.imagePlaygroundOptions(personalShooperImagePlaygroundOptionsValue())
+        } else {
+            self
+        }
+    }
+
+    @available(iOS 26.4, *)
+    func personalShooperImagePlaygroundOptionsValue() -> ImagePlaygroundOptions {
+        var options = ImagePlaygroundOptions()
+        options.personalization = .disabled
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            options.sizeSpecification = .closest(to: CGSize(width: 1024, height: 1365))
+        }
+#endif
+        return options
+    }
+}
+#endif
 
 struct TypingIndicatorView: View {
     @State private var isAnimating = false

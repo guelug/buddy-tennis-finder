@@ -15,7 +15,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     func displayName(language: Language) -> String {
         switch self {
         case .google: return "Google Gemini"
-        case .playground: return language == .spanish ? "Vista local" : "Local Preview"
+        case .playground: return language == .spanish ? "Apple Image Playground" : "Apple Image Playground"
         case .chatgpt: return language == .spanish ? "Tu clave de OpenAI" : "BYOK"
         }
     }
@@ -27,7 +27,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     func subtitle(language: Language) -> String {
         switch self {
         case .google: return language == .spanish ? "Resultados más precisos" : "Most accurate results"
-        case .playground: return language == .spanish ? "Gratis, composición local" : "Free local composition"
+        case .playground: return language == .spanish ? "Apple Image Playground gratis en el dispositivo" : "Free Apple Image Playground on-device"
         case .chatgpt: return language == .spanish ? "Usa tu propia clave de OpenAI" : "Bring your own OpenAI key"
         }
     }
@@ -56,7 +56,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var isCartoonStyle: Bool {
+    var isStylized: Bool {
         switch self {
         case .google: return false
         case .playground: return true
@@ -101,7 +101,7 @@ final class TryOnProviderService {
         case .google:
             return try await generateWithGoogle(clothing: clothingImage, user: userImage, garmentCategory: garmentCategory)
         case .playground:
-            return try await generateWithPlayground(clothing: clothingImage, user: userImage)
+            return try await generateWithPlayground(clothing: clothingImage, user: userImage, garmentCategory: garmentCategory)
         case .chatgpt:
             return try await generateWithChatGPT(clothing: clothingImage, user: userImage)
         }
@@ -120,11 +120,25 @@ final class TryOnProviderService {
         )
     }
 
-    // MARK: - Local Preview
+    // MARK: - Local Preview (Image Playground)
 
-    private func generateWithPlayground(clothing: UIImage, user: UIImage) async throws -> UIImage {
-        let playgroundImage = createCartoonStyleImage(clothing: clothing, user: user)
-        return playgroundImage
+    private func generateWithPlayground(clothing: UIImage, user: UIImage, garmentCategory: ClothingCategory?) async throws -> UIImage {
+        if #available(iOS 18.4, *), ImagePlaygroundTryOnService.isAvailable {
+            do {
+                let service = try await ImagePlaygroundTryOnService()
+                let prompt = garmentCategory?.imagePlaygroundPrompt ?? "fashion try-on preview"
+                return try await service.generateOutfitInspiration(
+                    clothingImage: clothing,
+                    userImage: user,
+                    prompt: prompt
+                )
+            } catch {
+                // Fall back to the placeholder preview so the UX never breaks.
+                return createCartoonStyleImage(clothing: clothing, user: user)
+            }
+        }
+
+        return createCartoonStyleImage(clothing: clothing, user: user)
     }
 
     private func createCartoonStyleImage(clothing: UIImage, user: UIImage) -> UIImage {

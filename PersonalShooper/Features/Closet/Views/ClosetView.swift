@@ -22,6 +22,8 @@ struct ClosetView: View {
     @State private var isBatchOptimizing = false
     @State private var batchDone = 0
     @State private var batchTotal = 0
+    @State private var pendingClosetRouteItemID: String?
+    @State private var pendingClosetRouteSearch: String?
 
     private var lang: Language {
         appState.preferredLanguage
@@ -48,6 +50,42 @@ struct ClosetView: View {
 
     private var closetStats: ClosetStats {
         ClosetStats(items: items)
+    }
+
+    private func applyPendingClosetRoute() {
+        if pendingClosetRouteItemID == nil {
+            pendingClosetRouteItemID = SharedStyleCompanionStore.consumePendingClosetItemID()
+        }
+        if pendingClosetRouteSearch == nil {
+            pendingClosetRouteSearch = SharedStyleCompanionStore.consumePendingClosetSearch()
+        }
+
+        if let pendingItemID = pendingClosetRouteItemID,
+           let itemID = UUID(uuidString: pendingItemID),
+           let item = items.first(where: { $0.id == itemID }) {
+            selectedCategory = nil
+            searchText = pendingClosetRouteSearch ?? item.name
+            selectedItem = item
+            clearPendingClosetRoute()
+            return
+        }
+
+        if pendingClosetRouteItemID != nil, items.isEmpty {
+            return
+        }
+
+        if let pendingSearch = pendingClosetRouteSearch {
+            selectedCategory = nil
+            searchText = pendingSearch
+            clearPendingClosetRoute()
+        } else if pendingClosetRouteItemID != nil {
+            clearPendingClosetRoute()
+        }
+    }
+
+    private func clearPendingClosetRoute() {
+        pendingClosetRouteItemID = nil
+        pendingClosetRouteSearch = nil
     }
 
     var body: some View {
@@ -338,6 +376,12 @@ struct ClosetView: View {
                 Text(deletionErrorMessage ?? "")
             }
             .sensoryFeedback(.success, trigger: closetFeedbackCounter)
+            .onAppear {
+                applyPendingClosetRoute()
+            }
+            .onChange(of: items.count) { _, _ in
+                applyPendingClosetRoute()
+            }
         }
     }
 

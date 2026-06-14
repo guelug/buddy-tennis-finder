@@ -767,9 +767,9 @@ struct ProviderPickerSheet: View {
 
     private var providerFooterText: String {
         if appState.hasBYOKAccess {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Vista local es gratis y hace una composición rápida en el dispositivo. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Local Preview is free and makes a quick on-device composition. BYOK uses your own OpenAI API key."
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Image Playground es gratis y privado en el dispositivo. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Image Playground is free and private on-device. BYOK uses your own OpenAI API key."
         } else {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Vista local es gratis y hace una composición rápida en el dispositivo." : "Google Gemini provides the most accurate results. Local Preview is free and makes a quick on-device composition."
+            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Image Playground es gratis y privado en el dispositivo." : "Google Gemini provides the most accurate results. Apple Image Playground is free and private on-device."
         }
     }
 

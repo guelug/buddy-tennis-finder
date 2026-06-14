@@ -63,6 +63,33 @@ struct BYOKSettingsView: View {
         appState.preferredLanguage
     }
 
+    private var aiModeIcon: String {
+        switch appState.aiProviderMode {
+        case .appleFoundation: return "apple.logo"
+        case .byok: return "key.fill"
+        case .premiumExternal: return "crown.fill"
+        }
+    }
+
+    private var aiModeColor: Color {
+        switch appState.aiProviderMode {
+        case .appleFoundation: return .primary
+        case .byok: return .blue
+        case .premiumExternal: return Theme.Colors.premiumGold
+        }
+    }
+
+    private var aiModeDescription: String {
+        switch appState.aiProviderMode {
+        case .appleFoundation:
+            return text("Apple Intelligence es el modo por defecto: usa Foundation Models en el dispositivo para consejo de estilo privado.", "Apple Intelligence is the default mode: it uses on-device Foundation Models for private style advice.")
+        case .byok:
+            return text("BYOK usa la clave del proveedor seleccionado en este dispositivo. Apple Intelligence sigue disponible para alternar cuando quieras.", "BYOK uses the selected provider key on this device. Apple Intelligence remains available so you can switch anytime.")
+        case .premiumExternal:
+            return text("Premium externo usa el backend de fallback (Vercel) cuando está activado. BYOK queda guardado para cuando quieras volver a usar tu propia key.", "External Premium uses the fallback backend (Vercel) when enabled. BYOK stays saved for whenever you want to switch back to your own key.")
+        }
+    }
+
     private var canSave: Bool {
         hasStoredKeys || hasEnteredKeys
     }
@@ -104,16 +131,13 @@ struct BYOKSettingsView: View {
                     .pickerStyle(.segmented)
 
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: appState.aiProviderMode == .premium ? "crown.fill" : "key.fill")
-                            .foregroundStyle(appState.aiProviderMode == .premium ? .yellow : .blue)
+                        Image(systemName: aiModeIcon)
+                            .foregroundStyle(aiModeColor)
                             .frame(width: 22)
 
-                        Text(appState.aiProviderMode == .premium
-                            ? text("Premium usa el backend de TestFlight con cuotas de prueba. BYOK queda guardado para cuando quieras volver a usar tu propia key.", "Premium uses the TestFlight backend with test quotas. BYOK stays saved for whenever you want to switch back to your own key.")
-                            : text("BYOK usa la clave del proveedor seleccionado en este dispositivo. Premium queda disponible para alternar cuando quieras.", "BYOK uses the selected provider key on this device. Premium remains available so you can switch anytime.")
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        Text(aiModeDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.vertical, 4)
                 } header: {
@@ -460,16 +484,10 @@ struct BYOKSettingsView: View {
 
         appState.isBYOKEnabled = hasEnteredKeys
 
-        // Update ChatGPT connection status
-        let trimmedOpenAI = openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmedOpenAI.isEmpty {
-            UserDefaults.standard.removeObject(forKey: "chatgpt_access_token")
-            UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
-            appState.useConnectedChatGPTForChat = false
-            appState.isChatGPTConnected = AppSecrets.openAIAPIKey != nil
-        } else {
-            appState.isChatGPTConnected = true
-        }
+        // Keep Vercel/premium-external connection independent from BYOK keys.
+        // refreshAIProviderAvailability() will recompute isChatGPTConnected based on
+        // the Vercel fallback flag or stored access token.
+        appState.refreshAIProviderAvailability()
 
         hasStoredKeys = hasEnteredKeys
         showConfirmation = true

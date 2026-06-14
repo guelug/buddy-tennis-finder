@@ -86,6 +86,24 @@ enum ClothingCategory: String, Codable, CaseIterable, Sendable {
             return "The item in image 1 is a BEAUTY product (e.g. lipstick, makeup). Do not change the person's clothing; this is not a garment."
         }
     }
+
+    /// A short, Image-Playground-friendly prompt that guides on-device generation toward a
+    /// recognisable fashion concept without over-constraining the creative model.
+    var imagePlaygroundPrompt: String {
+        switch self {
+        case .tops: return "stylish top outfit preview"
+        case .bottoms: return "chic bottoms outfit preview"
+        case .dresses: return "elegant dress outfit preview"
+        case .shoes: return "fashion shoes preview"
+        case .accessories: return "trendy accessory preview"
+        case .outerwear: return "layered outerwear outfit preview"
+        case .activewear: return "sporty activewear outfit preview"
+        case .swimwear: return "summer swimwear preview"
+        case .jewelry: return "delicate jewelry preview"
+        case .lingerie: return "elegant lingerie preview"
+        case .beauty: return "beauty product preview"
+        }
+    }
 }
 
 @Model

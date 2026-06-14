@@ -1,3 +1,4 @@
+import ImagePlayground
 import UIKit
 
 /// Resolves which BYOK provider to use for image generation/editing (clean reference + wardrobe
@@ -65,6 +66,12 @@ enum StyleImageService {
     }
 
     static func marketingImage(for garment: UIImage, categoryHint: String) async throws -> UIImage {
+        // When no external key is configured, try Apple's on-device Image Playground first.
+        // It gives a stylised but clean thumbnail without network cost or privacy concerns.
+        if #available(iOS 18.4, *), !hasImageProvider(), ImagePlaygroundTryOnService.isAvailable {
+            return try await ImagePlaygroundTryOnService().generateCleanGarmentImage(garment, categoryHint: categoryHint)
+        }
+
         // Thumbnails are a high-volume utility where SPEED matters most. Gemini's Nano Banana 2
         // (gemini-3.1-flash-image) is far faster and cheaper than OpenAI's gpt-image-2 for this, so
         // prefer Gemini whenever a Gemini key exists — even if try-on uses a different provider.

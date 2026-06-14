@@ -238,6 +238,8 @@ struct ContentView: View {
             selectedTab = 2
         case .tryOn:
             selectedTab = 3
+        case .profile:
+            selectedTab = 5
         }
     }
 }

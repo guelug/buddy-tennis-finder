@@ -133,6 +133,7 @@ final class ChatViewModel {
             await streamAssistantResponse(
                 using: streamingService,
                 prompt: trimmedInput,
+                image: attachedImage,
                 savedFacts: savedFacts,
                 closetSummary: closetSummary,
                 appState: appState,
@@ -338,6 +339,7 @@ final class ChatViewModel {
     private func streamAssistantResponse(
         using service: FoundationModelsServiceProtocol,
         prompt: String,
+        image: UIImage?,
         savedFacts: [String],
         closetSummary: String?,
         appState: AppState,
@@ -350,7 +352,7 @@ final class ChatViewModel {
         var streamedText = ""
 
         do {
-            for try await delta in service.streamMessage(prompt, context: context) {
+            for try await delta in service.streamMessage(prompt, image: image, context: context) {
                 streamedText += delta
 
                 if let streamingMessage {
@@ -603,13 +605,12 @@ final class ChatViewModel {
     }
 
     private func activeAIService(for appState: AppState) -> AIChatServiceProtocol {
-        if appState.aiProviderMode == .premium,
-           appState.useConnectedChatGPTForChat,
-           appState.isChatGPTConnected {
-            return ConnectedChatGPTService()
+        // Apple Foundation Models is the default experience.
+        guard appState.aiProviderMode != .appleFoundation else {
+            return AIChatServiceFactory.createService()
         }
 
-        // Check if BYOK is enabled and has a preferred provider
+        // BYOK mode: use the user's own API key.
         if appState.aiProviderMode == .byok, appState.isBYOKEnabled {
             if let preferredProvider = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
                let provider = BYOKChatService.BYOKProvider(rawValue: preferredProvider) {
@@ -624,8 +625,17 @@ final class ChatViewModel {
             }
         }
 
-        // Legacy ChatGPT connection
-        if appState.useConnectedChatGPTForChat && appState.isChatGPTConnected {
+        // Premium external / Vercel fallback.
+        if appState.aiProviderMode == .premiumExternal,
+           appState.useConnectedChatGPTForChat,
+           appState.isChatGPTConnected {
+            return ConnectedChatGPTService()
+        }
+
+        // Legacy fallback: if Vercel fallback is enabled and connected.
+        if appState.isVercelFallbackEnabled,
+           appState.useConnectedChatGPTForChat,
+           appState.isChatGPTConnected {
             return ConnectedChatGPTService()
         }
 

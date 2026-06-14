@@ -40,6 +40,7 @@
 		46C1F0712295BAB1F6BA9E95 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B668A8B26EAD43C074CA3718 /* Photos.framework */; };
 		52ABCBE5722A745FEA2EF801 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5054F6856E9D8B83341CA704 /* AppIntents.framework */; };
 		53DF86C0D2C0D34D009D4EAB /* Strings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBABC5D5EE29FF5A45A135E0 /* Strings.swift */; };
+		5426AD118539E241A59732AD /* ImagePlayground.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B6E54F31F6EE88082CC169 /* ImagePlayground.framework */; settings = {ATTRIBUTES = (Weak, ); }; };
 		5578E15F8309AE0BD9035D4F /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE3DB318DDEB8829D50DAF8E /* ChatViewModel.swift */; };
 		57B4002CEC6FFB05083D4CEA /* GarmentBackgroundRemovalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09FF0E63584DE9B020E60B2D /* GarmentBackgroundRemovalService.swift */; };
 		59DAC8F2BDD2A49E39AA5E7D /* GeminiTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07644CA6E4DED93F1DF5E841 /* GeminiTryOnService.swift */; };
@@ -50,9 +51,11 @@
 		63AA920246AC4977B7888F64 /* StyleLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 013991A56EF0EB5D07F9CAD4 /* StyleLogicTests.swift */; };
 		648D6C49BD792F7A3CE4AE3D /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56173F3B4C47A44171AD4425 /* WidgetKit.framework */; };
 		653F52F805B613307D414401 /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */; };
+		67C7A40DDC4947B6C2F88A64 /* ImagePlaygroundTryOnService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31A436F877700FFADCF6CCB /* ImagePlaygroundTryOnService.swift */; };
 		697D39AA4E36A52BB8C914C5 /* ConnectedChatGPTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C9C935FC5AA7125DABD554 /* ConnectedChatGPTService.swift */; };
 		6A26344F10768112364C94EB /* CalendarSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1986786BD0DF89A0E35BF53F /* CalendarSyncService.swift */; };
 		6FBB2F49ECB0F4110701834A /* SubscriptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766A659F42DDB9940AEB6B69 /* SubscriptionView.swift */; };
+		726230FD8431D1637C2881CE /* ClosetSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8438BFBAFE946888B43DA6FD /* ClosetSearchService.swift */; };
 		76530E1C76FBE252B2EBA8F9 /* PersonalShooperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F02C52326CCBAD4FE94EE7F /* PersonalShooperApp.swift */; };
 		76E4D05EC2F43CEC9F73D905 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCF43F9E1D797C468B6BA7DD /* ProfileView.swift */; };
 		7738B61295ADFDC8C677D569 /* BYOKSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */; };
@@ -204,6 +207,7 @@
 		6672AC4BB8B6FF22DEC32B04 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
 		66B45EAFDE59A049CE181887 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		67CB9660E43A91A53D5BA20C /* BYOKSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BYOKSettingsView.swift; sourceTree = "<group>"; };
+		68B6E54F31F6EE88082CC169 /* ImagePlayground.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImagePlayground.framework; path = System/Library/Frameworks/ImagePlayground.framework; sourceTree = SDKROOT; };
 		696BA670288F6524877B1351 /* ImageIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ImageIO.framework; path = System/Library/Frameworks/ImageIO.framework; sourceTree = SDKROOT; };
 		6BF2365E84C77E4390352F14 /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
 		6CCE329E228B17589B6409BA /* Speech.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Speech.framework; path = System/Library/Frameworks/Speech.framework; sourceTree = SDKROOT; };
@@ -225,6 +229,7 @@
 		7F9F8FA5342F6CB71FCD82D8 /* PaletteGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteGenerationService.swift; sourceTree = "<group>"; };
 		801EC4A943A9DEDBF03D24C2 /* PhotoAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoAnalysisService.swift; sourceTree = "<group>"; };
 		839E6E6C98B89B75F3114776 /* FoundationModels.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = FoundationModels.framework; path = System/Library/Frameworks/FoundationModels.framework; sourceTree = SDKROOT; };
+		8438BFBAFE946888B43DA6FD /* ClosetSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClosetSearchService.swift; sourceTree = "<group>"; };
 		86FB13AAA6D0B1AC46C0EB4A /* RealityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealityKit.framework; path = System/Library/Frameworks/RealityKit.framework; sourceTree = SDKROOT; };
 		887D2B4D0108C64CA67CDCD2 /* Analysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analysis.swift; sourceTree = "<group>"; };
 		8A4D2E55E40D8444C9CAEB2E /* DailyOutfitLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyOutfitLiveActivityController.swift; sourceTree = "<group>"; };
@@ -271,6 +276,7 @@
 		DEB55ADD2421C6AF55D2214F /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
 		DEE3B87031F08BB71C792EB6 /* FaceShapeAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceShapeAnalyzer.swift; sourceTree = "<group>"; };
 		E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClothingClassifierService.swift; sourceTree = "<group>"; };
+		E31A436F877700FFADCF6CCB /* ImagePlaygroundTryOnService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePlaygroundTryOnService.swift; sourceTree = "<group>"; };
 		E4D04C27301E1C76025BBA3E /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		E58920E30E5594D3CD345F90 /* ProfileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStorageService.swift; sourceTree = "<group>"; };
 		F0193CFAD6A6CBFF02EB135C /* AppSecrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSecrets.swift; sourceTree = "<group>"; };
@@ -316,6 +322,7 @@
 				DCD8FB0D2EBF406EEF3A87A1 /* CoreLocation.framework in Frameworks */,
 				52ABCBE5722A745FEA2EF801 /* AppIntents.framework in Frameworks */,
 				648D6C49BD792F7A3CE4AE3D /* WidgetKit.framework in Frameworks */,
+				5426AD118539E241A59732AD /* ImagePlayground.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -347,6 +354,7 @@
 			isa = PBXGroup;
 			children = (
 				543F8B12199F96858BEEAAE4 /* BackgroundRemover.swift */,
+				8438BFBAFE946888B43DA6FD /* ClosetSearchService.swift */,
 				53B431330B6114373317E0BF /* ClothingClassificationService.swift */,
 				E0F5DF7DC961194CD0085855 /* ClothingClassifierService.swift */,
 			);
@@ -562,6 +570,7 @@
 			isa = PBXGroup;
 			children = (
 				07644CA6E4DED93F1DF5E841 /* GeminiTryOnService.swift */,
+				E31A436F877700FFADCF6CCB /* ImagePlaygroundTryOnService.swift */,
 				B978023E09ED14E975CBAC7F /* OpenAIImageTryOnService.swift */,
 				C64C978F98C2745ED0B2959D /* TryOnProviderService.swift */,
 				BECF652589720B2AB223F1A5 /* TryOnService.swift */,
@@ -776,6 +785,7 @@
 				839E6E6C98B89B75F3114776 /* FoundationModels.framework */,
 				A9C31A216ECCBD18B4C7B501 /* HealthKit.framework */,
 				696BA670288F6524877B1351 /* ImageIO.framework */,
+				68B6E54F31F6EE88082CC169 /* ImagePlayground.framework */,
 				D7BF33F1413C0F51AB610238 /* NaturalLanguage.framework */,
 				B668A8B26EAD43C074CA3718 /* Photos.framework */,
 				86FB13AAA6D0B1AC46C0EB4A /* RealityKit.framework */,
@@ -1024,6 +1034,7 @@
 				5578E15F8309AE0BD9035D4F /* ChatViewModel.swift in Sources */,
 				97FD48193B1A838D067A65CC /* ChatWorkspaceService.swift in Sources */,
 				BD8BD09B73ECD97BDCEB4749 /* ClosetItemDetailView.swift in Sources */,
+				726230FD8431D1637C2881CE /* ClosetSearchService.swift in Sources */,
 				07E84A906C1FECF5ED4370AE /* ClosetView.swift in Sources */,
 				82F3DCCBCF8B11A65CF252F1 /* ClothingCaptureView.swift in Sources */,
 				0046FA085D42C4C14D838071 /* ClothingClassificationService.swift in Sources */,
@@ -1046,6 +1057,7 @@
 				3831A7980AE129987A0850EF /* HomeView.swift in Sources */,
 				F5B9D703441B8315F47248CF /* ImageConsulting.swift in Sources */,
 				1C8478B3D31F0BD60061229A /* ImageOptimizeOverlay.swift in Sources */,
+				67C7A40DDC4947B6C2F88A64 /* ImagePlaygroundTryOnService.swift in Sources */,
 				8E62DD984BE25EF914FE392B /* KeychainHelper.swift in Sources */,
 				5FD644BA7FCE4650372A2A65 /* Language.swift in Sources */,
 				22BC0FF4DB2647B6D468F606 /* MainTabView.swift in Sources */,
@@ -1128,6 +1140,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-weak_framework VisualIntelligence";
 				PRODUCT_BUNDLE_IDENTIFIER = com.personalshooper.app;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1226,7 +1239,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 56;
+				CURRENT_PROJECT_VERSION = 57;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1288,7 +1301,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 56;
+				CURRENT_PROJECT_VERSION = 57;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = Y6VZTXTFW8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1354,6 +1367,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "-weak_framework VisualIntelligence";
 				PRODUCT_BUNDLE_IDENTIFIER = com.personalshooper.app;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;

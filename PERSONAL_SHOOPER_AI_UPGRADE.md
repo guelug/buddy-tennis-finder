@@ -64,6 +64,17 @@ Para dispositivos sin Foundation Models, el sistema usa `EnhancedAppleIntelligen
 - Caché de respuestas frecuentes
 - Soporte completo de español e inglés
 
+### 6. Apple Image Playground & Visual Intelligence
+
+**Apple Image Playground (iOS 18.4+)**
+- Generación local y privada de imágenes de moda estilizadas.
+- Proveedor de try-on `.playground` usa `ImageCreator` para crear inspiraciones de look, thumbnails limpios de prendas y variaciones de estilo.
+- Fallback automático al placeholder estilizado si Image Playground no está disponible.
+- `StyleImageService` usa Image Playground como alternativa local cuando no hay clave externa configurada.
+
+**Visual Intelligence (iOS 26+)**
+- `PersonalShooperVisualSearchIntent` adopta el esquema `.visualIntelligence.semanticContentSearch` para permitir búsquedas visuales del armario desde la cámara o fotos del sistema.
+
 ---
 
 ## 📁 Estructura de Archivos Modificados
@@ -81,14 +92,23 @@ PersonalShooper/
 │   │   └── Views/
 │   │       ├── ChatView.swift (✏️ Mejorado con UI de streaming)
 │   │       └── HomeView.swift (✏️ Pulido)
-│   └── Profile/
-│       └── Services/
-│           └── PhotoAnalysisService.swift (✏️ Mejorado con Vision framework)
+│   ├── TryOn/
+│   │   └── Services/
+│   │       ├── ImagePlaygroundTryOnService.swift (🆕 Nuevo)
+│   │       └── TryOnProviderService.swift (✏️ Mejorado)
+│   ├── Profile/
+│   │   └── Services/
+│   │       ├── PhotoAnalysisService.swift (✏️ Mejorado con Vision framework)
+│   │       └── StyleImageService.swift (✏️ Usa Image Playground como fallback)
+│   └── Recommendations/
+│       └── Intents/
+│           └── DailyStyleRecommendationIntent.swift (✏️ Visual Intelligence)
 ├── Core/
 │   └── Navigation/
 │       └── MainTabView.swift (✏️ Pulido)
 ├── Info.plist (✏️ Actualizado con permisos Apple Intelligence)
-└── PersonalShooper.entitlements (✏️ Actualizado)
+├── PersonalShooper.entitlements (✏️ Actualizado)
+└── project.yml (✏️ Frameworks ImagePlayground y VisualIntelligence)
 ```
 
 ---
@@ -243,22 +263,24 @@ Todas las respuestas se generan en el idioma detectado.
 
 ## 📱 Compatibilidad
 
-| Característica | iOS 26+ | iOS 17.2-25 | iOS < 17.2 |
-|---------------|---------|-------------|------------|
-| Foundation Models | ✅ Nativo | ❌ | ❌ |
-| Streaming | ✅ | ⚠️ Simulado | ❌ |
-| Tools (Closet) | ✅ | ❌ | ❌ |
-| Fallback IA | ✅ | ✅ | ✅ Básico |
-| Análisis de fotos | ✅ Mejorado | ✅ | ⚠️ Básico |
+| Característica | iOS 26+ | iOS 18.4-25 | iOS 17.2-18.3 | iOS < 17.2 |
+|---------------|---------|-------------|---------------|------------|
+| Foundation Models | ✅ Nativo | ❌ | ❌ | ❌ |
+| Streaming | ✅ | ⚠️ Simulado | ⚠️ Simulado | ❌ |
+| Tools (Closet) | ✅ | ❌ | ❌ | ❌ |
+| Fallback IA | ✅ | ✅ | ✅ | ✅ Básico |
+| Análisis de fotos | ✅ Mejorado | ✅ | ✅ | ⚠️ Básico |
+| Image Playground (try-on/thumbnails) | ✅ | ✅ (18.4+) | ❌ | ❌ |
+| Visual Intelligence (búsqueda visual) | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
 ## 🚀 Próximos Pasos Sugeridos
 
-1. **Implementar Siri Intents** para consultas por voz
-2. **Añadir Widgets** con recomendaciones diarias
+1. **Implementar Siri Intents** para consultas por voz ✅
+2. **Añadir Widgets** con recomendaciones diarias ✅
 3. **Live Activities** para sesiones de try-on
-4. **Image Playground** para generar looks inspirados
+4. **Image Playground** para generar looks inspirados ✅
 5. **Genmoji** para reacciones en el chat
 
 ---
@@ -280,6 +302,8 @@ Todas las respuestas se generan en el idioma detectado.
 - [x] Servicio de recomendaciones
 - [x] UI con indicadores de typing/streaming
 - [x] PhotoAnalysisService mejorado
+- [x] Apple Image Playground integrado en try-on y thumbnails
+- [x] Visual Intelligence intent para búsqueda visual del armario
 - [x] project.yml actualizado
 - [x] Info.plist con permisos Apple Intelligence
 - [x] Entitlements actualizados

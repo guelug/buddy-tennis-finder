@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Key Technologies
 - **UI Framework**: SwiftUI with UIKit integration (UIViewRepresentable for ARKit)
 - **AI**: Apple Foundation Models (iOS 26+) with NaturalLanguage fallback (iOS 17.2+)
-- **Virtual Try-On**: Google Gemini API for clothing visualization
+- **Virtual Try-On**: Google Gemini API + Apple Image Playground for on-device stylised previews
 - **AR**: ARKit + RealityKit for augmented reality wardrobe preview
 - **Payments**: StoreKit 2 for Apple Pay subscriptions
 - **Data**: SwiftData for local persistence
@@ -147,6 +147,12 @@ Key protocols:
 - Tap gesture raycasts to horizontal plane for clothing placement
 - ClothingPickerSheet presents grid of closet items
 
+### Image Playground & Visual Intelligence
+- `ImagePlaygroundTryOnService` wraps `ImageCreator` for local, private outfit inspiration, clean garment thumbnails, and style variations.
+- TryOn provider `.playground` now uses real Image Playground generation when available, falling back to the stylised placeholder only when unavailable.
+- `StyleImageService` uses Image Playground as a no-key fallback for closet marketing thumbnails.
+- `PersonalShooperVisualSearchIntent` adopts the `.visualIntelligence.semanticContentSearch` schema to let users search the closet from system visual lookups (iOS 26+).
+
 ---
 
 ## Configuration
@@ -168,7 +174,8 @@ GEMINI_API_KEY = your_api_key
 
 ### SDK Dependencies (weakly linked for graceful fallback)
 - `FoundationModels.framework` (iOS 26+)
-- `Playgrounds.framework` (iOS 26+)
+- `ImagePlayground.framework` (iOS 18.1+, weak)
+- `VisualIntelligence.framework` (iOS 26+, weak, device-only link)
 - `ARKit.framework`, `RealityKit.framework`, `Vision.framework`
 - `CoreML.framework`, `NaturalLanguage.framework`, `StoreKit.framework`
 
