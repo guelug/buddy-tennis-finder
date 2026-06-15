@@ -4,6 +4,7 @@ struct BYOKSettingsView: View {
     @Environment(AppState.self) private var appState
     @State private var geminiAPIKey: String = ""
     @State private var openAIAPIKey: String = ""
+    @State private var grokAPIKey: String = ""
     @State private var anthropicAPIKey: String = ""
     @State private var kimiAPIKey: String = ""
     @State private var openRouterAPIKey: String = ""
@@ -16,6 +17,7 @@ struct BYOKSettingsView: View {
     enum BYOKProvider: String, CaseIterable {
         case gemini = "gemini"
         case openai = "openai"
+        case grok = "grok"
         case anthropic = "anthropic"
         case kimi = "kimi"
         case openrouter = "openrouter"
@@ -24,6 +26,7 @@ struct BYOKSettingsView: View {
             switch self {
             case .gemini: return "Google Gemini"
             case .openai: return "OpenAI"
+            case .grok: return "xAI Grok"
             case .anthropic: return "Anthropic Claude"
             case .kimi: return "Kimi"
             case .openrouter: return "OpenRouter"
@@ -34,6 +37,7 @@ struct BYOKSettingsView: View {
             switch self {
             case .gemini: return "sparkles"
             case .openai: return "brain.head.profile"
+            case .grok: return "bolt.fill"
             case .anthropic: return "flame.fill"
             case .kimi: return "moon.fill"
             case .openrouter: return "network"
@@ -97,6 +101,7 @@ struct BYOKSettingsView: View {
     private var hasEnteredKeys: Bool {
         !geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !openAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !grokAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !anthropicAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !kimiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -203,6 +208,11 @@ struct BYOKSettingsView: View {
                             .textInputAutocapitalization(.never)
                     case .openai:
                         SecureField("OpenAI API Key", text: $openAIAPIKey)
+                            .textContentType(.password)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    case .grok:
+                        SecureField("xAI Grok API Key", text: $grokAPIKey)
                             .textContentType(.password)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
@@ -333,6 +343,7 @@ struct BYOKSettingsView: View {
         let providersToTest: [(BYOKProvider, String)] = [
             (.gemini, geminiAPIKey),
             (.openai, openAIAPIKey),
+            (.grok, grokAPIKey),
             (.anthropic, anthropicAPIKey),
             (.kimi, kimiAPIKey),
             (.openrouter, openRouterAPIKey)
@@ -362,12 +373,34 @@ struct BYOKSettingsView: View {
             return await testGeminiKey(key)
         case .openai:
             return await testOpenAIKey(key)
+        case .grok:
+            return await testGrokKey(key)
         case .anthropic:
             return await testAnthropicKey(key)
         case .kimi:
             return await testKimiKey(key)
         case .openrouter:
             return await testOpenRouterKey(key)
+        }
+    }
+
+    private func testGrokKey(_ key: String) async -> TestResult {
+        guard let url = URL(string: "https://api.x.ai/v1/models") else {
+            return .failure(text("URL inválida para Grok", "Invalid Grok URL"))
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                return .success(text("Grok válida", "Grok key valid"))
+            } else {
+                return .failure(text("Clave Grok inválida", "Invalid Grok API key"))
+            }
+        } catch {
+            return .failure(text("Falló la conexión con Grok: \(error.localizedDescription)", "Grok connection failed: \(error.localizedDescription)"))
         }
     }
 
@@ -475,6 +508,7 @@ struct BYOKSettingsView: View {
         // Save all keys to Keychain
         saveKey(geminiAPIKey, keychainKey: "gemini_api_key")
         saveKey(openAIAPIKey, keychainKey: "openai_api_key")
+        saveKey(grokAPIKey, keychainKey: "grok_api_key")
         saveKey(anthropicAPIKey, keychainKey: "anthropic_api_key")
         saveKey(kimiAPIKey, keychainKey: "kimi_api_key")
         saveKey(openRouterAPIKey, keychainKey: "openrouter_api_key")
@@ -509,6 +543,7 @@ struct BYOKSettingsView: View {
     private func loadStoredKeys() {
         geminiAPIKey = KeychainHelper.load(for: "gemini_api_key") ?? ""
         openAIAPIKey = KeychainHelper.load(for: "openai_api_key") ?? ""
+        grokAPIKey = KeychainHelper.load(for: "grok_api_key") ?? ""
         anthropicAPIKey = KeychainHelper.load(for: "anthropic_api_key") ?? ""
         kimiAPIKey = KeychainHelper.load(for: "kimi_api_key") ?? ""
         openRouterAPIKey = KeychainHelper.load(for: "openrouter_api_key") ?? ""
@@ -525,6 +560,7 @@ struct BYOKSettingsView: View {
     private func clearAPIKeys() {
         geminiAPIKey = ""
         openAIAPIKey = ""
+        grokAPIKey = ""
         anthropicAPIKey = ""
         kimiAPIKey = ""
         openRouterAPIKey = ""

@@ -647,6 +647,7 @@ final class ChatViewModel {
         switch provider {
         case .gemini: key = KeychainHelper.load(for: "gemini_api_key")
         case .openai: key = KeychainHelper.load(for: "openai_api_key")
+        case .grok: key = KeychainHelper.load(for: "grok_api_key")
         case .anthropic: key = KeychainHelper.load(for: "anthropic_api_key")
         case .kimi: key = KeychainHelper.load(for: "kimi_api_key")
         case .openrouter: key = KeychainHelper.load(for: "openrouter_api_key")

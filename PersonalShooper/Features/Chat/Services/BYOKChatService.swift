@@ -8,6 +8,7 @@ final class BYOKChatService: AIChatServiceProtocol {
     enum BYOKProvider: String, CaseIterable {
         case gemini = "gemini"
         case openai = "openai"
+        case grok = "grok"
         case anthropic = "anthropic"
         case kimi = "kimi"
         case openrouter = "openrouter"
@@ -16,6 +17,7 @@ final class BYOKChatService: AIChatServiceProtocol {
             switch self {
             case .gemini: return "gemini-3.5-flash"
             case .openai: return "gpt-5.5-instant"
+            case .grok: return "grok-4-fast"
             case .anthropic: return "claude-sonnet-4-6"
             case .kimi: return "kimi-2-6"
             case .openrouter: return "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
@@ -35,6 +37,8 @@ final class BYOKChatService: AIChatServiceProtocol {
                 return URL(string: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent")!
             case .openai:
                 return URL(string: "https://api.openai.com/v1/chat/completions")!
+            case .grok:
+                return URL(string: "https://api.x.ai/v1/chat/completions")!
             case .anthropic:
                 return URL(string: "https://api.anthropic.com/v1/messages")!
             case .kimi:
@@ -59,7 +63,7 @@ final class BYOKChatService: AIChatServiceProtocol {
         switch provider {
         case .gemini:
             return try await sendGeminiMessage(message, context: context, apiKey: apiKey)
-        case .openai, .openrouter:
+        case .openai, .openrouter, .grok:
             return try await sendOpenAICompatibleMessage(message, context: context, apiKey: apiKey)
         case .anthropic:
             return try await sendAnthropicMessage(message, context: context, apiKey: apiKey)
@@ -74,6 +78,8 @@ final class BYOKChatService: AIChatServiceProtocol {
             return KeychainHelper.load(for: "gemini_api_key")
         case .openai:
             return KeychainHelper.load(for: "openai_api_key")
+        case .grok:
+            return KeychainHelper.load(for: "grok_api_key")
         case .anthropic:
             return KeychainHelper.load(for: "anthropic_api_key")
         case .kimi:
