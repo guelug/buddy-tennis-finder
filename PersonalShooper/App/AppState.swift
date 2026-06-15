@@ -14,6 +14,7 @@ final class AppState {
     var currentUser: User?
     var isPremium: Bool = false
     var hasBYOKAccess: Bool = false
+    var hasAppleIntelligenceFeatures: Bool = false
     var isBYOKEnabled: Bool = false
     var currentTier: SubscriptionTier = .free
     var preferredLanguage: Language = .spanish
@@ -272,14 +273,21 @@ final class AppState {
             : "\(Self.freeClosetItemLimit) garments"
     }
 
+    /// Any paid unlock (BYOK, Apple Intelligence+, or a subscription) lifts the closet limit.
+    private var hasAnyPaidUnlock: Bool {
+        isPremium || hasBYOKAccess || hasAppleIntelligenceFeatures
+    }
+
     func hasReachedClosetLimit(currentCount: Int) -> Bool {
-        !isPremium && currentCount >= Self.freeClosetItemLimit
+        let limit = hasAnyPaidUnlock ? Self.premiumClosetItemLimit : Self.freeClosetItemLimit
+        return currentCount >= limit
     }
 
     private func syncSubscriptionState() {
         currentTier = storeKitManager.currentTier
         isPremium = storeKitManager.isPremium
         hasBYOKAccess = storeKitManager.hasBYOKPurchase
+        hasAppleIntelligenceFeatures = storeKitManager.hasAppleIntelligenceFeatures
         isBYOKEnabled = storeKitManager.isBYOKActive
 
         refreshAIProviderAvailability()

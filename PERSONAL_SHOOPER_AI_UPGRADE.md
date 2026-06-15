@@ -312,3 +312,38 @@ Todas las respuestas se generan en el idioma detectado.
 ---
 
 **Nota:** Foundation Models requiere iOS 26+ y dispositivos compatibles con Apple Intelligence (iPhone 15 Pro/Max o posteriores). La app funciona perfectamente con el sistema fallback en dispositivos anteriores.
+
+---
+
+## 🔄 Plan revisado (Apple Foundation-first) — Progreso
+
+| Fase | Estado |
+|------|--------|
+| 1 · Foundation Models por defecto | ✅ |
+| 2 · Indexaciones + tools de armario (iOS 27) | ✅ |
+| 3 · Rich formatting (checklists, tarjetas, mapas, acciones) | ✅ |
+| 4 · Siri AI / AppIntents | ✅ |
+| 5 · iOS 27 Vision + Image Playground (try-on real) | ✅ |
+| 6 · Monetización (aditiva, compatible) | ✅ código |
+| 7 · BYOK (OpenAI / Grok / Gemini / Claude / Kimi / OpenRouter) | ✅ |
+| 8 · Vercel tras feature flag (`isVercelFallbackEnabled`) | ✅ |
+| 9 · Tests / build / docs | ✅ |
+
+### Modelo de monetización (aditivo, sin romper compras existentes)
+
+- `.free` — Foundation básico, armario 20.
+- `.appleIntelligencePlus` — **pago único** `com.personalshooper.appleintelligenceplus`: Siri AI, tools, Vision, Image Playground, armario 100.
+- `.byok` — **pago único** `com.personalshooper.byok`: clave propia (OpenAI/Grok/Gemini/Claude/Kimi/OpenRouter), armario 100.
+- `.premium` / `.pro` — suscripción mensual: todo + créditos de generación externa.
+- Legacy `byokLite` / `lifetime` se mantienen y `lifetime` mapea a Apple Intelligence+.
+
+Los gates se derivan del **conjunto de compras** (desbloqueos ortogonales), no de un único tier:
+`hasAppleIntelligenceFeatures`, `hasBYOKPurchase`, `hasExternalProviderCredits`.
+
+### ⚠️ Pendiente en App Store Connect (acción manual del propietario)
+
+Crear estos **dos productos non-consumable**:
+- `com.personalshooper.appleintelligenceplus` — "Apple Intelligence+"
+- `com.personalshooper.byok` — "BYOK"
+
+Hasta crearlos, StoreKit simplemente no los carga (la app no se rompe); el resto de tiers siguen funcionando.

@@ -5,15 +5,19 @@ import StoreKit
 
 enum SubscriptionTier: String, CaseIterable, Codable {
     case free = "free"
-    case byokLite = "byok_lite"
+    case byokLite = "byok_lite"             // legacy, kept for backward compatibility
+    case byok = "byok"                       // one-time unlock: bring your own key
+    case appleIntelligencePlus = "apple_intelligence_plus" // one-time unlock: Siri AI, tools, Vision, Playground
     case premium = "premium"
     case pro = "pro"
-    case lifetime = "lifetime"
+    case lifetime = "lifetime"               // legacy, treated as Apple Intelligence+ equivalent
 
     var displayName: String {
         switch self {
         case .free: return "Free"
         case .byokLite: return "BYOK Lite"
+        case .byok: return "BYOK"
+        case .appleIntelligencePlus: return "Apple Intelligence+"
         case .premium: return "Premium"
         case .pro: return "Pro"
         case .lifetime: return "Lifetime"
@@ -23,7 +27,8 @@ enum SubscriptionTier: String, CaseIterable, Codable {
     var monthlyCredits: Int {
         switch self {
         case .free: return 5
-        case .byokLite: return 5  // Uses BYOK for unlimited, but has same base as free
+        case .byokLite, .byok: return 5  // Uses BYOK for unlimited, base same as free
+        case .appleIntelligencePlus: return 5 // on-device only; no external credits
         case .premium: return 50
         case .pro: return 200
         case .lifetime: return Int.max
@@ -32,8 +37,7 @@ enum SubscriptionTier: String, CaseIterable, Codable {
 
     var monthlyImages: Int {
         switch self {
-        case .free: return 0
-        case .byokLite: return 0
+        case .free, .byokLite, .byok, .appleIntelligencePlus: return 0
         case .premium: return 20
         case .pro: return 50
         case .lifetime: return 100
@@ -45,7 +49,18 @@ enum SubscriptionTier: String, CaseIterable, Codable {
     }
 
     var hasBYOK: Bool {
-        self == .byokLite || self == .pro || self == .lifetime
+        switch self {
+        case .byokLite, .byok, .premium, .pro, .lifetime: return true
+        case .free, .appleIntelligencePlus: return false
+        }
+    }
+
+    /// Apple Intelligence+ feature set (Siri AI, on-device tools, Vision, Image Playground).
+    var hasAppleIntelligenceFeatures: Bool {
+        switch self {
+        case .appleIntelligencePlus, .premium, .pro, .lifetime: return true
+        case .free, .byokLite, .byok: return false
+        }
     }
 
     var hasTrial: Bool {
@@ -55,19 +70,31 @@ enum SubscriptionTier: String, CaseIterable, Codable {
 
 enum StoreProduct: String, CaseIterable {
     case free = "com.personalshooper.free"
-    case byokLiteMonthly = "com.personalshooper.byoklite.monthly"
+    case byokLiteMonthly = "com.personalshooper.byoklite.monthly"   // legacy
+    case appleIntelligencePlus = "com.personalshooper.appleintelligenceplus" // one-time
+    case byokUnlock = "com.personalshooper.byok"                     // one-time
     case premiumMonthly = "com.personalshooper.premium.monthly"
     case proMonthly = "com.personalshooper.pro.monthly"
-    case lifetime = "com.personalshooper.lifetime"
+    case lifetime = "com.personalshooper.lifetime"                  // legacy
     case creditsPack10 = "com.personalshooper.credits.pack10"
     case creditsPack50 = "com.personalshooper.credits.pack50"
 
     var productID: String { rawValue }
 
+    /// True for one-time (non-consumable) unlocks vs auto-renewing subscriptions.
+    var isOneTimeUnlock: Bool {
+        switch self {
+        case .appleIntelligencePlus, .byokUnlock, .lifetime: return true
+        default: return false
+        }
+    }
+
     var tier: SubscriptionTier? {
         switch self {
         case .free: return .free
         case .byokLiteMonthly: return .byokLite
+        case .appleIntelligencePlus: return .appleIntelligencePlus
+        case .byokUnlock: return .byok
         case .premiumMonthly: return .premium
         case .proMonthly: return .pro
         case .lifetime: return .lifetime
@@ -79,7 +106,7 @@ enum StoreProduct: String, CaseIterable {
         switch self {
         case .free, .creditsPack10, .creditsPack50:
             return false
-        case .byokLiteMonthly, .premiumMonthly, .proMonthly, .lifetime:
+        case .byokLiteMonthly, .appleIntelligencePlus, .byokUnlock, .premiumMonthly, .proMonthly, .lifetime:
             return true
         }
     }
@@ -344,17 +371,50 @@ final class StoreKitManager: ObservableLike {
         tier.monthlyCredits
     }
 
+    /// Product IDs that grant the bring-your-own-key entitlement.
+    private var byokEntitlementIDs: Set<String> {
+        [StoreProduct.byokUnlock, .byokLiteMonthly, .premiumMonthly, .proMonthly, .lifetime].map(\.productID).reduce(into: Set<String>()) { $0.insert($1) }
+    }
+
+    /// Product IDs that grant the Apple Intelligence+ feature set.
+    private var appleIntelligenceEntitlementIDs: Set<String> {
+        [StoreProduct.appleIntelligencePlus, .premiumMonthly, .proMonthly, .lifetime].map(\.productID).reduce(into: Set<String>()) { $0.insert($1) }
+    }
+
     var hasBYOKPurchase: Bool {
         // Always enable BYOK for TestFlight and Debug builds
         #if DEBUG
         return true
         #else
-        // Check if running TestFlight build (has embedded.mobileprovision but not App Store)
         if isTestFlightBuild {
             return true
         }
-        return purchasedProductIDs.contains(StoreProduct.lifetime.productID) || AppSecrets.internalBYOKTestingEnabled
+        return !purchasedProductIDs.isDisjoint(with: byokEntitlementIDs) || AppSecrets.internalBYOKTestingEnabled
         #endif
+    }
+
+    /// True when the user owns any unlock that grants the Apple Intelligence+ feature set
+    /// (Siri AI, on-device tools, Vision, Image Playground). Derived from the purchase set so
+    /// orthogonal one-time unlocks (AI+ and BYOK) both apply.
+    var hasAppleIntelligenceFeatures: Bool {
+        #if DEBUG
+        return true
+        #else
+        if isTestFlightBuild {
+            return true
+        }
+        return !purchasedProductIDs.isDisjoint(with: appleIntelligenceEntitlementIDs)
+        #endif
+    }
+
+    /// External (cloud) generation credits come only with the paid subscriptions.
+    var hasExternalProviderCredits: Bool {
+        currentTier == .premium || currentTier == .pro || currentTier == .lifetime
+    }
+
+    /// True when the user has any paid unlock or subscription (drives the larger closet limit).
+    var hasAnyPaidUnlock: Bool {
+        hasBYOKPurchase || hasAppleIntelligenceFeatures || isPremium
     }
 
     private var isTestFlightBuild: Bool {
@@ -410,9 +470,11 @@ extension SubscriptionTier {
         switch self {
         case .free: return 0
         case .byokLite: return 1
-        case .premium: return 2
-        case .pro: return 3
-        case .lifetime: return 4
+        case .byok: return 2
+        case .appleIntelligencePlus: return 3
+        case .premium: return 4
+        case .pro: return 5
+        case .lifetime: return 6
         }
     }
 }
