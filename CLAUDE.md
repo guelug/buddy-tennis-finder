@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AI**: Apple Foundation Models (iOS 26+) with NaturalLanguage fallback (iOS 17.2+)
 - **Virtual Try-On**: Google Gemini API + Apple Image Playground for on-device stylised previews
 - **AR**: ARKit + RealityKit for augmented reality wardrobe preview
-- **Payments**: StoreKit 2 for Apple Pay subscriptions
+- **Payments**: StoreKit 2 for subscriptions + one-time unlocks (Apple Intelligence+, BYOK)
 - **Data**: SwiftData for local persistence
 - **ML**: Vision framework for face detection and skin tone analysis
 
@@ -98,6 +98,26 @@ Key protocols:
 - `AIChatServiceProtocol` - basic sendMessage
 - `FoundationModelsServiceProtocol` - streaming + prewarm
 - `ClothingDataServiceProtocol` - closet search for AI tools
+
+### Monetization Model
+
+`StoreKitManager` tracks the set of purchased product IDs and derives orthogonal feature gates:
+
+- `hasAppleIntelligenceFeatures` — Siri AI, on-device tools, Image Playground, Visual Intelligence.
+- `hasBYOKPurchase` — use your own API keys (OpenAI, Gemini, Grok, etc.).
+- `hasExternalProviderCredits` — cloud try-on/image credits (Premium/Pro subscriptions).
+- `hasAnyPaidUnlock` — lifts the closet limit from 20 to 100 garments.
+
+Tiers:
+- `free` — 20 garments, Apple Foundation chat where supported.
+- `appleIntelligencePlus` (one-time) — 100 garments, Siri AI + Vision + Playground.
+- `byok` (one-time) — 100 garments, BYOK providers.
+- `premium` / `pro` (subscriptions) — cloud credits + all above.
+- `lifetime` / `byokLite` — legacy, preserved and mapped to equivalent feature sets.
+
+Product IDs to create in App Store Connect:
+- `com.personalshooper.appleintelligenceplus`
+- `com.personalshooper.byok`
 
 ### Data Model
 

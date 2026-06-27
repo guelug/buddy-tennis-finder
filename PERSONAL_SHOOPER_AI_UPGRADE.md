@@ -340,6 +340,8 @@ Todas las respuestas se generan en el idioma detectado.
 Los gates se derivan del **conjunto de compras** (desbloqueos ortogonales), no de un único tier:
 `hasAppleIntelligenceFeatures`, `hasBYOKPurchase`, `hasExternalProviderCredits`.
 
+`SubscriptionView` ahora distingue pagos únicos de suscripciones (sin etiqueta de prueba para AI+/BYOK) y muestra filas de características para Apple Intelligence+ y BYOK.
+
 ### ⚠️ Pendiente en App Store Connect (acción manual del propietario)
 
 Crear estos **dos productos non-consumable**:

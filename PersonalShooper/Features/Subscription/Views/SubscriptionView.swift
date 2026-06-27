@@ -129,11 +129,27 @@ struct SubscriptionView: View {
             )
 
             FeatureRow(
+                icon: "apple.intelligence",
+                title: isSpanish ? "Apple Intelligence+" : "Apple Intelligence+",
+                description: isSpanish ? "Siri AI, búsqueda visual del armario, Image Playground y armario hasta 100 prendas" : "Siri AI, visual closet search, Image Playground and up to 100 garments",
+                badgeText: isSpanish ? "AI+" : "AI+",
+                badgeColor: .orange
+            )
+
+            FeatureRow(
                 icon: "bubble.left.and.bubble.right.fill",
                 title: isSpanish ? "Modelos más inteligentes de IA" : "Smarter AI Models",
                 description: isSpanish ? "Accede a modelos de IA más avanzados para mejores respuestas" : "Access more advanced AI models for better responses",
                 badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
                 badgeColor: Theme.Colors.premiumGold
+            )
+
+            FeatureRow(
+                icon: "brain.head.profile",
+                title: isSpanish ? "BYOK: tus propias claves" : "BYOK: your own keys",
+                description: isSpanish ? "Conecta OpenAI, Gemini, Grok y más con tus propias API keys" : "Connect OpenAI, Gemini, Grok and more with your own API keys",
+                badgeText: "BYOK",
+                badgeColor: .green
             )
 
             FeatureRow(
@@ -146,9 +162,9 @@ struct SubscriptionView: View {
 
             FeatureRow(
                 icon: "cabinet.fill",
-                title: isSpanish ? "Armario premium hasta 100 prendas" : "Premium Closet up to 100 garments",
-                description: isSpanish ? "Guarda hasta 100 prendas con tu suscripción premium" : "Save up to 100 garments with your premium subscription",
-                badgeText: isSpanish ? "PREMIUM" : "PREMIUM",
+                title: isSpanish ? "Armario hasta 100 prendas" : "Closet up to 100 garments",
+                description: isSpanish ? "Guarda hasta 100 prendas con cualquier pago único o suscripción" : "Save up to 100 garments with any one-time unlock or subscription",
+                badgeText: isSpanish ? "PAGO" : "PAID",
                 badgeColor: Theme.Colors.premiumGold
             )
         }
@@ -182,9 +198,15 @@ struct SubscriptionView: View {
                                     .font(.title3)
                                     .fontWeight(.bold)
 
-                                Text(isSpanish ? "Incluye 7 días de prueba gratis" : "Includes a 7-day free trial")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.Colors.premiumGold)
+                                if let storeProduct = StoreProduct(rawValue: product.id), storeProduct.isOneTimeUnlock {
+                                    Text(isSpanish ? "Pago único" : "One-time purchase")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.Colors.premiumGold)
+                                } else {
+                                    Text(isSpanish ? "Incluye 7 días de prueba gratis" : "Includes a 7-day free trial")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.Colors.premiumGold)
+                                }
                             }
 
                             Spacer()
