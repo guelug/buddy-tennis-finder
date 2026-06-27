@@ -79,6 +79,14 @@ struct ClothingItemSummary: Codable, Sendable {
     let category: ClothingCategory
     let colorTags: [String]
     let styleTags: [String]
+    let materialTags: [String]
+    let occasionTags: [String]
+    let detailTags: [String]
+    let brandName: String?
+    let notes: String?
+    let metadataSummary: String?
+    let isFavorite: Bool
+    let timesWorn: Int
 }
 
 // MARK: - Service Factory
@@ -364,7 +372,10 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
             language == .spanish
                 ? "Responde siempre en espanol claro, natural y especifico."
                 : "Always reply in clear, natural, specific English.",
+            "Act like a real expert personal shopper: combine color analysis, silhouette/fit, occasion, lifestyle, and the actual closet inventory.",
             "Use the user's saved style profile, palette, calendar context, and closet inventory when present.",
+            "For color advice, distinguish neutrals, accent colors, face-framing colors, colors to avoid, and high/low contrast pairings.",
+            "For wardrobe advice, identify gaps, overrepresented colors/categories, underused pieces, and practical next purchases.",
             "Give concrete outfit formulas, color pairings, fit guidance, and wardrobe actions.",
         ]
         lines.append(contentsOf: ImageConsulting.professionalGuidelines(language: language))
@@ -420,13 +431,8 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
             sections.append("Today's calendar events: \(events).")
         }
 
-        if !context.closetItems.isEmpty {
-            let closet = context.closetItems.prefix(5).map { item in
-                let details = (item.colorTags + item.styleTags).prefix(5).joined(separator: ", ")
-                return "- \(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
-            }.joined(separator: "\n")
-            sections.append("Recent closet highlights (use the 'search_closet' tool if you need more):\n\(closet)")
-        }
+        sections.append(contentsOf: StylistContextFormatter.userFacts(for: context))
+        sections.append(StylistContextFormatter.closetContextLine(for: context.closetItems))
 
         sections.append("User message: \(message)")
         sections.append("Answer as the stylist. Use saved context only when it helps.")
@@ -1109,7 +1115,7 @@ struct ClosetSearchTool: Tool {
         }
 
         let lines = results.map { item in
-            let details = (item.colorTags + item.styleTags).prefix(4).joined(separator: ", ")
+            let details = (item.colorTags + item.styleTags + item.materialTags + item.occasionTags).prefix(5).joined(separator: ", ")
             return "- \(item.name) (\(item.category.displayName))\(details.isEmpty ? "" : ": \(details)")"
         }
 
@@ -1156,3 +1162,4 @@ final class BasicFallbackService: AIChatServiceProtocol {
             : "You need iOS 17.2 or later to use the full style assistant."
     }
 }
+

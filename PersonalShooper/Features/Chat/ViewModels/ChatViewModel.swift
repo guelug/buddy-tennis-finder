@@ -675,7 +675,15 @@ final class ChatViewModel {
                 name: item.name,
                 category: item.category,
                 colorTags: item.colorTags,
-                styleTags: item.styleTags
+                styleTags: item.styleTags,
+                materialTags: item.materialTags,
+                occasionTags: item.occasionTags,
+                detailTags: item.detailTags,
+                brandName: item.brandName,
+                notes: item.notes,
+                metadataSummary: item.metadataSummary,
+                isFavorite: item.isFavorite,
+                timesWorn: item.timesWorn
             )
         }
     }
@@ -798,3 +806,4 @@ final class ChatViewModel {
     }
 
 }
+

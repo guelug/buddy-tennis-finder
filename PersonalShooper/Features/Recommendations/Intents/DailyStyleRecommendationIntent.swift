@@ -360,6 +360,108 @@ struct AddToClosetIntent: AppIntent {
     }
 }
 
+struct ClosetSummaryIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "Summarize Closet"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Summarize your Personal Shopper closet with colors, categories, favorites, underused pieces, and wardrobe gaps.")
+    }
+
+    static var openAppWhenRun: Bool {
+        false
+    }
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let configuration = SharedStyleCompanionStore.loadConfiguration()
+
+        guard configuration.siriSuggestionsEnabled else {
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
+        }
+
+        let items = SharedStyleCompanionStore.loadClosetIndex()
+        let dialog = ClosetIntentSummary.summary(for: items, configuration: configuration)
+        return .result(dialog: IntentDialog(stringLiteral: dialog))
+    }
+}
+
+private enum ClosetIntentSummary {
+    static func summary(
+        for items: [StyleCompanionClosetItemSnapshot],
+        configuration: StyleCompanionConfigurationSnapshot
+    ) -> String {
+        guard !items.isEmpty else {
+            return StyleCompanionIntentCopy.text(
+                "Tu armario está vacío. Añade algunas prendas para que pueda analizar colores, categorías y huecos.",
+                "Your closet is empty. Add a few garments so I can analyze colors, categories, and gaps.",
+                configuration: configuration
+            )
+        }
+
+        let total = items.count
+        let categories = topCounts(items.map(\.categoryDisplayName), limit: 3).joined(separator: ", ")
+        let colors = topCounts(items.flatMap(\.colorTags), limit: 4).joined(separator: ", ")
+        let favorites = items.filter(\.isFavorite).prefix(3).map(\.name).joined(separator: ", ")
+        let underused = items.filter { $0.timesWorn == 0 }.prefix(3).map(\.name).joined(separator: ", ")
+        let gaps = categoryGaps(in: items, configuration: configuration).prefix(3).joined(separator: ", ")
+
+        if configuration.preferredLanguageRaw == "es" {
+            var parts = ["Tu armario tiene \(total) prendas"]
+            if !categories.isEmpty { parts.append("categorías principales: \(categories)") }
+            if !colors.isEmpty { parts.append("colores dominantes: \(colors)") }
+            if !favorites.isEmpty { parts.append("favoritas: \(favorites)") }
+            if !underused.isEmpty { parts.append("prendas poco usadas para rescatar: \(underused)") }
+            if !gaps.isEmpty { parts.append("huecos útiles: \(gaps)") }
+            return parts.joined(separator: ". ") + "."
+        }
+
+        var parts = ["Your closet has \(total) garments"]
+        if !categories.isEmpty { parts.append("main categories: \(categories)") }
+        if !colors.isEmpty { parts.append("dominant colors: \(colors)") }
+        if !favorites.isEmpty { parts.append("favorites: \(favorites)") }
+        if !underused.isEmpty { parts.append("underused pieces to restyle: \(underused)") }
+        if !gaps.isEmpty { parts.append("useful gaps: \(gaps)") }
+        return parts.joined(separator: ". ") + "."
+    }
+
+    private static func topCounts(_ values: [String], limit: Int) -> [String] {
+        Dictionary(grouping: values.map(normalizedToken).filter { !$0.isEmpty }, by: { $0 })
+            .map { token, grouped in (token: token, count: grouped.count) }
+            .sorted { lhs, rhs in
+                if lhs.count == rhs.count { return lhs.token < rhs.token }
+                return lhs.count > rhs.count
+            }
+            .prefix(limit)
+            .map { "\($0.token) (\($0.count))" }
+    }
+
+    private static func categoryGaps(
+        in items: [StyleCompanionClosetItemSnapshot],
+        configuration: StyleCompanionConfigurationSnapshot
+    ) -> [String] {
+        let existing = Set(items.map { $0.categoryRaw.normalizedForSearch() })
+        let isSpanish = configuration.preferredLanguageRaw == "es"
+        let essentials: [(raw: String, es: String, en: String)] = [
+            ("tops", "partes de arriba", "tops"),
+            ("bottoms", "partes de abajo", "bottoms"),
+            ("shoes", "zapatos", "shoes"),
+            ("outerwear", "abrigos o chaquetas", "outerwear"),
+            ("accessories", "accesorios", "accessories")
+        ]
+        return essentials.compactMap { category in
+            existing.contains(category.raw) ? nil : (isSpanish ? category.es : category.en)
+        }
+    }
+
+    private static func normalizedToken(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+    }
+}
+
 #if canImport(VisualIntelligence)
 @available(iOS 26.0, *)
 struct ClosetVisualSearchQuery: IntentValueQuery {
@@ -461,6 +563,17 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             systemImageName: "plus.circle"
         ),
         AppShortcut(
+            intent: ClosetSummaryIntent(),
+            phrases: [
+                "Summarize my closet with \(.applicationName)",
+                "Analyze my wardrobe in \(.applicationName)",
+                "Resume mi armario con \(.applicationName)",
+                "Analiza mi armario en \(.applicationName)"
+            ],
+            shortTitle: "Closet Summary",
+            systemImageName: "chart.bar.doc.horizontal"
+        ),
+        AppShortcut(
             intent: StartStyleConsultationIntent(),
             phrases: [
                 "Ask \(.applicationName) a style question",
@@ -486,4 +599,5 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
 
     static let shortcutTileColor: ShortcutTileColor = .orange
 }
+
 

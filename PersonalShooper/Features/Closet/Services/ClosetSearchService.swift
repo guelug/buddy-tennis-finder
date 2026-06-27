@@ -114,7 +114,15 @@ final class ClosetSearchService {
                 name: item.name,
                 category: ClothingCategory(rawValue: item.categoryRaw) ?? .tops,
                 colorTags: item.colorTags,
-                styleTags: item.styleTags
+                styleTags: item.styleTags,
+                materialTags: item.materialTags,
+                occasionTags: item.occasionTags,
+                detailTags: item.detailTags,
+                brandName: item.brandName,
+                notes: item.notes,
+                metadataSummary: item.metadataSummary,
+                isFavorite: item.isFavorite,
+                timesWorn: item.timesWorn
             )
         }
     }
@@ -148,3 +156,4 @@ final class ClosetSearchService {
         return lines.joined(separator: "\n")
     }
 }
+
