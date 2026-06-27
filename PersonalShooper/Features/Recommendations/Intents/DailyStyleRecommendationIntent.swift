@@ -57,6 +57,27 @@ struct ClosetItemEntityQuery: EntityStringQuery, EnumerableEntityQuery {
     }
 }
 
+
+private enum StyleCompanionIntentCopy {
+    static func text(
+        _ spanish: String,
+        _ english: String,
+        configuration: StyleCompanionConfigurationSnapshot
+    ) -> String {
+        configuration.preferredLanguageRaw == "es" ? spanish : english
+    }
+
+    static func suggestionsDisabled(configuration: StyleCompanionConfigurationSnapshot) -> IntentDialog {
+        IntentDialog(
+            stringLiteral: text(
+                "Las sugerencias de estilo con Siri están desactivadas. Actívalas en los ajustes de Personal Shopper.",
+                "Siri style suggestions are disabled. Enable them in Personal Shopper settings.",
+                configuration: configuration
+            )
+        )
+    }
+}
+
 struct DailyStyleRecommendationIntent: AppIntent {
     static var title: LocalizedStringResource {
         "Get Today's Style Recommendation"
@@ -74,18 +95,16 @@ struct DailyStyleRecommendationIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(
-                dialog: IntentDialog(
-                    "Siri style suggestions are disabled. Enable them in Personal Shopper settings."
-                )
-            )
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         guard let recommendation = SharedStyleCompanionStore.loadRecommendation() else {
             return .result(
-                dialog: IntentDialog(
-                    "I don't have a daily recommendation yet. Open Personal Shopper to refresh today's styling plan."
-                )
+                dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+                    "Todavía no tengo una recomendación diaria. Abre Personal Shopper para preparar el look de hoy.",
+                    "I don't have a daily recommendation yet. Open Personal Shopper to refresh today's styling plan.",
+                    configuration: configuration
+                ))
             )
         }
 
@@ -113,18 +132,30 @@ struct SearchClosetIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         let matches = ClosetSearch.matches(for: query)
         let names = matches.prefix(3).map { $0.name }
         let dialog: String
         if names.isEmpty {
-            dialog = "I didn't find any matching items in your closet."
+            dialog = StyleCompanionIntentCopy.text(
+                "No he encontrado prendas que coincidan en tu armario.",
+                "I didn't find any matching items in your closet.",
+                configuration: configuration
+            )
         } else if names.count == 1 {
-            dialog = "I found \(names[0]) in your closet."
+            dialog = StyleCompanionIntentCopy.text(
+                "He encontrado \(names[0]) en tu armario.",
+                "I found \(names[0]) in your closet.",
+                configuration: configuration
+            )
         } else {
-            dialog = "I found: " + names.joined(separator: ", ") + "."
+            dialog = StyleCompanionIntentCopy.text(
+                "He encontrado: " + names.joined(separator: ", ") + ".",
+                "I found: " + names.joined(separator: ", ") + ".",
+                configuration: configuration
+            )
         }
 
         ClosetSearch.routeToCloset(matching: query)
@@ -155,12 +186,16 @@ struct StartStyleConsultationIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingChatPrompt(question)
         SharedStyleCompanionStore.savePendingLaunchDestination(.chat)
-        return .result(dialog: IntentDialog("Opening your stylist with that question."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo tu estilista con esa pregunta.",
+            "Opening your stylist with that question.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -197,11 +232,15 @@ struct OpenProfileIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.profile)
-        return .result(dialog: IntentDialog("Opening your style profile."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo tu perfil de estilo.",
+            "Opening your style profile.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -222,11 +261,15 @@ struct OpenChatIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.chat)
-        return .result(dialog: IntentDialog("Opening your style chat."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo tu chat de estilo.",
+            "Opening your style chat.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -247,11 +290,15 @@ struct OpenClosetIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.closet)
-        return .result(dialog: IntentDialog("Opening your closet."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo tu armario.",
+            "Opening your closet.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -272,11 +319,15 @@ struct OpenTryOnIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.tryOn)
-        return .result(dialog: IntentDialog("Opening try-on."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo el probador virtual.",
+            "Opening try-on.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -297,11 +348,15 @@ struct AddToClosetIntent: AppIntent {
         let configuration = SharedStyleCompanionStore.loadConfiguration()
 
         guard configuration.siriSuggestionsEnabled else {
-            return .result(dialog: IntentDialog("Siri style suggestions are disabled. Enable them in Personal Shopper settings."))
+            return .result(dialog: StyleCompanionIntentCopy.suggestionsDisabled(configuration: configuration))
         }
 
         SharedStyleCompanionStore.savePendingLaunchDestination(.closet)
-        return .result(dialog: IntentDialog("Opening your closet so you can add a new garment."))
+        return .result(dialog: IntentDialog(stringLiteral: StyleCompanionIntentCopy.text(
+            "Abriendo tu armario para añadir una prenda nueva.",
+            "Opening your closet so you can add a new garment.",
+            configuration: configuration
+        )))
     }
 }
 
@@ -431,3 +486,4 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
 
     static let shortcutTileColor: ShortcutTileColor = .orange
 }
+

@@ -102,6 +102,7 @@ final class AppState {
         preferredLanguage = language
         currentUser?.preferredLanguage = language
         currentUser?.updatedAt = Date()
+        persistStyleCompanionConfiguration()
     }
 
     func setTryOnProvider(_ provider: TryOnProvider) {
@@ -320,7 +321,8 @@ final class AppState {
                 siriSuggestionsEnabled: isSiriStyleSupportEnabled,
                 dailyReminderEnabled: isDailyReminderEnabled,
                 dailyReminderHour: components.hour ?? 8,
-                dailyReminderMinute: components.minute ?? 0
+                dailyReminderMinute: components.minute ?? 0,
+                preferredLanguageRaw: preferredLanguage.rawValue
             )
         )
     }

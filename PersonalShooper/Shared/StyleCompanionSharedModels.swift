@@ -152,6 +152,7 @@ struct StyleCompanionConfigurationSnapshot: Codable, Hashable {
     var dailyReminderEnabled: Bool
     var dailyReminderHour: Int
     var dailyReminderMinute: Int
+    var preferredLanguageRaw: String
 
     init(
         calendarSyncEnabled: Bool = false,
@@ -159,7 +160,8 @@ struct StyleCompanionConfigurationSnapshot: Codable, Hashable {
         siriSuggestionsEnabled: Bool = true,
         dailyReminderEnabled: Bool = false,
         dailyReminderHour: Int = 8,
-        dailyReminderMinute: Int = 0
+        dailyReminderMinute: Int = 0,
+        preferredLanguageRaw: String = "es"
     ) {
         self.calendarSyncEnabled = calendarSyncEnabled
         self.widgetRecommendationsEnabled = widgetRecommendationsEnabled
@@ -167,6 +169,7 @@ struct StyleCompanionConfigurationSnapshot: Codable, Hashable {
         self.dailyReminderEnabled = dailyReminderEnabled
         self.dailyReminderHour = dailyReminderHour
         self.dailyReminderMinute = dailyReminderMinute
+        self.preferredLanguageRaw = preferredLanguageRaw
     }
 
     // Backward-compatible decode: older stored configs without the reminder keys fall back to defaults.
@@ -178,6 +181,7 @@ struct StyleCompanionConfigurationSnapshot: Codable, Hashable {
         dailyReminderEnabled = try container.decodeIfPresent(Bool.self, forKey: .dailyReminderEnabled) ?? false
         dailyReminderHour = try container.decodeIfPresent(Int.self, forKey: .dailyReminderHour) ?? 8
         dailyReminderMinute = try container.decodeIfPresent(Int.self, forKey: .dailyReminderMinute) ?? 0
+        preferredLanguageRaw = try container.decodeIfPresent(String.self, forKey: .preferredLanguageRaw) ?? "es"
     }
 
     static let `default` = StyleCompanionConfigurationSnapshot()

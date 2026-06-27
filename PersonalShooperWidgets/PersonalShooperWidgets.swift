@@ -68,6 +68,10 @@ private struct DailyStyleRecommendationWidgetView: View {
     let entry: DailyStyleEntry
     @Environment(\.widgetFamily) private var family
 
+    private var isSpanish: Bool {
+        entry.configuration.preferredLanguageRaw == "es"
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -103,7 +107,7 @@ private struct DailyStyleRecommendationWidgetView: View {
                 Text("PERSONAL SHOPPER")
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
-                Text("Daily Style")
+                Text(isSpanish ? "Look diario" : "Daily Style")
                     .font(.system(size: family == .systemSmall ? 16 : 18, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.black.opacity(0.84))
             }
@@ -118,9 +122,9 @@ private struct DailyStyleRecommendationWidgetView: View {
 
     private var disabledState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Widget disabled")
+            Text(isSpanish ? "Widget desactivado" : "Widget disabled")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-            Text("Enable daily widgets in settings to mirror today's recommendation here.")
+            Text(isSpanish ? "Activa los widgets diarios en ajustes para ver aquí la recomendación de hoy." : "Enable daily widgets in settings to mirror today's recommendation here.")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -128,9 +132,9 @@ private struct DailyStyleRecommendationWidgetView: View {
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("No recommendation yet")
+            Text(isSpanish ? "Sin recomendación todavía" : "No recommendation yet")
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-            Text("Open the app to generate today's outfit guidance.")
+            Text(isSpanish ? "Abre la app para generar la guía de outfit de hoy." : "Open the app to generate today's outfit guidance.")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
         }
