@@ -553,8 +553,8 @@ struct ClothingCaptureView: View {
 
         if appState.hasReachedClosetLimit(currentCount: items.count) {
             errorMessage = lang == .spanish
-                ? "Has alcanzado el límite gratuito de \(AppState.freeClosetItemLimit) prendas. Pásate a Premium para guardar prendas ilimitadas."
-                : "You've reached the free limit of \(AppState.freeClosetItemLimit) garments. Upgrade to Premium for unlimited closet items."
+                ? "Has alcanzado el límite técnico de \(AppState.closetItemLimit) prendas. Elimina alguna para añadir otra."
+                : "You've reached the technical limit of \(AppState.closetItemLimit) garments. Remove one before adding another."
             return
         }
 

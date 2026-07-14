@@ -45,10 +45,6 @@ struct BYOKSettingsView: View {
         }
     }
 
-    private var hasAccess: Bool {
-        appState.hasBYOKAccess
-    }
-
     private var imageEngineBinding: Binding<StyleImageService.Engine> {
         Binding(
             get: { StyleImageService.resolvedEngine() },
@@ -71,7 +67,7 @@ struct BYOKSettingsView: View {
         switch appState.aiProviderMode {
         case .appleFoundation: return "apple.logo"
         case .byok: return "key.fill"
-        case .premiumExternal: return "crown.fill"
+        case .managedCloud: return "cloud.fill"
         }
     }
 
@@ -79,7 +75,7 @@ struct BYOKSettingsView: View {
         switch appState.aiProviderMode {
         case .appleFoundation: return .primary
         case .byok: return .blue
-        case .premiumExternal: return Theme.Colors.premiumGold
+        case .managedCloud: return .cyan
         }
     }
 
@@ -89,8 +85,8 @@ struct BYOKSettingsView: View {
             return text("Apple Intelligence es el modo por defecto: usa Foundation Models en el dispositivo para consejo de estilo privado.", "Apple Intelligence is the default mode: it uses on-device Foundation Models for private style advice.")
         case .byok:
             return text("BYOK usa la clave del proveedor seleccionado en este dispositivo. Apple Intelligence sigue disponible para alternar cuando quieras.", "BYOK uses the selected provider key on this device. Apple Intelligence remains available so you can switch anytime.")
-        case .premiumExternal:
-            return text("Premium externo usa el backend de fallback (Vercel) cuando está activado. BYOK queda guardado para cuando quieras volver a usar tu propia key.", "External Premium uses the fallback backend (Vercel) when enabled. BYOK stays saved for whenever you want to switch back to your own key.")
+        case .managedCloud:
+            return text("La nube gestionada es gratuita con límites de uso razonable. Tus claves propias quedan guardadas para cuando quieras usarlas.", "Managed cloud is free with fair-use limits. Your own keys stay saved for whenever you want to use them.")
         }
     }
 
@@ -114,19 +110,6 @@ struct BYOKSettingsView: View {
 
     var body: some View {
         List {
-            if !hasAccess {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Bring Your Own Key", systemImage: "lock.fill")
-                            .font(.headline)
-
-                        Text(text("BYOK solo está disponible después de desbloquear la compra completa.", "BYOK is only available after unlocking the full purchase."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                }
-            } else {
                 Section {
                     Picker(text("Proveedor activo", "Active provider"), selection: aiProviderModeBinding) {
                         ForEach(AIProviderMode.allCases) { mode in
@@ -320,7 +303,6 @@ struct BYOKSettingsView: View {
                 } header: {
                     Text(text("Proveedores soportados", "Supported Providers"))
                 }
-            }
         }
         .navigationTitle(text("Proveedor de IA", "AI Provider"))
         .navigationBarTitleDisplayMode(.inline)
@@ -503,8 +485,6 @@ struct BYOKSettingsView: View {
     }
 
     private func saveAPIKeys() {
-        guard hasAccess else { return }
-
         // Save all keys to Keychain
         saveKey(geminiAPIKey, keychainKey: "gemini_api_key")
         saveKey(openAIAPIKey, keychainKey: "openai_api_key")
@@ -518,7 +498,7 @@ struct BYOKSettingsView: View {
 
         appState.isBYOKEnabled = hasEnteredKeys
 
-        // Keep Vercel/premium-external connection independent from BYOK keys.
+        // Keep the managed-cloud connection independent from BYOK keys.
         // refreshAIProviderAvailability() will recompute isChatGPTConnected based on
         // the Vercel fallback flag or stored access token.
         appState.refreshAIProviderAvailability()
@@ -527,7 +507,7 @@ struct BYOKSettingsView: View {
         showConfirmation = true
 
         Task {
-            await appState.refreshPremiumStatus()
+            await appState.refreshAccessStatus()
         }
     }
 
@@ -554,7 +534,7 @@ struct BYOKSettingsView: View {
             selectedProvider = provider
         }
 
-        hasStoredKeys = !geminiAPIKey.isEmpty || !openAIAPIKey.isEmpty || !anthropicAPIKey.isEmpty || !kimiAPIKey.isEmpty || !openRouterAPIKey.isEmpty
+        hasStoredKeys = !geminiAPIKey.isEmpty || !openAIAPIKey.isEmpty || !grokAPIKey.isEmpty || !anthropicAPIKey.isEmpty || !kimiAPIKey.isEmpty || !openRouterAPIKey.isEmpty
     }
 
     private func clearAPIKeys() {

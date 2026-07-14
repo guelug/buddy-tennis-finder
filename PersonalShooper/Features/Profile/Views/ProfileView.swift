@@ -130,20 +130,6 @@ struct ProfileView: View {
             }
 
             HStack(spacing: 8) {
-                if appState.isPremium {
-                    HStack(spacing: 4) {
-                        Image(systemName: "crown.fill")
-                            .foregroundStyle(.yellow)
-                        Text(text("Premium", "Premium"))
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.yellow.opacity(0.1))
-                    .clipShape(Capsule())
-                }
-
                 HStack(spacing: 4) {
                     Image(systemName: "cabinet.fill")
                     Text(appState.closetItemLimitDescription(language: lang))

@@ -7,14 +7,12 @@ import CoreSpotlight
 @Observable
 @MainActor
 final class AppState {
-    static let freeClosetItemLimit = 20
-    static let premiumClosetItemLimit = 100
-    static let premiumTrialDays = 7
+    static let closetItemLimit = FreeAccessPolicy.closetItemLimit
 
     var currentUser: User?
     var isPremium: Bool = false
-    var hasBYOKAccess: Bool = false
-    var hasAppleIntelligenceFeatures: Bool = false
+    var hasBYOKAccess: Bool = FreeAccessPolicy.allowsBYOK
+    var hasAppleIntelligenceFeatures: Bool = FreeAccessPolicy.allowsAppleIntelligence
     var isBYOKEnabled: Bool = false
     var currentTier: SubscriptionTier = .free
     var preferredLanguage: Language = .spanish
@@ -23,7 +21,6 @@ final class AppState {
     var isChatGPTConnected: Bool = false
     var useConnectedChatGPTForChat: Bool = false
     var aiProviderMode: AIProviderMode = .appleFoundation
-    var isVercelFallbackEnabled: Bool = false
     var chatPreparedFeatures = ChatPreparedFeatures()
     var isCalendarSyncEnabled: Bool = false
     var areDailyWidgetsEnabled: Bool = true
@@ -69,7 +66,6 @@ final class AppState {
             aiProviderMode = .appleFoundation
             UserDefaults.standard.set(AIProviderMode.appleFoundation.rawValue, forKey: "ai_provider_mode")
         }
-        isVercelFallbackEnabled = UserDefaults.standard.bool(forKey: "vercel_fallback_enabled")
         refreshAIProviderAvailability()
         chatPreparedFeatures = ChatPreparedFeatures(
             textSelectionEnabled: UserDefaults.standard.bool(forKey: "chat_prepared_text_selection_enabled"),
@@ -87,7 +83,7 @@ final class AppState {
         // User state is managed via SwiftData model context
     }
 
-    func refreshPremiumStatus() async {
+    func refreshAccessStatus() async {
         await storeKitManager.refreshSubscriptionStatus()
         syncSubscriptionState()
     }
@@ -219,18 +215,18 @@ final class AppState {
 
     func connectChatGPT(token: String) {
         isChatGPTConnected = true
-        UserDefaults.standard.set(token, forKey: "chatgpt_access_token")
+        KeychainHelper.save(token, for: "chatgpt_access_token")
     }
 
     func disconnectChatGPT() {
         isChatGPTConnected = false
         useConnectedChatGPTForChat = false
-        UserDefaults.standard.removeObject(forKey: "chatgpt_access_token")
+        KeychainHelper.delete(for: "chatgpt_access_token")
         UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
     }
 
     func setConnectedChatGPTForChatEnabled(_ enabled: Bool) {
-        let effectiveValue = (aiProviderMode == .premiumExternal) && enabled && isChatGPTConnected
+        let effectiveValue = (aiProviderMode == .managedCloud) && enabled && isChatGPTConnected
         useConnectedChatGPTForChat = effectiveValue
         UserDefaults.standard.set(effectiveValue, forKey: "chatgpt_chat_enabled")
     }
@@ -247,56 +243,39 @@ final class AppState {
             isBYOKEnabled = storeKitManager.isBYOKActive
             useConnectedChatGPTForChat = false
             UserDefaults.standard.set(false, forKey: "chatgpt_chat_enabled")
-        case .premiumExternal:
+        case .managedCloud:
             useConnectedChatGPTForChat = isChatGPTConnected
             UserDefaults.standard.set(useConnectedChatGPTForChat, forKey: "chatgpt_chat_enabled")
         }
     }
 
-    func setVercelFallbackEnabled(_ enabled: Bool) {
-        isVercelFallbackEnabled = enabled
-        UserDefaults.standard.set(enabled, forKey: "vercel_fallback_enabled")
-    }
-
     func isTryOnProviderAvailable(_ provider: TryOnProvider) -> Bool {
-        provider != .chatgpt || hasBYOKAccess || currentTier.hasBYOK
+        true
     }
 
     func closetItemLimitDescription(language: Language) -> String {
-        if isPremium {
-            return language == .spanish
-                ? "Hasta \(Self.premiumClosetItemLimit) prendas"
-                : "Up to \(Self.premiumClosetItemLimit) garments"
-        }
-
         return language == .spanish
-            ? "\(Self.freeClosetItemLimit) prendas"
-            : "\(Self.freeClosetItemLimit) garments"
-    }
-
-    /// Any paid unlock (BYOK, Apple Intelligence+, or a subscription) lifts the closet limit.
-    private var hasAnyPaidUnlock: Bool {
-        isPremium || hasBYOKAccess || hasAppleIntelligenceFeatures
+            ? "Hasta \(Self.closetItemLimit) prendas, gratis"
+            : "Up to \(Self.closetItemLimit) garments, free"
     }
 
     func hasReachedClosetLimit(currentCount: Int) -> Bool {
-        let limit = hasAnyPaidUnlock ? Self.premiumClosetItemLimit : Self.freeClosetItemLimit
-        return currentCount >= limit
+        currentCount >= Self.closetItemLimit
     }
 
     private func syncSubscriptionState() {
         currentTier = storeKitManager.currentTier
-        isPremium = storeKitManager.isPremium
-        hasBYOKAccess = storeKitManager.hasBYOKPurchase
-        hasAppleIntelligenceFeatures = storeKitManager.hasAppleIntelligenceFeatures
+        isPremium = false
+        hasBYOKAccess = FreeAccessPolicy.allowsBYOK
+        hasAppleIntelligenceFeatures = FreeAccessPolicy.allowsAppleIntelligence
         isBYOKEnabled = storeKitManager.isBYOKActive
 
         refreshAIProviderAvailability()
     }
 
     func refreshAIProviderAvailability() {
-        let hasVercelBackend = AppSecrets.vercelAPIBaseURL != nil && isVercelFallbackEnabled
-        let hasStoredToken = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil
+        let hasVercelBackend = AppSecrets.vercelAPIBaseURL != nil
+        let hasStoredToken = KeychainHelper.load(for: "chatgpt_access_token") != nil
         isChatGPTConnected = hasVercelBackend || hasStoredToken || AppSecrets.openAIAPIKey != nil
 
         switch aiProviderMode {
@@ -305,7 +284,7 @@ final class AppState {
         case .byok:
             isBYOKEnabled = storeKitManager.isBYOKActive
             useConnectedChatGPTForChat = false
-        case .premiumExternal:
+        case .managedCloud:
             useConnectedChatGPTForChat = isChatGPTConnected
         }
 
@@ -369,7 +348,7 @@ private extension ClothingItem {
 enum AIProviderMode: String, CaseIterable, Identifiable {
     case appleFoundation
     case byok
-    case premiumExternal
+    case managedCloud = "premiumExternal"
 
     var id: String { rawValue }
 
@@ -379,8 +358,8 @@ enum AIProviderMode: String, CaseIterable, Identifiable {
             return language == .spanish ? "Apple Intelligence" : "Apple Intelligence"
         case .byok:
             return "BYOK"
-        case .premiumExternal:
-            return language == .spanish ? "Premium externo" : "External Premium"
+        case .managedCloud:
+            return language == .spanish ? "Nube gestionada" : "Managed Cloud"
         }
     }
 }

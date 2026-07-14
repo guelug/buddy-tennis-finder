@@ -625,15 +625,8 @@ final class ChatViewModel {
             }
         }
 
-        // Premium external / Vercel fallback.
-        if appState.aiProviderMode == .premiumExternal,
-           appState.useConnectedChatGPTForChat,
-           appState.isChatGPTConnected {
-            return ConnectedChatGPTService()
-        }
-
-        // Legacy fallback: if Vercel fallback is enabled and connected.
-        if appState.isVercelFallbackEnabled,
+        // Managed cloud / Vercel fallback.
+        if appState.aiProviderMode == .managedCloud,
            appState.useConnectedChatGPTForChat,
            appState.isChatGPTConnected {
             return ConnectedChatGPTService()
@@ -712,8 +705,8 @@ final class ChatViewModel {
 
         if appState.hasReachedClosetLimit(currentCount: currentClosetItems.count) {
             return appState.preferredLanguage == .spanish
-                ? "Has llegado al límite gratuito de \(AppState.freeClosetItemLimit) prendas en el armario. Cualquier desbloqueo amplía el límite hasta \(AppState.premiumClosetItemLimit)."
-                : "You've reached the free limit of \(AppState.freeClosetItemLimit) closet garments. Any paid unlock raises the limit to \(AppState.premiumClosetItemLimit)."
+                ? "Has llegado al límite técnico de \(AppState.closetItemLimit) prendas. Elimina alguna para añadir otra."
+                : "You've reached the technical limit of \(AppState.closetItemLimit) garments. Remove one before adding another."
         }
 
         let classification = try? await classificationService.classifyClothing(image: compressedImage)

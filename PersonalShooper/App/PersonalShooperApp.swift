@@ -138,7 +138,7 @@ struct ContentView: View {
             syncUserState()
             applyPendingLaunchDestinationIfNeeded()
             Task {
-                await appState.refreshPremiumStatus()
+                await appState.refreshAccessStatus()
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
                 await StyleProgressReminderCoordinator.shared.sync(missions: progressMissions)
                 refreshLiveActivity()

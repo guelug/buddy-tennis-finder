@@ -4,7 +4,6 @@ enum AppSecrets {
     private static let openAIKeyName = "OPENAI_API_KEY"
     private static let geminiKeyName = "GEMINI_API_KEY"
     private static let vercelAPIURLName = "VERCEL_API_URL"
-    private static let internalBYOKTestingName = "ENABLE_BYOK_INTERNAL_TESTING"
     private static let storedOpenAIKey = "chatgpt_access_token"
 
     private static func plistDictionary(named name: String) -> [String: Any] {
@@ -31,18 +30,10 @@ enum AppSecrets {
         plistDictionary(named: "BackendConfig")
     }
 
-    private static func boolValue(for key: String) -> Bool {
-        guard let value = stringValue(for: key)?.lowercased() else {
-            return false
-        }
-
-        return value == "1" || value == "true" || value == "yes"
-    }
-
     static var openAIAPIKey: String? {
         stringValue(for: openAIKeyName)
             ?? KeychainHelper.load(for: "openai_api_key")
-            ?? UserDefaults.standard.string(forKey: storedOpenAIKey)
+            ?? KeychainHelper.load(for: storedOpenAIKey)
     }
 
     static var geminiAPIKey: String? {
@@ -55,18 +46,14 @@ enum AppSecrets {
         return URL(string: value)
     }
 
-    static var internalBYOKTestingEnabled: Bool {
-        boolValue(for: internalBYOKTestingName)
-    }
-
     static func primeDefaultsIfNeeded() {
-        guard UserDefaults.standard.string(forKey: storedOpenAIKey) == nil,
-              let openAIAPIKey,
-              !openAIAPIKey.isEmpty else {
-            return
+        if let legacyKey = UserDefaults.standard.string(forKey: storedOpenAIKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !legacyKey.isEmpty,
+           KeychainHelper.load(for: storedOpenAIKey) == nil {
+            KeychainHelper.save(legacyKey, for: storedOpenAIKey)
         }
-
-        UserDefaults.standard.set(openAIAPIKey, forKey: storedOpenAIKey)
+        UserDefaults.standard.removeObject(forKey: storedOpenAIKey)
     }
 
     private static func stringValue(for key: String) -> String? {

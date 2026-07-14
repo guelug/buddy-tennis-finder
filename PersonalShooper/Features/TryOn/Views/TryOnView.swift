@@ -8,7 +8,6 @@ struct TryOnView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var closetItems: [ClothingItem]
 
     @State private var viewModel = TryOnViewModel()
-    @State private var showingSubscription = false
     @State private var showingPrivacyNotice = false
     @State private var hasAcceptedPrivacy = false
     @State private var showingImagePicker = false
@@ -65,9 +64,6 @@ struct TryOnView: View {
                     .buttonStyle(.premiumPressable)
                 }
             }
-            .sheet(isPresented: $showingSubscription) {
-                SubscriptionView()
-            }
             .sheet(isPresented: $showingPrivacyNotice) {
                 PrivacyNoticeView {
                     hasAcceptedPrivacy = true
@@ -85,7 +81,7 @@ struct TryOnView: View {
                 }
             }
             .sheet(isPresented: $showingProviderPicker) {
-                ProviderPickerSheet(viewModel: viewModel, showingSubscription: $showingSubscription)
+                ProviderPickerSheet(viewModel: viewModel)
             }
             .sheet(isPresented: $showingClosetPicker) {
                 ClosetPickerSheet(items: closetItems, language: lang) { item in
@@ -252,7 +248,7 @@ struct TryOnView: View {
                                 for: appState.currentUser,
                                 modelContext: modelContext,
                                 language: lang,
-                                canGenerateCleanReference: appState.isPremium || appState.hasBYOKAccess
+                                canGenerateCleanReference: StyleImageService.hasImageProvider()
                             )
                         }
                     } label: {
@@ -753,7 +749,6 @@ private struct RevealTryOnResultView: View {
 
 struct ProviderPickerSheet: View {
     @Bindable var viewModel: TryOnViewModel
-    @Binding var showingSubscription: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
 
@@ -766,11 +761,9 @@ struct ProviderPickerSheet: View {
     }
 
     private var providerFooterText: String {
-        if appState.hasBYOKAccess {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Image Playground es gratis y privado en el dispositivo. BYOK usa tu propia clave de OpenAI." : "Google Gemini provides the most accurate results. Apple Image Playground is free and private on-device. BYOK uses your own OpenAI API key."
-        } else {
-            return lang == .spanish ? "Google Gemini ofrece los resultados más precisos. Apple Image Playground es gratis y privado en el dispositivo." : "Google Gemini provides the most accurate results. Apple Image Playground is free and private on-device."
-        }
+        lang == .spanish
+            ? "Google Gemini es gratuito con límites de uso razonable. Image Playground es privado en el dispositivo. La clave propia de OpenAI es opcional."
+            : "Google Gemini is free with fair-use limits. Image Playground is private on-device. Your own OpenAI key is optional."
     }
 
     var body: some View {
@@ -780,16 +773,10 @@ struct ProviderPickerSheet: View {
                     ForEach(availableProviders) { provider in
                         ProviderRow(
                             provider: provider,
-                            isSelected: viewModel.selectedProvider == provider,
-                            isPremiumUser: appState.isPremium
+                            isSelected: viewModel.selectedProvider == provider
                         ) {
-                            if provider.requiresPremium && !appState.isPremium {
-                                dismiss()
-                                showingSubscription = true
-                            } else {
-                                viewModel.selectProvider(provider)
-                                dismiss()
-                            }
+                            viewModel.selectProvider(provider)
+                            dismiss()
                         }
                     }
                 } header: {
@@ -814,7 +801,6 @@ struct ProviderPickerSheet: View {
 struct ProviderRow: View {
     let provider: TryOnProvider
     let isSelected: Bool
-    let isPremiumUser: Bool
     let action: () -> Void
     @Environment(AppState.self) private var appState
 
@@ -845,14 +831,14 @@ struct ProviderRow: View {
                                 .padding(.vertical, 2)
                                 .background(Color.green)
                                 .clipShape(Capsule())
-                        } else if provider.requiresPremium {
-                            Text("PREMIUM")
+                        } else if provider.requiresUserAPIKey {
+                            Text(lang == .spanish ? "CLAVE PROPIA" : "YOUR KEY")
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Color.purple)
+                                .background(Color.blue)
                                 .clipShape(Capsule())
                         }
                     }

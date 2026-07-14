@@ -57,8 +57,8 @@ struct TryOnProviderSelectorView: View {
                                                 .clipShape(Capsule())
                                         }
 
-                                        if provider.requiresPremium {
-                                            Text(lang == .spanish ? "PREMIUM" : "PREMIUM")
+                                        if provider.requiresUserAPIKey {
+                                            Text(lang == .spanish ? "CLAVE PROPIA" : "YOUR KEY")
                                                 .font(.caption2)
                                                 .fontWeight(.bold)
                                                 .foregroundStyle(.white)
@@ -90,13 +90,11 @@ struct TryOnProviderSelectorView: View {
                         .font(.headline)
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(lang == .spanish ? "**Google Gemini**: mejor calidad y realismo. Requiere uso de API o premium." : "**Google Gemini**: Best quality and realism. Requires API usage or premium.")
+                        Text(lang == .spanish ? "**Google Gemini**: mejor calidad y realismo, gratis con límites de uso razonable." : "**Google Gemini**: Best quality and realism, free with fair-use limits.")
 
                         Text(lang == .spanish ? "**Apple Image Playground**: generación gratuita y privada en el dispositivo. Es estilizada, no realista, ideal para inspiración rápida." : "**Apple Image Playground**: Free, private on-device generation. It is stylized, not realistic, great for quick inspiration.")
 
-                        if appState.hasBYOKAccess {
-                            Text(lang == .spanish ? "**BYOK**: usa tu propia clave de OpenAI si quieres este proveedor disponible." : "**BYOK**: Use your own OpenAI API key if you want this provider available.")
-                        }
+                        Text(lang == .spanish ? "**Clave propia**: opción voluntaria para usar tu cuenta de OpenAI; no desbloquea funciones adicionales." : "**Your key**: an optional way to use your OpenAI account; it does not unlock extra features.")
                     }
                     .font(.caption)
                     .padding(.top, Theme.Spacing.sm)

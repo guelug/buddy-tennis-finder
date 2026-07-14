@@ -85,13 +85,15 @@ enum StyleImageService {
     }
 
     static func cleanStudioReference(from person: UIImage) async throws -> UIImage {
-        switch resolvedEngine() {
-        case .gemini:
-            return try await GeminiTryOnService(apiKey: geminiKey()).cleanStudioImage(from: person)
-        case .openai:
-            guard let key = openAIKey() else { return person }
+        if let key = geminiKey(), resolvedEngine() == .gemini {
+            return try await GeminiTryOnService(apiKey: key).cleanStudioImage(from: person)
+        }
+        if let key = openAIKey(), resolvedEngine() == .openai {
             return try await OpenAIImageTryOnService().cleanStudioImage(from: person, apiKey: key)
         }
+
+        // Managed cloud consent covers garment thumbnails, not silent profile-photo cleanup.
+        return person
     }
 
     static func marketingImage(for garment: UIImage, categoryHint: String) async throws -> UIImage {

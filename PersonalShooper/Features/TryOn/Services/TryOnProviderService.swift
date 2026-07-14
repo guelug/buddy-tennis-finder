@@ -26,7 +26,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
 
     func subtitle(language: Language) -> String {
         switch self {
-        case .google: return language == .spanish ? "Resultados más precisos" : "Most accurate results"
+        case .google: return language == .spanish ? "Nube gestionada gratis con uso razonable" : "Free managed cloud with fair-use limits"
         case .playground: return language == .spanish ? "Apple Image Playground gratis en el dispositivo" : "Free Apple Image Playground on-device"
         case .chatgpt: return language == .spanish ? "Usa tu propia clave de OpenAI" : "Bring your own OpenAI key"
         }
@@ -42,19 +42,12 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
 
     var isFree: Bool {
         switch self {
-        case .google: return false
-        case .playground: return true
+        case .google, .playground: return true
         case .chatgpt: return false
         }
     }
 
-    var requiresPremium: Bool {
-        switch self {
-        case .google: return true
-        case .playground: return false
-        case .chatgpt: return true
-        }
-    }
+    var requiresUserAPIKey: Bool { self == .chatgpt }
 
     var isStylized: Bool {
         switch self {
@@ -81,7 +74,7 @@ final class TryOnProviderService {
             currentProvider = provider
         }
 
-        isAuthenticated = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+        isAuthenticated = AppSecrets.openAIAPIKey != nil
     }
 
     func setProvider(_ provider: TryOnProvider) {
@@ -89,7 +82,7 @@ final class TryOnProviderService {
         UserDefaults.standard.set(provider.rawValue, forKey: "tryon_provider")
 
         if provider == .chatgpt {
-            isAuthenticated = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+            isAuthenticated = AppSecrets.openAIAPIKey != nil
         } else {
             isAuthenticated = false
             chatGPTUserId = nil
@@ -110,13 +103,18 @@ final class TryOnProviderService {
     // MARK: - Google Gemini
 
     private func generateWithGoogle(clothing: UIImage, user: UIImage, garmentCategory: ClothingCategory?) async throws -> UIImage {
-        // Use Gemini service (existing implementation)
-        let service = GeminiTryOnService()
-        return try await service.generateTryOnImage(
+        if let key = StyleImageService.geminiKey() {
+            return try await GeminiTryOnService(apiKey: key).generateTryOnImage(
+                clothingImage: clothing,
+                userImage: user,
+                editHints: nil,
+                garmentInstruction: garmentCategory?.tryOnReplacementInstruction
+            )
+        }
+
+        return try await TryOnService.shared.generate(
             clothingImage: clothing,
-            userImage: user,
-            editHints: nil,
-            garmentInstruction: garmentCategory?.tryOnReplacementInstruction
+            personImage: user
         )
     }
 
@@ -203,13 +201,13 @@ final class TryOnProviderService {
 
     func checkChatGPTAuthentication() async -> Bool {
         // Check if user has a valid BYOK token stored
-        let hasToken = UserDefaults.standard.string(forKey: "chatgpt_access_token") != nil || AppSecrets.openAIAPIKey != nil
+        let hasToken = AppSecrets.openAIAPIKey != nil
         isAuthenticated = hasToken
         return hasToken
     }
 
     private func generateWithChatGPT(clothing: UIImage, user: UIImage) async throws -> UIImage {
-        guard let apiKey = UserDefaults.standard.string(forKey: "chatgpt_access_token") ?? AppSecrets.openAIAPIKey,
+        guard let apiKey = AppSecrets.openAIAPIKey,
               !apiKey.isEmpty else {
             isAuthenticated = false
             throw TryOnProviderError.authenticationRequired

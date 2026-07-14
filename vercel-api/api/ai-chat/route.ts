@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tier = normalizeTier(authorization.tier === 'lifetime' ? 'pro' : authorization.tier);
+    const tier = normalizeTier(authorization.tier);
     const userId = authorization.userId;
     quotaUserId = userId;
 

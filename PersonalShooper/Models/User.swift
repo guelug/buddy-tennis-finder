@@ -15,7 +15,7 @@ final class User {
     var personalPaletteData: Data?
     var personalStylingProfileData: Data?
     /// AI-cleaned full-body reference (person on a neutral studio backdrop, no mirror/clutter) used
-    /// for try-on. Generated once for premium/BYOK users and cached here. Optional/hidden from the UI.
+    /// for try-on. Generated once when an image provider is available and cached here.
     @Attribute(.externalStorage) var cleanBodyReferenceData: Data?
     var stylePreferences: [String]
     var subscriptionTierRaw: String

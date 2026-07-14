@@ -140,19 +140,6 @@ struct Strings {
         localized("privacy_consent", language)
     }
 
-    // MARK: - Subscription
-    static func subscriptionTitle(_ language: Language) -> String {
-        localized("subscription_title", language)
-    }
-
-    static func subscriptionFreeTier(_ language: Language) -> String {
-        localized("subscription_free_tier", language)
-    }
-
-    static func subscriptionPremiumTier(_ language: Language) -> String {
-        localized("subscription_premium_tier", language)
-    }
-
     // MARK: - Common
     static func cancelButton(_ language: Language) -> String {
         localized("cancel_button", language)
@@ -300,10 +287,6 @@ struct Strings {
         localized("tryon_take_photo_self", language)
     }
 
-    static func tryOnStartTrial(_ language: Language) -> String {
-        localized("tryon_start_trial", language)
-    }
-
     static func tryonCaptureClothingDesc(_ language: Language) -> String {
         localized("tryon_capture_clothing_desc", language)
     }
@@ -432,9 +415,6 @@ struct Strings {
         "profile_palette_title": [.english: "Your Color Palette", .spanish: "Tu Paleta de Colores"],
         "privacy_notice_title": [.english: "Privacy Notice", .spanish: "Aviso de Privacidad"],
         "privacy_consent": [.english: "I understand and consent", .spanish: "Entiendo y consiento"],
-        "subscription_title": [.english: "Go Premium", .spanish: "Ir a Premium"],
-        "subscription_free_tier": [.english: "Free", .spanish: "Gratis"],
-        "subscription_premium_tier": [.english: "Premium", .spanish: "Premium"],
         "cancel_button": [.english: "Cancel", .spanish: "Cancelar"],
         "save_button": [.english: "Save", .spanish: "Guardar"],
         "continue_button": [.english: "Continue", .spanish: "Continuar"],
@@ -464,7 +444,6 @@ struct Strings {
         "closet_delete": [.english: "Delete", .spanish: "Eliminar"],
         "tryon_take_photo_clothing": [.english: "Take a photo of the garment and then a selfie to see how it looks on you", .spanish: "Toma una foto de la prenda y luego una selfie para ver cómo te queda"],
         "tryon_take_photo_self": [.english: "Take a selfie", .spanish: "Tomate una selfie"],
-        "tryon_start_trial": [.english: "Start Trial", .spanish: "Empezar Prueba"],
         "chat_style_assistant": [.english: "Style Assistant", .spanish: "Asistente de Estilo"],
         "chat_ask_fashion": [.english: "Ask about fashion...", .spanish: "Pregunta sobre moda..."],
         "category_tops": [.english: "Tops", .spanish: "Tops"],

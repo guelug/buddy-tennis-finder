@@ -35,9 +35,6 @@
     "profile_palette_title" : { "en" : "Your Color Palette", "es" : "Tu Paleta de Colores" },
     "privacy_notice_title" : { "en" : "Privacy Notice", "es" : "Aviso de Privacidad" },
     "privacy_consent" : { "en" : "I understand and consent", "es" : "Entiendo y consiento" },
-    "subscription_title" : { "en" : "Go Premium", "es" : "Ir a Premium" },
-    "subscription_free_tier" : { "en" : "Free", "es" : "Gratis" },
-    "subscription_premium_tier" : { "en" : "Premium", "es" : "Premium" },
     "error_generic" : { "en" : "Something went wrong. Please try again.", "es" : "Algo salio mal. Por favor intenta de nuevo." }
   }
 }

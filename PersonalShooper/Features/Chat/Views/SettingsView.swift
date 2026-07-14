@@ -9,7 +9,7 @@ struct SettingsView: View {
     @State private var selectedTheme: AppTheme = .system
     @State private var showingTryOnProvider = false
 
-    private var premiumAIAvailable: Bool {
+    private var managedCloudAvailable: Bool {
         AppSecrets.vercelAPIBaseURL != nil || appState.isChatGPTConnected
     }
     @State private var isRefreshingStyleCompanion = false
@@ -24,7 +24,7 @@ struct SettingsView: View {
         switch appState.aiProviderMode {
         case .appleFoundation: return "apple.logo"
         case .byok: return "key.fill"
-        case .premiumExternal: return "crown.fill"
+        case .managedCloud: return "cloud.fill"
         }
     }
 
@@ -32,7 +32,7 @@ struct SettingsView: View {
         switch appState.aiProviderMode {
         case .appleFoundation: return .primary
         case .byok: return .blue
-        case .premiumExternal: return Theme.Colors.premiumGold
+        case .managedCloud: return .cyan
         }
     }
 
@@ -42,8 +42,8 @@ struct SettingsView: View {
             return text("Usa Apple Intelligence en el dispositivo para consejos privados de estilo.", "Uses on-device Apple Intelligence for private style advice.")
         case .byok:
             return text("Usa la clave BYOK y el proveedor elegido en este dispositivo.", "Uses the BYOK key and provider selected on this device.")
-        case .premiumExternal:
-            return text("Usa el backend externo de fallback cuando está activado.", "Uses the external fallback backend when enabled.")
+        case .managedCloud:
+            return text("Usa la nube gestionada gratuita con límites de uso razonable.", "Uses the free managed cloud with fair-use limits.")
         }
     }
 
@@ -291,9 +291,9 @@ struct SettingsView: View {
                     Image(systemName: "brain.head.profile")
                         .foregroundStyle(.green)
                         .frame(width: 24)
-                    Text(text("Proveedor premium de IA", "Premium AI Provider"))
+                    Text(text("Nube gestionada de IA", "Managed AI Cloud"))
                     Spacer()
-                    if premiumAIAvailable {
+                    if managedCloudAvailable {
                         Label(text("Activo", "Active"), systemImage: "checkmark.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.green)
@@ -336,7 +336,7 @@ struct SettingsView: View {
                         Image(systemName: "key.fill")
                             .foregroundStyle(.yellow)
                             .frame(width: 24)
-                        Text(text("Premium / BYOK", "Premium / BYOK"))
+                        Text(text("Nube / claves propias", "Cloud / Your Keys"))
                         Spacer()
                         Text(appState.aiProviderMode.displayName(language: lang))
                             .font(.caption)
@@ -358,7 +358,7 @@ struct SettingsView: View {
                 Text(text("Cuenta", "Account"))
             } footer: {
                 if appState.hasBYOKAccess, appState.isChatGPTConnected {
-                    Text(text("Puedes alternar entre Premium y BYOK sin borrar claves.", "You can switch between Premium and BYOK without removing keys."))
+                    Text(text("Todas las funciones son gratuitas. Puedes alternar entre IA local, nube gestionada y claves propias.", "All features are free. You can switch between local AI, managed cloud, and your own keys."))
                 }
             }
 
@@ -559,8 +559,8 @@ struct TryOnProviderInfoView: View {
                         icon: "g.circle.fill",
                         color: .blue,
                         name: "Google Gemini",
-                        description: isSpanish ? "Resultados de try-on más realistas y precisos usando la IA de Google." : "Most accurate and realistic try-on results using Google's AI.",
-                        features: isSpanish ? ["Imágenes realistas de alta calidad", "Ideal para uso más serio", "Consume créditos de API"] : ["High quality realistic images", "Best for professional use", "Uses API credits"],
+                        description: isSpanish ? "Resultados de try-on realistas mediante la nube gestionada gratuita." : "Realistic try-on results through the free managed cloud.",
+                        features: isSpanish ? ["Imágenes realistas", "Sin compras", "Límites de uso razonable"] : ["Realistic images", "No purchases", "Fair-use limits"],
                         badge: isSpanish ? "RECOMENDADO" : "RECOMMENDED"
                     )
 
@@ -577,8 +577,8 @@ struct TryOnProviderInfoView: View {
                         icon: "brain.head.profile",
                         color: .green,
                         name: "OpenAI",
-                        description: isSpanish ? "Proveedor preparado para modo BYOK cuando exista acceso desbloqueado a la compra completa." : "Prepared provider for BYOK mode once full-purchase access is unlocked.",
-                        features: isSpanish ? ["Oculto sin acceso BYOK", "Compartible con el chat", "Preparado para pruebas internas"] : ["Hidden without BYOK access", "Can be shared with chat", "Prepared for internal testing"],
+                        description: isSpanish ? "Opción voluntaria para usar tu propia clave, sin desbloquear funciones adicionales." : "Optional provider using your own key, without unlocking additional features.",
+                        features: isSpanish ? ["Siempre disponible", "Compartible con el chat", "Clave guardada en Keychain"] : ["Always available", "Can be shared with chat", "Key stored in Keychain"],
                         badge: "BYOK"
                     )
                 }
@@ -708,7 +708,7 @@ struct ClosetManagementView: View {
             }
             Button(appState.preferredLanguage == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
         } message: {
-            Text(appState.preferredLanguage == .spanish ? "Esta acción borra el armario local. No elimina tus fotos del perfil ni la suscripción." : "This deletes the local closet. It does not remove profile photos or your subscription.")
+            Text(appState.preferredLanguage == .spanish ? "Esta acción borra el armario local. No elimina tus fotos del perfil." : "This deletes the local closet. It does not remove profile photos.")
         }
     }
 

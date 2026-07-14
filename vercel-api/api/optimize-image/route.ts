@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const authorization = await verifyStoreAuthorization(request.headers);
     quotaUserId = authorization.userId;
-    const tier = normalizeTier(authorization.tier === 'lifetime' ? 'pro' : authorization.tier);
+    const tier = normalizeTier(authorization.tier);
 
     const formData = await request.formData();
     const garmentFile = requiredImage(formData, 'image');

@@ -51,9 +51,9 @@ struct PrivacySettingsView: View {
                 }
 
                 HStack {
-                    Text(text("Plan actual", "Current Tier"))
+                    Text(text("Acceso", "Access"))
                     Spacer()
-                    Text(appState.currentTier.rawValue.capitalized)
+                    Text(text("Gratis", "Free"))
                         .foregroundStyle(.secondary)
                 }
             } header: {
@@ -88,9 +88,9 @@ struct PrivacySettingsView: View {
                     )
 
                     PrivacyInfoRow(
-                        icon: "creditcard",
-                        title: text("Pagos con Apple", "Payments by Apple"),
-                        description: text("Las suscripciones las gestiona Apple. La app no recibe tus datos de pago.", "All subscriptions are handled by Apple. The app never sees your payment info.")
+                        icon: "gift.fill",
+                        title: text("Siempre gratis", "Always Free"),
+                        description: text("La app no contiene suscripciones, compras ni funciones bloqueadas por pago. La nube aplica límites de uso razonable.", "The app contains no subscriptions, purchases, or paid feature locks. Managed cloud uses fair-use limits.")
                     )
                 }
                 .padding(.vertical, 8)
@@ -165,7 +165,7 @@ struct PrivacySettingsView: View {
             } header: {
                 Text(text("Zona de riesgo", "Danger Zone"))
             } footer: {
-                Text(text("Esto elimina los datos locales y, cuando el backend está disponible, sus contadores de uso. No cancela suscripciones de App Store.", "This deletes local data and, when the backend is available, its usage counters. It does not cancel App Store subscriptions."))
+                Text(text("Esto elimina los datos locales y, cuando el backend está disponible, sus contadores de uso.", "This deletes local data and, when the backend is available, its usage counters."))
             }
         }
         .navigationTitle(text("Privacidad", "Privacy"))
@@ -180,7 +180,7 @@ struct PrivacySettingsView: View {
             }
             Button(text("Cancelar", "Cancel"), role: .cancel) {}
         } message: {
-            Text(text("Se eliminarán perfil, armario, looks, calendario, AR, lista de compras, conversaciones y try-ons. Las suscripciones se cancelan aparte en Ajustes > App Store.", "This will delete your profile, closet, outfits, calendar, AR, shopping list, conversations, and try-ons. Subscriptions must be cancelled separately in Settings > App Store."))
+            Text(text("Se eliminarán perfil, armario, looks, calendario, AR, lista de compras, conversaciones y try-ons.", "This will delete your profile, closet, outfits, calendar, AR, shopping list, conversations, and try-ons."))
         }
         .alert(text("Datos eliminados", "Data Deleted"), isPresented: Binding(
             get: { deleteResultMessage != nil },
@@ -238,8 +238,7 @@ struct PrivacySettingsView: View {
                 }
             }
 
-            exportData["currentTier"] = appState.currentTier.rawValue
-            exportData["isPremium"] = appState.isPremium
+            exportData["access"] = "free"
             exportData["exportedAt"] = Date().description
             exportData["storageUsedBytes"] = StorageBudgetManager.currentUsageBytes(modelContext: modelContext)
             exportData["closetItems"] = clothingItems.map(exportDictionary(for:))
@@ -284,8 +283,8 @@ struct PrivacySettingsView: View {
 
             appState.currentUser = nil
             appState.isPremium = false
-            appState.hasBYOKAccess = false
-            appState.hasAppleIntelligenceFeatures = false
+            appState.hasBYOKAccess = FreeAccessPolicy.allowsBYOK
+            appState.hasAppleIntelligenceFeatures = FreeAccessPolicy.allowsAppleIntelligence
             appState.isBYOKEnabled = false
             appState.isChatGPTConnected = false
             appState.useConnectedChatGPTForChat = false

@@ -116,7 +116,7 @@ final class ClothingItem {
     @Attribute(.externalStorage) var imageData: Data?
     @Attribute(.externalStorage) var realReferenceImageData: Data?
     /// AI-generated marketing thumbnail (white background, item facing front, full item visible).
-    /// Premium/BYOK only. Generated on demand and cached; used for display in the closet.
+    /// Generated on demand and cached; used for display in the closet.
     @Attribute(.externalStorage) var optimizedImageData: Data?
     /// Background-removed (transparent) cutout of the optimized thumbnail, so the garment can float
     /// on any backdrop (light or dark). Stored as PNG to preserve the alpha channel.

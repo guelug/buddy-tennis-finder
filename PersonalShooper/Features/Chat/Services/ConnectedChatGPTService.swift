@@ -15,7 +15,7 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
             return try await sendVercelMessage(message, context: context, baseURL: vercelBaseURL)
         }
 
-        guard let token = UserDefaults.standard.string(forKey: "chatgpt_access_token") ?? AppSecrets.openAIAPIKey,
+        guard let token = AppSecrets.openAIAPIKey,
               !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw AIError.modelNotAvailable
         }

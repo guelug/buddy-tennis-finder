@@ -11,7 +11,6 @@ struct ClosetView: View {
     @State private var showingOutfits = false
     @State private var showingDailyLook = false
     @State private var showingOutfitCalendar = false
-    @State private var showingSubscription = false
     @State private var searchText = ""
     @State private var pendingDeletionItem: ClothingItem?
     @State private var deletionErrorMessage: String?
@@ -314,9 +313,6 @@ struct ClosetView: View {
             .sheet(isPresented: $showingOutfitCalendar) {
                 OutfitCalendarView()
             }
-            .sheet(isPresented: $showingSubscription) {
-                SubscriptionView()
-            }
             .sheet(item: $selectedItem) { item in
                 ClosetItemDetailView(
                     item: item,
@@ -444,11 +440,7 @@ struct ClosetView: View {
     }
 
     private func startAddingItem() {
-        if appState.hasReachedClosetLimit(currentCount: items.count) {
-            showingSubscription = true
-        } else {
-            showingAddItem = true
-        }
+        showingAddItem = true
     }
 
     // MARK: - Rotation nudge
@@ -497,8 +489,7 @@ struct ClosetView: View {
     private var unoptimizedCount: Int { unoptimizedItems.count }
 
     private var canBatchOptimize: Bool {
-        (appState.isPremium || appState.hasBYOKAccess)
-            && (StyleImageService.hasImageProvider() || StyleImageService.shouldRequestManagedProcessingConsent)
+        (StyleImageService.hasImageProvider() || StyleImageService.shouldRequestManagedProcessingConsent)
             && unoptimizedCount > 0
     }
 

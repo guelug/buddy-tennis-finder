@@ -35,7 +35,7 @@ struct ClosetItemDetailView: View {
     }
 
     private var canOptimize: Bool {
-        appState.isPremium || appState.hasBYOKAccess
+        StyleImageService.hasImageProvider() || StyleImageService.shouldRequestManagedProcessingConsent
     }
 
     private var hasARPlacement: Bool {

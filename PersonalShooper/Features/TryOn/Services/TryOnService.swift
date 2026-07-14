@@ -24,7 +24,7 @@ final class TryOnService: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .noCredits:
-                return "No credits remaining. Upgrade to Premium for more try-ons."
+                return "The fair-use limit has been reached. Try again when it resets."
             case .networkError:
                 return "Network connection failed. Please check your internet."
             case .invalidResponse:
@@ -32,7 +32,7 @@ final class TryOnService: ObservableObject {
             case .serverError(let message):
                 return "Server error: \(message)"
             case .tierNotSupported:
-                return "Your subscription tier does not support this feature."
+                return "This provider is temporarily unavailable."
             case .imageCompressionFailed:
                 return "Failed to compress images for upload."
             }

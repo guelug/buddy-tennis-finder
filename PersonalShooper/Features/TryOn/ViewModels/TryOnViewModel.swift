@@ -96,7 +96,7 @@ final class TryOnViewModel {
             return
         }
 
-        // Premium/BYOK: generate (once) a clean studio reference so try-ons aren't polluted by the
+        // Generate (once) a clean studio reference so try-ons aren't polluted by the
         // original photo's mirror/background. Cached on the user; failures fall back to the raw photo.
         if canGenerateCleanReference {
             await ensureCleanReference(for: user, modelContext: modelContext)
