@@ -10,6 +10,7 @@ struct ClosetView: View {
     @State private var showingAddItem = false
     @State private var showingOutfits = false
     @State private var showingDailyLook = false
+    @State private var showingOutfitCalendar = false
     @State private var showingSubscription = false
     @State private var searchText = ""
     @State private var pendingDeletionItem: ClothingItem?
@@ -19,6 +20,7 @@ struct ClosetView: View {
     @State private var onPaletteOnly = false
     @State private var closetFeedbackCounter = 0
     @State private var confirmBatchOptimize = false
+    @State private var confirmManagedImageProcessing = false
     @State private var isBatchOptimizing = false
     @State private var batchDone = 0
     @State private var batchTotal = 0
@@ -205,46 +207,7 @@ struct ClosetView: View {
                                 GridItem(.flexible())
                             ], spacing: Theme.Spacing.sm) {
                                 ForEach(filteredItems) { item in
-                                    ClosetItemCard(item: item, lang: lang, isOnPalette: PaletteMatching.isOnPalette(item, names: paletteColorNames))
-                                        .transition(.scale(scale: 0.96).combined(with: .opacity))
-                                        .onTapGesture {
-                                            selectedItem = item
-                                        }
-                                        .overlay(alignment: .topTrailing) {
-                                            if item.isFavorite {
-                                                Image(systemName: "heart.fill")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.white)
-                                                    .padding(7)
-                                                    .background(.red)
-                                                    .clipShape(Circle())
-                                                    .padding(6)
-                                            }
-                                        }
-                                        .contextMenu {
-                                            Button {
-                                                markWorn(item)
-                                            } label: {
-                                                Label(lang == .spanish ? "Usada hoy" : "Worn today", systemImage: "checkmark.circle")
-                                            }
-
-                                            Button {
-                                                toggleFavorite(item)
-                                            } label: {
-                                                Label(
-                                                    item.isFavorite
-                                                        ? (lang == .spanish ? "Quitar favorito" : "Remove favorite")
-                                                        : (lang == .spanish ? "Marcar favorito" : "Mark favorite"),
-                                                    systemImage: item.isFavorite ? "heart.slash" : "heart"
-                                                )
-                                            }
-
-                                            Button(role: .destructive) {
-                                                pendingDeletionItem = item
-                                            } label: {
-                                                Label(Strings.closetDelete(lang), systemImage: "trash")
-                                            }
-                                        }
+                                    closetItemCell(item)
                                 }
                             }
                         }
@@ -270,6 +233,11 @@ struct ClosetView: View {
                             showingOutfits = true
                         } label: {
                             Label(lang == .spanish ? "Mis looks" : "My looks", systemImage: "square.stack.3d.up")
+                        }
+                        Button {
+                            showingOutfitCalendar = true
+                        } label: {
+                            Label(lang == .spanish ? "Plan semanal" : "Weekly plan", systemImage: "calendar.badge.sparkles")
                         }
                     } label: {
                         Image(systemName: "square.stack.3d.up")
@@ -306,10 +274,33 @@ struct ClosetView: View {
                 isPresented: $confirmBatchOptimize,
                 titleVisibility: .visible
             ) {
-                Button(lang == .spanish ? "Optimizar todas" : "Optimize all") { startBatchOptimize() }
+                Button(lang == .spanish ? "Optimizar todas" : "Optimize all") {
+                    if StyleImageService.shouldRequestManagedProcessingConsent {
+                        confirmManagedImageProcessing = true
+                    } else {
+                        startBatchOptimize()
+                    }
+                }
                 Button(lang == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
             } message: {
-                Text(lang == .spanish ? "Generaré una miniatura tipo tienda para cada prenda usando tu API. Puede tardar y consumir créditos." : "I'll generate a store-style thumbnail for each garment using your API. It may take a while and use credits.")
+                Text(lang == .spanish ? "Generaré una miniatura tipo tienda para cada prenda. Priorizaré el procesado local y respetaré tu elección de privacidad." : "I'll generate a store-style thumbnail for each garment. Local processing is preferred and your privacy choice is respected.")
+            }
+            .alert(
+                lang == .spanish ? "Procesado externo opcional" : "Optional Cloud Processing",
+                isPresented: $confirmManagedImageProcessing
+            ) {
+                Button(lang == .spanish ? "Usar nube" : "Use Cloud") {
+                    StyleImageService.hasManagedProcessingConsent = true
+                    startBatchOptimize()
+                }
+                Button(lang == .spanish ? "Solo en dispositivo" : "On Device Only") {
+                    startBatchOptimize()
+                }
+                Button(lang == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
+            } message: {
+                Text(lang == .spanish
+                     ? "Si Image Playground no está disponible, la app puede enviar las fotos de las prendas al servicio de IA de Personal Shooper para crear las miniaturas. Puedes revocar este permiso en Privacidad."
+                     : "If Image Playground is unavailable, the app can send garment photos to Personal Shooper's AI service to create thumbnails. You can revoke this permission in Privacy.")
             }
             .sheet(isPresented: $showingAddItem) {
                 ClothingCaptureView()
@@ -319,6 +310,9 @@ struct ClosetView: View {
             }
             .sheet(isPresented: $showingDailyLook) {
                 DailyLookView()
+            }
+            .sheet(isPresented: $showingOutfitCalendar) {
+                OutfitCalendarView()
             }
             .sheet(isPresented: $showingSubscription) {
                 SubscriptionView()
@@ -383,6 +377,51 @@ struct ClosetView: View {
                 applyPendingClosetRoute()
             }
         }
+    }
+
+    private func closetItemCell(_ item: ClothingItem) -> some View {
+        let isOnPalette = PaletteMatching.isOnPalette(item, names: paletteColorNames)
+
+        return ClosetItemCard(item: item, lang: lang, isOnPalette: isOnPalette)
+            .transition(.scale(scale: 0.96).combined(with: .opacity))
+            .onTapGesture {
+                selectedItem = item
+            }
+            .overlay(alignment: .topTrailing) {
+                if item.isFavorite {
+                    Image(systemName: "heart.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .padding(7)
+                        .background(.red)
+                        .clipShape(Circle())
+                        .padding(6)
+                }
+            }
+            .contextMenu {
+                Button {
+                    markWorn(item)
+                } label: {
+                    Label(lang == .spanish ? "Usada hoy" : "Worn today", systemImage: "checkmark.circle")
+                }
+
+                Button {
+                    toggleFavorite(item)
+                } label: {
+                    Label(
+                        item.isFavorite
+                            ? (lang == .spanish ? "Quitar favorito" : "Remove favorite")
+                            : (lang == .spanish ? "Marcar favorito" : "Mark favorite"),
+                        systemImage: item.isFavorite ? "heart.slash" : "heart"
+                    )
+                }
+
+                Button(role: .destructive) {
+                    pendingDeletionItem = item
+                } label: {
+                    Label(Strings.closetDelete(lang), systemImage: "trash")
+                }
+            }
     }
 
     private func deleteItem(_ item: ClothingItem) {
@@ -458,7 +497,9 @@ struct ClosetView: View {
     private var unoptimizedCount: Int { unoptimizedItems.count }
 
     private var canBatchOptimize: Bool {
-        (appState.isPremium || appState.hasBYOKAccess) && StyleImageService.hasImageProvider() && unoptimizedCount > 0
+        (appState.isPremium || appState.hasBYOKAccess)
+            && (StyleImageService.hasImageProvider() || StyleImageService.shouldRequestManagedProcessingConsent)
+            && unoptimizedCount > 0
     }
 
     @ViewBuilder

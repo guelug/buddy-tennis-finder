@@ -15,6 +15,7 @@ struct OutfitCalendarView: View {
     @State private var placeName: String?
     @State private var editingDay: Date?
     @State private var isLoadingWeather = false
+    @State private var showingWeeklyPlanner = false
 
     private let weatherService = OutfitWeatherService()
     private let dayCount = 15
@@ -31,6 +32,7 @@ struct OutfitCalendarView: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: Theme.Spacing.sm) {
+                    weeklyPlannerCallout
                     header
 
                     ForEach(days, id: \.self) { day in
@@ -56,8 +58,59 @@ struct OutfitCalendarView: View {
                     onSave: { ids in saveSelection(ids, for: item.date) }
                 )
             }
+            .sheet(isPresented: $showingWeeklyPlanner) {
+                WeeklyOutfitPlannerView(
+                    closetItems: closetItems,
+                    existingSelections: Dictionary(
+                        entries.map { ($0.dayKey, $0.clothingItemIDs) },
+                        uniquingKeysWith: { first, _ in first }
+                    ),
+                    language: appState.preferredLanguage,
+                    paletteColorNames: PaletteMatching.colorNames(for: appState.currentUser?.personalPalette),
+                    onSave: saveWeeklyPlan
+                )
+            }
             .task { await loadWeather() }
         }
+    }
+
+    private var weeklyPlannerCallout: some View {
+        Button {
+            showingWeeklyPlanner = true
+        } label: {
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "briefcase.fill")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Theme.Colors.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isSpanish ? "Preparar 5 looks de oficina" : "Prepare 5 office looks")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(isSpanish
+                         ? "Automáticos o manuales, con tu armario y gratis"
+                         : "Automatic or manual, from your closet and free")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(Theme.Spacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("calendar.weeklyPlanner")
     }
 
     private var header: some View {
@@ -169,6 +222,24 @@ struct OutfitCalendarView: View {
             }
         } else if !ids.isEmpty {
             modelContext.insert(OutfitCalendarEntry(dayKey: key, clothingItemIDs: ids))
+        }
+        try? modelContext.save()
+    }
+
+    private func saveWeeklyPlan(_ drafts: [WeeklyOutfitDraft]) {
+        for draft in drafts {
+            let key = OutfitCalendarEntry.dayKey(for: draft.date)
+            if let existing = entries.first(where: { $0.dayKey == key }) {
+                if draft.itemIDs.isEmpty {
+                    modelContext.delete(existing)
+                } else {
+                    existing.clothingItemIDs = draft.itemIDs
+                }
+            } else if !draft.itemIDs.isEmpty {
+                modelContext.insert(
+                    OutfitCalendarEntry(dayKey: key, clothingItemIDs: draft.itemIDs)
+                )
+            }
         }
         try? modelContext.save()
     }

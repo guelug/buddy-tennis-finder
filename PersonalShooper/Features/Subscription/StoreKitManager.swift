@@ -1,6 +1,18 @@
 import Foundation
 import StoreKit
 
+struct StoreServerAuthorization: Sendable {
+    let appTransactionJWS: String
+    let entitlementJWS: String?
+
+    func apply(to request: inout URLRequest) {
+        request.setValue(appTransactionJWS, forHTTPHeaderField: "X-App-Transaction-JWS")
+        if let entitlementJWS {
+            request.setValue(entitlementJWS, forHTTPHeaderField: "X-Entitlement-JWS")
+        }
+    }
+}
+
 // MARK: - Subscription Tier & Product IDs
 
 enum SubscriptionTier: String, CaseIterable, Codable {
@@ -131,6 +143,7 @@ final class StoreKitManager: ObservableLike {
     private let creditsKey = "PersonalShooper.UsedCredits"
     private let resetDateKey = "PersonalShooper.CreditsResetDate"
     private let userDefaults = UserDefaults.standard
+    private var appStoreEnvironment: AppStore.Environment?
 
     // MARK: - Initialization
 
@@ -244,6 +257,7 @@ final class StoreKitManager: ObservableLike {
     // MARK: - Current Tier
 
     func getCurrentTier() async {
+        await refreshAppStoreEnvironment()
         var highestTier: SubscriptionTier = .free
 
         for await result in Transaction.currentEntitlements {
@@ -261,6 +275,16 @@ final class StoreKitManager: ObservableLike {
 
         currentTier = highestTier
         await updateRemainingCredits()
+    }
+
+    private func refreshAppStoreEnvironment() async {
+        do {
+            let result = try await AppTransaction.shared
+            appStoreEnvironment = try checkVerified(result).environment
+        } catch {
+            appStoreEnvironment = nil
+            AppLog.storeKit.debug("App transaction environment is unavailable: \(String(describing: error), privacy: .public)")
+        }
     }
 
     // MARK: - Credits Management
@@ -323,31 +347,37 @@ final class StoreKitManager: ObservableLike {
         userDefaults.set(totalUsedThisMonth, forKey: creditsKey)
     }
 
-    // MARK: - CloudKit Sync
+    // MARK: - Server Authorization
 
-    func syncCreditsWithCloudKit() async {
-        // Placeholder for CloudKit sync
-        // In production, this would use CKContainer and sync usage data
-        // For now, credits are stored locally via UserDefaults
-        await updateRemainingCredits()
-    }
+    /// Returns only StoreKit values that passed Apple's on-device verification. The backend
+    /// verifies both signatures again and derives identity and tier from Apple.
+    func serverAuthorization() async -> StoreServerAuthorization? {
+        do {
+            let appResult = try await AppTransaction.shared
+            guard case .verified = appResult else { return nil }
 
-    // MARK: - Receipt
+            var selectedEntitlement: (priority: Int, jws: String)?
+            for await result in Transaction.currentEntitlements {
+                guard case .verified(let transaction) = result,
+                      transaction.revocationDate == nil,
+                      transaction.expirationDate.map({ $0 > Date() }) ?? true else {
+                    continue
+                }
 
-    func fetchAppStoreReceipt() -> Data? {
-        guard #unavailable(iOS 18.0) else {
+                let priority = StoreProduct(rawValue: transaction.productID)?.tier?.rank ?? 0
+                if selectedEntitlement == nil || priority > selectedEntitlement!.priority {
+                    selectedEntitlement = (priority, result.jwsRepresentation)
+                }
+            }
+
+            return StoreServerAuthorization(
+                appTransactionJWS: appResult.jwsRepresentation,
+                entitlementJWS: selectedEntitlement?.jws
+            )
+        } catch {
+            AppLog.storeKit.debug("Store server authorization is unavailable: \(String(describing: error), privacy: .public)")
             return nil
         }
-
-        // iOS 7+ receipt location
-        let receiptURL = Bundle.main.appStoreReceiptURL
-
-        guard let url = receiptURL,
-              FileManager.default.fileExists(atPath: url.path) else {
-            return nil
-        }
-
-        return try? Data(contentsOf: url)
     }
 
     // MARK: - Refresh Status
@@ -418,11 +448,7 @@ final class StoreKitManager: ObservableLike {
     }
 
     private var isTestFlightBuild: Bool {
-        // TestFlight builds have a specific receipt URL pattern
-        guard let appStoreReceiptURL = Bundle.main.appStoreReceiptURL else { return false }
-        let receiptPath = appStoreReceiptURL.path
-        // Sandbox receipt indicates TestFlight or development
-        return receiptPath.contains("sandboxReceipt")
+        appStoreEnvironment == .sandbox
     }
 
     var isBYOKConfigured: Bool {

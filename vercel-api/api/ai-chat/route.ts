@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server.js';
 import crypto from 'crypto';
 import { generateStyleChat } from '../../lib/openrouter.js';
 import { generateStyleChatWithGemini } from '../../lib/gemini.js';
+import { StoreAuthorizationError, verifyStoreAuthorization } from '../../lib/apple.js';
 import {
-  assertTestSecret,
   checkAndConsumeQuota,
   normalizeTier,
   refundQuota,
@@ -12,8 +12,6 @@ import {
 type ChatPayload = {
   message?: string;
   systemPrompt?: string;
-  userId?: string;
-  tier?: string;
   model?: string;
 };
 
@@ -22,6 +20,7 @@ export async function POST(request: NextRequest) {
   let quotaUserId: string | null = null;
 
   try {
+    const authorization = await verifyStoreAuthorization(request.headers);
     const payload = (await request.json()) as ChatPayload;
     const message = payload.message?.trim();
     const systemPrompt = payload.systemPrompt?.trim();
@@ -32,28 +31,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const testMode = request.headers.get('X-Test-Mode') === 'true';
-    const testSecret = request.headers.get('X-Test-Secret');
-    const tier = testMode && assertTestSecret(testSecret)
-      ? 'testflight'
-      : normalizeTier(payload.tier || request.headers.get('X-Subscription-Tier'));
-
-    const userId = stableUserId(
-      payload.userId
-        || request.headers.get('X-User-ID')
-        || request.headers.get('X-Receipt-Data')
-        || request.headers.get('X-Forwarded-For')
-        || 'anonymous'
-    );
-    quotaUserId = userId;
-
-    if (testMode && tier !== 'testflight') {
+    if (message.length > 8_000 || systemPrompt.length > 64_000) {
       return NextResponse.json(
-        { error: 'Invalid TestFlight secret', requestId },
-        { status: 401 }
+        { error: 'Request text is too long', requestId },
+        { status: 413 }
       );
     }
+
+    const tier = normalizeTier(authorization.tier === 'lifetime' ? 'pro' : authorization.tier);
+    const userId = authorization.userId;
+    quotaUserId = userId;
 
     const quota = await checkAndConsumeQuota(userId, tier, 'chat');
     if (!quota.allowed) {
@@ -114,15 +101,14 @@ export async function POST(request: NextRequest) {
       throw error;
     }
   } catch (error) {
+    if (error instanceof StoreAuthorizationError) {
+      return NextResponse.json({ error: error.message, requestId }, { status: error.status });
+    }
     console.error('AI chat error:', { requestId, quotaUserId, error });
     const message = error instanceof Error ? error.message : 'Internal server error';
     const status = message === 'OPENROUTER_RATE_LIMIT' ? 429 : 500;
     return NextResponse.json({ error: message, requestId }, { status });
   }
-}
-
-function stableUserId(value: string): string {
-  return crypto.createHash('sha256').update(value).digest('hex').slice(0, 32);
 }
 
 function hardenSystemPrompt(systemPrompt: string): string {

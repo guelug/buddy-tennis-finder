@@ -16,6 +16,7 @@ struct ClosetItemDetailView: View {
     @State private var showOptimizeOverlay = false
     @State private var optimizeSource: UIImage?
     @State private var optimizedResult: UIImage?
+    @State private var confirmManagedImageProcessing = false
 
     /// Reactively tracks whether THIS garment has a saved AR location. Using `@Query` (instead of
     /// a one-off `modelContext.fetch` inside a computed property) makes the body re-evaluate as
@@ -226,6 +227,23 @@ struct ClosetItemDetailView: View {
             } message: {
                 Text(errorMessage ?? "")
             }
+            .alert(
+                lang == .spanish ? "Procesado externo opcional" : "Optional Cloud Processing",
+                isPresented: $confirmManagedImageProcessing
+            ) {
+                Button(lang == .spanish ? "Usar nube" : "Use Cloud") {
+                    StyleImageService.hasManagedProcessingConsent = true
+                    startOptimizeAfterConsentCheck()
+                }
+                Button(lang == .spanish ? "Solo en dispositivo" : "On Device Only") {
+                    startOptimizeAfterConsentCheck()
+                }
+                Button(lang == .spanish ? "Cancelar" : "Cancel", role: .cancel) {}
+            } message: {
+                Text(lang == .spanish
+                     ? "Si Image Playground no está disponible, la app puede enviar esta foto al servicio de IA de Personal Shooper. Puedes revocar este permiso en Privacidad."
+                     : "If Image Playground is unavailable, the app can send this photo to Personal Shooper's AI service. You can revoke this permission in Privacy.")
+            }
             .fullScreenCover(isPresented: $showOptimizeOverlay) {
                 if let optimizeSource {
                     ImageOptimizeOverlay(
@@ -288,15 +306,24 @@ struct ClosetItemDetailView: View {
     private func startOptimize() {
         guard let source = item.tryOnGarmentImage ?? item.displayImage else { return }
 
-        // Without a configured image provider the generation just echoes the source back, which would
-        // otherwise fire a fake "success". Tell the user how to enable it instead.
-        guard StyleImageService.hasImageProvider() else {
+        guard StyleImageService.hasImageProvider() || StyleImageService.shouldRequestManagedProcessingConsent else {
             errorMessage = lang == .spanish
-                ? "Para optimizar imágenes necesitas configurar tu propia clave de API en Ajustes → Clave propia (BYOK)."
-                : "To optimize images you need to add your own API key in Settings → Bring your own key (BYOK)."
+                ? "No hay ningún procesador de imagen compatible disponible en este dispositivo."
+                : "No compatible image processor is available on this device."
             return
         }
 
+        optimizeSource = source
+        if StyleImageService.shouldRequestManagedProcessingConsent {
+            confirmManagedImageProcessing = true
+            return
+        }
+
+        startOptimizeAfterConsentCheck()
+    }
+
+    private func startOptimizeAfterConsentCheck() {
+        guard let source = optimizeSource ?? item.tryOnGarmentImage ?? item.displayImage else { return }
         optimizeSource = source
         optimizedResult = nil
         isOptimizing = true

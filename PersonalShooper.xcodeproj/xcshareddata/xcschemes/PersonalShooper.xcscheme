@@ -28,7 +28,6 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
-      codeCoverageEnabled = "YES"
       onlyGenerateCoverageForSpecifiedTargets = "NO">
       <MacroExpansion>
          <BuildableReference
@@ -48,6 +47,17 @@
                BlueprintIdentifier = "EE0C31434F1EFA2F799304B6"
                BuildableName = "PersonalShooperTests.xctest"
                BlueprintName = "PersonalShooperTests"
+               ReferencedContainer = "container:PersonalShooper.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "0710A9F187FFCE47F41900AC"
+               BuildableName = "PersonalShooperUITests.xctest"
+               BlueprintName = "PersonalShooperUITests"
                ReferencedContainer = "container:PersonalShooper.xcodeproj">
             </BuildableReference>
          </TestableReference>

@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import SwiftData
 
 struct ProfileView: View {
     @Environment(AppState.self) private var appState

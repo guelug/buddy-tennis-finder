@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Non-sensitive runtime backend config. Copy to BackendConfig.plist and fill in.
+  This file IS bundled into the app. Requests authenticate with Apple-signed StoreKit 2 data.
+  Paid provider keys (OpenAI/Gemini) belong in LocalSecrets.plist, which is NOT bundled.
+-->
+<plist version="1.0">
+<dict>
+    <key>VERCEL_API_URL</key>
+    <string>https://your-project.vercel.app</string>
+</dict>
+</plist>

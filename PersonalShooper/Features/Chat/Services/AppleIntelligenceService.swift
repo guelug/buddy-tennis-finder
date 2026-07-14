@@ -11,8 +11,8 @@ import _FoundationModels_UIKit
 import _Vision_FoundationModels
 #endif
 
-#if canImport(_CoreSpotlight_FoundationModels)
-import _CoreSpotlight_FoundationModels
+#if compiler(>=6.4) && canImport(CoreSpotlight)
+import CoreSpotlight
 #endif
 
 // MARK: - AI Service Errors
@@ -355,7 +355,7 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         tools.append(BarcodeReaderTool(description: "Read barcodes or QR codes on garment tags and shopping labels when useful."))
 #endif
 
-#if canImport(_CoreSpotlight_FoundationModels)
+#if compiler(>=6.4) && canImport(CoreSpotlight)
         tools.append(SpotlightSearchTool())
 #endif
 
@@ -1162,4 +1162,3 @@ final class BasicFallbackService: AIChatServiceProtocol {
             : "You need iOS 17.2 or later to use the full style assistant."
     }
 }
-

@@ -6,6 +6,7 @@ import UIKit
 @main
 struct PersonalShooperApp: App {
     @State private var appState = AppState()
+    @State private var persistence = PersistenceController()
 
     init() {
         Self.applyPremiumNavigationAppearance()
@@ -38,39 +39,44 @@ struct PersonalShooperApp: App {
         UINavigationBar.appearance().compactAppearance = appearance
     }
 
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            User.self,
-            Conversation.self,
-            Message.self,
-            ClothingItem.self,
-            TryOnResult.self,
-            StyleProgressMission.self,
-            OutfitCalendarEntry.self,
-            ARClothingPlacement.self,
-            SavedOutfit.self,
-            ShoppingItem.self
-        ])
-        
-        do {
-            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            return try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            do {
-                return try ModelContainer(for: schema, configurations: [config])
-            } catch {
-                fatalError("Unable to create SwiftData model container: \(error.localizedDescription)")
-            }
-        }
-    }()
-    
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(appState)
-                .modelContainer(sharedModelContainer)
+            Group {
+                if let container = persistence.container {
+                    ContentView()
+                        .modelContainer(container)
+                } else {
+                    PersistenceFailureView(
+                        details: persistence.errorMessage,
+                        onRetry: persistence.load
+                    )
+                }
+            }
+            .environment(appState)
         }
+    }
+}
+
+private struct PersistenceFailureView: View {
+    let details: String?
+    let onRetry: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("No se puede abrir el armario", systemImage: "externaldrive.badge.exclamationmark")
+        } description: {
+            Text("Tus datos no se han sustituido por una sesión temporal. Cierra otras versiones de la app y vuelve a intentarlo.")
+            if let details, !details.isEmpty {
+                Text(details)
+                    .font(.caption)
+                    .textSelection(.enabled)
+            }
+        } actions: {
+            Button("Reintentar", systemImage: "arrow.clockwise", action: onRetry)
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("persistence.retry")
+        }
+        .padding()
     }
 }
 
@@ -112,9 +118,20 @@ struct ContentView: View {
         .environment(\.locale, Locale(identifier: appState.preferredLanguage.rawValue))
         .preferredColorScheme(preferredColorScheme)
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation {
-                    isReady = true
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains("-ui-reset-onboarding") {
+                hasCompletedOnboarding = false
+            } else if arguments.contains("-ui-skip-onboarding") {
+                hasCompletedOnboarding = true
+            }
+
+            if arguments.contains("-ui-testing") {
+                isReady = true
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation {
+                        isReady = true
+                    }
                 }
             }
 

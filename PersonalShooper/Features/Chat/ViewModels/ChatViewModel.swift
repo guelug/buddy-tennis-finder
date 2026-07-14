@@ -712,8 +712,8 @@ final class ChatViewModel {
 
         if appState.hasReachedClosetLimit(currentCount: currentClosetItems.count) {
             return appState.preferredLanguage == .spanish
-                ? "Has llegado al límite gratuito de \(AppState.freeClosetItemLimit) prendas en el armario. Con Premium podrás guardar todas las que quieras."
-                : "You've reached the free limit of \(AppState.freeClosetItemLimit) closet garments. Premium lets you save as many as you want."
+                ? "Has llegado al límite gratuito de \(AppState.freeClosetItemLimit) prendas en el armario. Cualquier desbloqueo amplía el límite hasta \(AppState.premiumClosetItemLimit)."
+                : "You've reached the free limit of \(AppState.freeClosetItemLimit) closet garments. Any paid unlock raises the limit to \(AppState.premiumClosetItemLimit)."
         }
 
         let classification = try? await classificationService.classifyClothing(image: compressedImage)
@@ -806,4 +806,3 @@ final class ChatViewModel {
     }
 
 }
-

@@ -59,25 +59,21 @@ final class TryOnService: ObservableObject {
 
     func generate(
         clothingImage: UIImage,
-        personImage: UIImage,
-        receiptData: Data
+        personImage: UIImage
     ) async throws -> UIImage {
         isProcessing = true
         lastError = nil
         defer { isProcessing = false }
 
-        // 1. Verify local credits. TestFlight beta builds use backend quotas, so the
-        // local StoreKit counter must not block server-side trial access.
-        let usesBackendTestQuota = AppSecrets.vercelTestSecret != nil
-        guard usesBackendTestQuota || remainingCredits > 0 else {
-            let error = TryOnError.noCredits
+        // 1. Verify Vercel API and StoreKit 2 authorization are available.
+        guard !vercelBaseURL.isEmpty else {
+            let error = TryOnError.serverError("Vercel API URL not configured")
             lastError = error
             throw error
         }
 
-        // 2. Verify Vercel API is configured
-        guard !vercelBaseURL.isEmpty else {
-            let error = TryOnError.serverError("Vercel API URL not configured")
+        guard let authorization = await storeKitManager.serverAuthorization() else {
+            let error = TryOnError.serverError("App Store authorization unavailable")
             lastError = error
             throw error
         }
@@ -108,12 +104,6 @@ final class TryOnService: ObservableObject {
         body.append(personData)
         body.append("\r\n".data(using: .utf8)!)
 
-        // receiptData
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"receiptData\"\r\n\r\n".data(using: .utf8)!)
-        body.append(receiptData.base64EncodedString().data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
-
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         // 4. Build request
@@ -121,16 +111,8 @@ final class TryOnService: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.setValue(receiptData.base64EncodedString(), forHTTPHeaderField: "X-Receipt-Data")
-        if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
-            request.setValue(vendorId, forHTTPHeaderField: "X-User-ID")
-        }
+        authorization.apply(to: &request)
         request.httpBody = body
-
-        if let testSecret = AppSecrets.vercelTestSecret {
-            request.setValue("true", forHTTPHeaderField: "X-Test-Mode")
-            request.setValue(testSecret, forHTTPHeaderField: "X-Test-Secret")
-        }
 
         // 5. Send request
         let (data, response): (Data, URLResponse)
@@ -175,10 +157,7 @@ final class TryOnService: ObservableObject {
         // 7. Update local credit count
         remainingCredits = tryOnResponse.creditsRemaining
 
-        // 8. Sync credits with CloudKit (when implemented)
-        // try await cloudKitManager.decrementCredits(by: 1)
-
-        // 9. Convert base64 to UIImage
+        // 8. Convert base64 to UIImage
         let cleanBase64 = imageUrl
             .replacingOccurrences(of: "data:image/jpeg;base64,", with: "")
             .replacingOccurrences(of: "data:image/png;base64,", with: "")
@@ -200,12 +179,6 @@ final class TryOnService: ObservableObject {
     }
 
     func refreshCredits() async {
-        if AppSecrets.vercelTestSecret != nil {
-            currentTier = .premium
-            remainingCredits = SubscriptionTier.pro.monthlyImages
-            return
-        }
-
         currentTier = storeKitManager.currentTier
         remainingCredits = storeKitManager.remainingCredits
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Lets the user manually correct the auto-detected analysis (silhouette, face shape, contrast and
 /// color season). The 2D-photo estimates are approximations, so giving the user the final say is the

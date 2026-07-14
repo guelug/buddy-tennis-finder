@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import MapKit
 
 /// One day's forecast used in the outfit calendar.
 struct DayForecast: Identifiable, Sendable {
@@ -98,9 +99,14 @@ final class OutfitWeatherService: NSObject, CLLocationManagerDelegate {
     }
 
     private func reverseGeocode(_ location: CLLocation) async {
-        let geocoder = CLGeocoder()
-        if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
-            placeName = placemark.locality ?? placemark.administrativeArea
+        if #available(iOS 26.0, *) {
+            guard let request = MKReverseGeocodingRequest(location: location),
+                  let mapItems = try? await request.mapItems,
+                  let address = mapItems.first?.address else { return }
+            placeName = address.shortAddress ?? address.fullAddress
+        } else {
+            guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else { return }
+            placeName = placemark.locality ?? placemark.subAdministrativeArea ?? placemark.name
         }
     }
 

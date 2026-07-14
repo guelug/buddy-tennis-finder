@@ -2,6 +2,12 @@ import Foundation
 import SwiftData
 import UIKit
 
+enum StorageQuotaStatus: Equatable {
+    case ok(used: Int64, total: Int64)
+    case warning(used: Int64, total: Int64)
+    case critical(used: Int64, total: Int64)
+}
+
 enum StorageBudgetManager {
     static let totalBudgetBytes: Int64 = 2_000_000_000
     private static let warningThresholdRatio: Double = 0.85

@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import PhotosUI
+import SwiftData
 
 struct PhotoUploadView: View {
     @Environment(AppState.self) private var appState

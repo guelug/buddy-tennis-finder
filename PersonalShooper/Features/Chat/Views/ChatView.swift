@@ -161,7 +161,7 @@ struct ChatView: View {
                 }
             }
         )
-        .imagePlaygroundGenerationStyle(.illustration, in: [.illustration, .sketch, .animation, .externalProvider])
+        .personalShooperImagePlaygroundStyles()
         .personalShooperImagePlaygroundOptions()
 #endif
         .onDisappear {
@@ -409,6 +409,21 @@ struct ChatView: View {
 
 #if canImport(ImagePlayground)
 private extension View {
+    @ViewBuilder
+    func personalShooperImagePlaygroundStyles() -> some View {
+        if #available(iOS 26.0, *) {
+            self.imagePlaygroundGenerationStyle(
+                .illustration,
+                in: [.illustration, .sketch, .animation, .externalProvider]
+            )
+        } else {
+            self.imagePlaygroundGenerationStyle(
+                .illustration,
+                in: [.illustration, .sketch, .animation]
+            )
+        }
+    }
+
     @ViewBuilder
     func personalShooperImagePlaygroundOptions() -> some View {
         if #available(iOS 26.4, *) {

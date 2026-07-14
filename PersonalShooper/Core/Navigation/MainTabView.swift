@@ -42,5 +42,6 @@ struct MainTabView: View {
         }
         .accentColor(.orange)
         .sensoryFeedback(.selection, trigger: selectedTab)
+        .accessibilityIdentifier("main.tabs")
     }
 }

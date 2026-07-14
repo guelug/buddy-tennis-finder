@@ -10,8 +10,35 @@ import UIKit
 @MainActor
 enum StyleImageService {
     enum Engine: String, CaseIterable { case gemini, openai }
+    enum StyleImageError: LocalizedError {
+        case noProvider
+
+        var errorDescription: String? {
+            "No compatible image processor is available."
+        }
+    }
 
     static let providerDefaultsKey = "image_provider"
+    static let managedProcessingConsentKey = "managed_image_processing_consent"
+
+    static var hasManagedProcessingConsent: Bool {
+        get { UserDefaults.standard.bool(forKey: managedProcessingConsentKey) }
+        set { UserDefaults.standard.set(newValue, forKey: managedProcessingConsentKey) }
+    }
+
+    static var shouldRequestManagedProcessingConsent: Bool {
+        geminiKey() == nil
+            && openAIKey() == nil
+            && BackendImageService.isConfigured
+            && !hasManagedProcessingConsent
+    }
+
+    static var isLocalImagePlaygroundAvailable: Bool {
+        if #available(iOS 18.4, *) {
+            return ImagePlaygroundTryOnService.isAvailable
+        }
+        return false
+    }
 
     static func geminiKey() -> String? {
         nonEmpty(KeychainHelper.load(for: "gemini_api_key")) ?? nonEmpty(AppSecrets.geminiAPIKey)
@@ -48,11 +75,13 @@ enum StyleImageService {
         geminiKey() != nil ? .gemini : .openai
     }
 
-    /// True when at least one image-capable provider key is available. When false, image
-    /// generation/editing can't run, so callers should surface a "configure a key" message instead
-    /// of silently returning the source image and pretending the operation succeeded.
+    /// Local Image Playground is always preferred. Managed processing is available only after
+    /// explicit consent.
     static func hasImageProvider() -> Bool {
-        geminiKey() != nil || openAIKey() != nil
+        geminiKey() != nil
+            || openAIKey() != nil
+            || (BackendImageService.isConfigured && hasManagedProcessingConsent)
+            || isLocalImagePlaygroundAvailable
     }
 
     static func cleanStudioReference(from person: UIImage) async throws -> UIImage {
@@ -66,22 +95,25 @@ enum StyleImageService {
     }
 
     static func marketingImage(for garment: UIImage, categoryHint: String) async throws -> UIImage {
-        // When no external key is configured, try Apple's on-device Image Playground first.
-        // It gives a stylised but clean thumbnail without network cost or privacy concerns.
-        if #available(iOS 18.4, *), !hasImageProvider(), ImagePlaygroundTryOnService.isAvailable {
+        // 1. BYOK first: if the user brought their own image key, honor it (their key, their cost).
+        if let key = geminiKey(), marketingEngine() == .gemini {
+            return try await GeminiTryOnService(apiKey: key).marketingImage(for: garment, categoryHint: categoryHint)
+        }
+        if let key = openAIKey(), marketingEngine() == .openai {
+            return try await OpenAIImageTryOnService().marketingImage(for: garment, categoryHint: categoryHint, apiKey: key)
+        }
+
+        // 2. On-device Apple Image Playground keeps the free path private and local.
+        if #available(iOS 18.4, *), ImagePlaygroundTryOnService.isAvailable {
             return try await ImagePlaygroundTryOnService().generateCleanGarmentImage(garment, categoryHint: categoryHint)
         }
 
-        // Thumbnails are a high-volume utility where SPEED matters most. Gemini's Nano Banana 2
-        // (gemini-3.1-flash-image) is far faster and cheaper than OpenAI's gpt-image-2 for this, so
-        // prefer Gemini whenever a Gemini key exists — even if try-on uses a different provider.
-        switch marketingEngine() {
-        case .gemini:
-            return try await GeminiTryOnService(apiKey: geminiKey()).marketingImage(for: garment, categoryHint: categoryHint)
-        case .openai:
-            guard let key = openAIKey() else { return garment }
-            return try await OpenAIImageTryOnService().marketingImage(for: garment, categoryHint: categoryHint, apiKey: key)
+        // 3. Managed processing is an explicit fallback for devices without Image Playground.
+        if BackendImageService.isConfigured && hasManagedProcessingConsent {
+            return try await BackendImageService.optimizeGarment(garment, categoryHint: categoryHint)
         }
+
+        throw StyleImageError.noProvider
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

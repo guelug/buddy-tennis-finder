@@ -73,7 +73,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
             }
 
-            primaryButton(isSpanish ? "Empezar" : "Get started") {
+            primaryButton(isSpanish ? "Empezar" : "Get started", accessibilityID: "onboarding.start") {
                 step = .name
             }
         }
@@ -108,8 +108,15 @@ struct OnboardingView: View {
                 .padding(.horizontal, Theme.Spacing.lg)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                 .onSubmit(advanceFromName)
+                .accessibilityLabel(isSpanish ? "Tu nombre" : "Your name")
+                .accessibilityIdentifier("onboarding.name")
 
-            primaryButton(isSpanish ? "Continuar" : "Continue", enabled: !trimmedName.isEmpty, action: advanceFromName)
+            primaryButton(
+                isSpanish ? "Continuar" : "Continue",
+                enabled: !trimmedName.isEmpty,
+                accessibilityID: "onboarding.continue",
+                action: advanceFromName
+            )
         }
         .foregroundStyle(.white)
         .onAppear {
@@ -151,7 +158,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
             }
 
-            primaryButton(isSpanish ? "Entrar" : "Enter") {
+            primaryButton(isSpanish ? "Entrar" : "Enter", accessibilityID: "onboarding.finish") {
                 onComplete(trimmedName, gender ?? .unspecified)
             }
         }
@@ -199,6 +206,7 @@ struct OnboardingView: View {
                         .overlay(RoundedRectangle(cornerRadius: Theme.CornerRadius.large).stroke(.white.opacity(0.15), lineWidth: 1))
                     }
                     .buttonStyle(.premiumPressable)
+                    .accessibilityIdentifier("onboarding.gender.\(option.rawValue)")
                 }
             }
             .padding(.top, Theme.Spacing.sm)
@@ -221,7 +229,12 @@ struct OnboardingView: View {
             .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 1))
     }
 
-    private func primaryButton(_ title: String, enabled: Bool = true, action: @escaping () -> Void) -> some View {
+    private func primaryButton(
+        _ title: String,
+        enabled: Bool = true,
+        accessibilityID: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Text(title)
                 .font(.headline)
@@ -233,6 +246,7 @@ struct OnboardingView: View {
         .buttonStyle(.premiumPressable)
         .disabled(!enabled)
         .padding(.top, Theme.Spacing.sm)
+        .accessibilityIdentifier(accessibilityID)
     }
 
     private var progressDots: some View {

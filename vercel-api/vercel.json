@@ -1,14 +1,14 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/route.ts": {
+      "includeFiles": "certs/**"
+    }
+  },
   "routes": [
     { "src": "/api/ai-chat", "dest": "/api/ai-chat/route.ts" },
     { "src": "/api/try-on", "dest": "/api/try-on/route.ts" },
-    { "src": "/api/sync-credits", "dest": "/api/sync-credits/route.ts" }
-  ],
-  "crons": [
-    {
-      "path": "/api/reset-monthly",
-      "schedule": "0 0 1 * *"
-    }
+    { "src": "/api/optimize-image", "dest": "/api/optimize-image/route.ts" },
+    { "src": "/api/delete-user", "dest": "/api/delete-user/route.ts" }
   ]
 }

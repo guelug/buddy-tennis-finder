@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 
-export type UsageFeature = 'chat' | 'try_on';
+export type UsageFeature = 'chat' | 'try_on' | 'optimize';
 export type UsageTier = 'free' | 'premium' | 'pro' | 'testflight';
 
 type WindowName = 'five_hour' | 'daily' | 'weekly' | 'monthly';
@@ -29,6 +29,10 @@ const QUOTAS: Record<UsageTier, Record<UsageFeature, FeatureQuota>> = {
       weekly: { limit: 1, windowSeconds: 7 * 24 * 60 * 60 },
       monthly: { limit: 3, windowSeconds: 30 * 24 * 60 * 60 },
     },
+    optimize: {
+      daily: { limit: 10, windowSeconds: 24 * 60 * 60 },
+      monthly: { limit: 60, windowSeconds: 30 * 24 * 60 * 60 },
+    },
   },
   premium: {
     chat: {
@@ -38,6 +42,10 @@ const QUOTAS: Record<UsageTier, Record<UsageFeature, FeatureQuota>> = {
     try_on: {
       daily: { limit: 8, windowSeconds: 24 * 60 * 60 },
       monthly: { limit: 60, windowSeconds: 30 * 24 * 60 * 60 },
+    },
+    optimize: {
+      daily: { limit: 60, windowSeconds: 24 * 60 * 60 },
+      monthly: { limit: 600, windowSeconds: 30 * 24 * 60 * 60 },
     },
   },
   pro: {
@@ -49,6 +57,10 @@ const QUOTAS: Record<UsageTier, Record<UsageFeature, FeatureQuota>> = {
       daily: { limit: 20, windowSeconds: 24 * 60 * 60 },
       monthly: { limit: 200, windowSeconds: 30 * 24 * 60 * 60 },
     },
+    optimize: {
+      daily: { limit: 120, windowSeconds: 24 * 60 * 60 },
+      monthly: { limit: 1200, windowSeconds: 30 * 24 * 60 * 60 },
+    },
   },
   testflight: {
     chat: {
@@ -58,6 +70,10 @@ const QUOTAS: Record<UsageTier, Record<UsageFeature, FeatureQuota>> = {
     try_on: {
       daily: { limit: 20, windowSeconds: 24 * 60 * 60 },
       monthly: { limit: 120, windowSeconds: 30 * 24 * 60 * 60 },
+    },
+    optimize: {
+      daily: { limit: 120, windowSeconds: 24 * 60 * 60 },
+      monthly: { limit: 1200, windowSeconds: 30 * 24 * 60 * 60 },
     },
   },
 };
@@ -84,17 +100,15 @@ export function normalizeTier(input: string | null | undefined): UsageTier {
   return 'free';
 }
 
-export function assertTestSecret(requestSecret: string | null): boolean {
-  const configured = process.env.TESTFLIGHT_API_SECRET;
-  return Boolean(configured && requestSecret && requestSecret === configured);
-}
-
 export async function checkAndConsumeQuota(
   userId: string,
   tier: UsageTier,
   feature: UsageFeature
 ): Promise<QuotaDecision> {
   if (!isKVConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('QUOTA_STORE_NOT_CONFIGURED');
+    }
     return checkAndConsumeMemoryQuota(userId, tier, feature);
   }
 
@@ -139,8 +153,32 @@ export async function checkAndConsumeQuota(
   return { allowed: true, tier, remaining };
 }
 
+export async function deleteUserQuota(userId: string): Promise<void> {
+  const prefix = `usage:${userId}:`;
+
+  if (!isKVConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('QUOTA_STORE_NOT_CONFIGURED');
+    }
+    for (const key of memoryQuota.keys()) {
+      if (key.startsWith(prefix)) {
+        memoryQuota.delete(key);
+      }
+    }
+    return;
+  }
+
+  const keys = await kv.keys(`${prefix}*`);
+  if (keys.length > 0) {
+    await kv.del(...keys);
+  }
+}
+
 export async function refundQuota(userId: string, feature: UsageFeature): Promise<void> {
   if (!isKVConfigured()) {
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
     refundMemoryQuota(userId, feature);
     return;
   }

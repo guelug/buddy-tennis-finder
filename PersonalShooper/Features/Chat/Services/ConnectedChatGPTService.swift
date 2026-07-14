@@ -61,17 +61,17 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
     }
 
     private func sendVercelMessage(_ message: String, context: ChatContext, baseURL: URL) async throws -> String {
+        guard let authorization = await StoreKitManager.shared.serverAuthorization() else {
+            throw AIError.modelNotAvailable
+        }
+
         let url = baseURL.appendingPathComponent("api/ai-chat")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 45
 
-        if let testSecret = AppSecrets.vercelTestSecret {
-            request.setValue("true", forHTTPHeaderField: "X-Test-Mode")
-            request.setValue(testSecret, forHTTPHeaderField: "X-Test-Secret")
-            request.setValue("testflight", forHTTPHeaderField: "X-Subscription-Tier")
-        }
+        authorization.apply(to: &request)
 
         if let vendorId = UIDevice.current.identifierForVendor?.uuidString {
             request.setValue(vendorId, forHTTPHeaderField: "X-User-ID")
@@ -79,8 +79,7 @@ final class ConnectedChatGPTService: AIChatServiceProtocol {
 
         let payload: [String: Any] = [
             "message": message,
-            "systemPrompt": systemPrompt(for: context),
-            "tier": AppSecrets.vercelTestSecret == nil ? "free" : "testflight"
+            "systemPrompt": systemPrompt(for: context)
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)

@@ -1,0 +1,33 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add Garment to Closet" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir prenda al armario" } } } },
+    "Add to Closet" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Añadir al armario" } } } },
+    "Ask Style Consultant" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Preguntar al asesor de estilo" } } } },
+    "Ask Stylist" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Preguntar al estilista" } } } },
+    "Closet Item" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Prenda del armario" } } } },
+    "Closet Summary" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Resumen del armario" } } } },
+    "Daily Style" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Estilo diario" } } } },
+    "Get Today's Style Recommendation" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Obtener la recomendación de estilo de hoy" } } } },
+    "Open Chat" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir chat" } } } },
+    "Open Closet" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir armario" } } } },
+    "Open Closet Item" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir prenda del armario" } } } },
+    "Open Style Profile" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir perfil de estilo" } } } },
+    "Open Try On" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir probador" } } } },
+    "Open Personal Shopper to add a new garment to your closet." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre Personal Shopper para añadir una prenda nueva a tu armario." } } } },
+    "Open the Personal Shopper closet." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre el armario de Personal Shopper." } } } },
+    "Open the Personal Shopper style chat." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre el chat de estilo de Personal Shopper." } } } },
+    "Open the Personal Shopper try-on experience." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre el probador virtual de Personal Shopper." } } } },
+    "Open your Personal Shopper style profile and palette." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Abre tu perfil de estilo y paleta de Personal Shopper." } } } },
+    "Read the latest Personal Shopper outfit recommendation based on your profile and calendar." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Consulta la última recomendación de outfit basada en tu perfil y calendario." } } } },
+    "Search" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Buscar" } } } },
+    "Search Closet" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Buscar en el armario" } } } },
+    "Search in Personal Shopper" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Buscar en Personal Shopper" } } } },
+    "Search your Personal Shopper closet and open matching garments." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Busca en tu armario de Personal Shopper y abre las prendas coincidentes." } } } },
+    "Start a Personal Shopper chat with a styling question." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Inicia un chat de Personal Shopper con una pregunta de estilo." } } } },
+    "Style Profile" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Perfil de estilo" } } } },
+    "Summarize Closet" : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Resumir armario" } } } },
+    "Summarize your Personal Shopper closet with colors, categories, favorites, underused pieces, and wardrobe gaps." : { "localizations" : { "es" : { "stringUnit" : { "state" : "translated", "value" : "Resume tu armario por colores, categorías, favoritos, prendas poco usadas y huecos." } } } }
+  },
+  "version" : "1.0"
+}

@@ -288,6 +288,10 @@ enum SharedStyleCompanionStore {
         consumeString(forKey: StyleCompanionSharedKeys.pendingClosetItemID)
     }
 
+    static func resetAllData() {
+        defaults.removePersistentDomain(forName: StyleCompanionSharedKeys.appGroupID)
+    }
+
     private static func saveTrimmed(_ value: String?, forKey key: String) {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmed, !trimmed.isEmpty {

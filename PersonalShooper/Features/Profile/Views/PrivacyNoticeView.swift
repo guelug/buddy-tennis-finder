@@ -30,13 +30,13 @@ struct PrivacyNoticeView: View {
                         NoticePoint(
                             icon: "iphone",
                             title: isSpanish ? "Procesado local" : "Processed Locally",
-                            description: isSpanish ? "Todo el análisis de fotos ocurre en tu dispositivo. Tus fotos no se suben a nuestros servidores." : "All photo analysis happens on your device. Your photos are never uploaded to our servers."
+                            description: isSpanish ? "El análisis de perfil, color y rasgos ocurre en tu dispositivo. Las fotos se guardan localmente con la protección de datos de iOS." : "Profile, color, and feature analysis happens on your device. Photos are stored locally with iOS data protection."
                         )
 
                         NoticePoint(
                             icon: "eye.slash",
-                            title: isSpanish ? "No se comparte" : "Not Shared",
-                            description: isSpanish ? "Nunca vendemos, compartimos ni transmitimos tus fotos a terceros." : "We never sell, share, or transmit your photos to third parties."
+                            title: isSpanish ? "Sin venta de datos" : "No Data Sales",
+                            description: isSpanish ? "No vendemos tus fotos ni datos personales. Las funciones externas requieren una elección explícita y puedes revocar el permiso de procesado de imágenes." : "We do not sell your photos or personal data. External features require an explicit choice, and you can revoke image-processing permission."
                         )
 
                         NoticePoint(
@@ -53,8 +53,8 @@ struct PrivacyNoticeView: View {
 
                         NoticePoint(
                             icon: "photo.on.rectangle",
-                            title: isSpanish ? "El try-on virtual usa Google" : "Virtual Try-On Uses Google",
-                            description: isSpanish ? "Solo para el try-on virtual: la foto de la prenda y las fotos de perfil necesarias como referencia se envían a Gemini de Google para generar el resultado. Google no almacena tus fotos." : "Only for Virtual Try-On: the garment photo and the profile reference photos needed for that garment are sent to Google's Gemini AI to generate the result. Your photos are not stored by Google."
+                            title: isSpanish ? "Proveedores externos opcionales" : "Optional External Providers",
+                            description: isSpanish ? "Si eliges un try-on externo o permites miniaturas en la nube, se envían las imágenes necesarias para generar el resultado. El procesado local se prioriza cuando está disponible." : "If you choose an external try-on or allow cloud thumbnails, the required images are sent to generate the result. On-device processing is preferred when available."
                         )
                     }
 

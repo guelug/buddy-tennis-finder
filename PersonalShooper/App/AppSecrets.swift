@@ -4,12 +4,11 @@ enum AppSecrets {
     private static let openAIKeyName = "OPENAI_API_KEY"
     private static let geminiKeyName = "GEMINI_API_KEY"
     private static let vercelAPIURLName = "VERCEL_API_URL"
-    private static let vercelTestSecretName = "VERCEL_TEST_SECRET"
     private static let internalBYOKTestingName = "ENABLE_BYOK_INTERNAL_TESTING"
     private static let storedOpenAIKey = "chatgpt_access_token"
 
-    private static var bundledSecrets: [String: Any] {
-        guard let url = Bundle.main.url(forResource: "LocalSecrets", withExtension: "plist"),
+    private static func plistDictionary(named name: String) -> [String: Any] {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "plist"),
               let data = try? Data(contentsOf: url),
               let object = try? PropertyListSerialization.propertyList(from: data, format: nil),
               let dictionary = object as? [String: Any] else {
@@ -17,6 +16,19 @@ enum AppSecrets {
         }
 
         return dictionary
+    }
+
+    /// Sensitive provider keys (OpenAI/Gemini). Lives in `LocalSecrets.plist`, which is NOT bundled
+    /// in release/TestFlight builds — so embedded paid keys never ship. Only present when running
+    /// from Xcode with the file alongside the sources (dev convenience).
+    private static var bundledSecrets: [String: Any] {
+        plistDictionary(named: "LocalSecrets")
+    }
+
+    /// Non-sensitive runtime backend config. Authorization uses Apple-signed StoreKit 2 JWS values;
+    /// no shared secret is bundled in the app.
+    private static var bundledConfig: [String: Any] {
+        plistDictionary(named: "BackendConfig")
     }
 
     private static func boolValue(for key: String) -> Bool {
@@ -39,12 +51,8 @@ enum AppSecrets {
     }
 
     static var vercelAPIBaseURL: URL? {
-        guard let value = stringValue(for: vercelAPIURLName) else { return nil }
+        guard let value = configValue(for: vercelAPIURLName) else { return nil }
         return URL(string: value)
-    }
-
-    static var vercelTestSecret: String? {
-        stringValue(for: vercelTestSecretName)
     }
 
     static var internalBYOKTestingEnabled: Bool {
@@ -69,6 +77,21 @@ enum AppSecrets {
 
         if let bundledValue = bundledSecrets[key] as? String {
             let trimmed = bundledValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
+        return nil
+    }
+
+    /// Runtime config lookup for non-sensitive backend settings: env → bundled config →
+    /// LocalSecrets.plist (dev).
+    private static func configValue(for key: String) -> String? {
+        if let value = stringValue(for: key) {
+            return value
+        }
+
+        if let configValue = bundledConfig[key] as? String {
+            let trimmed = configValue.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? nil : trimmed
         }
 

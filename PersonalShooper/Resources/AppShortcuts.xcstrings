@@ -1,0 +1,213 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add a garment to ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Add a garment to ${applicationName}",
+              "Add clothes to my closet in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Añade una prenda a ${applicationName}",
+              "Guarda ropa en mi armario de ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Ask ${applicationName} a style question" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Ask ${applicationName} a style question",
+              "Start style advice in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Pregunta a ${applicationName} sobre estilo",
+              "Pide consejo de estilo en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open chat in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open chat in ${applicationName}",
+              "Open my style chat in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Abre el chat de ${applicationName}",
+              "Abre mi chat de estilo en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open closet in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open closet in ${applicationName}",
+              "Show my closet in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Abre el armario de ${applicationName}",
+              "Enséñame mi armario en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open my style profile in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open my style profile in ${applicationName}",
+              "Show my palette in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Abre mi perfil de estilo en ${applicationName}",
+              "Muestra mi paleta en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open try on in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open try on in ${applicationName}",
+              "Open the fitting room in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Abre el probador de ${applicationName}",
+              "Abre el try on en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Search my closet with ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Search my closet with ${applicationName}",
+              "Find clothes in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Busca en mi armario con ${applicationName}",
+              "Encuentra ropa en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Summarize my closet with ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Summarize my closet with ${applicationName}",
+              "Analyze my wardrobe in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Resume mi armario con ${applicationName}",
+              "Analiza mi armario en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "What should I wear today with ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "What should I wear today with ${applicationName}",
+              "Ask ${applicationName} for my daily style recommendation"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "Que me recomiende ponerme hoy ${applicationName}",
+              "Dime mi look de hoy con ${applicationName}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

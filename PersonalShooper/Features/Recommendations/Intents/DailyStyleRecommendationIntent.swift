@@ -500,9 +500,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: DailyStyleRecommendationIntent(),
             phrases: [
                 "What should I wear today with \(.applicationName)",
-                "Ask \(.applicationName) for my daily style recommendation",
-                "Que me recomiende ponerme hoy \(.applicationName)",
-                "Dime mi look de hoy con \(.applicationName)"
+                "Ask \(.applicationName) for my daily style recommendation"
             ],
             shortTitle: "Daily Style",
             systemImageName: "sparkles"
@@ -511,9 +509,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: OpenChatIntent(),
             phrases: [
                 "Open chat in \(.applicationName)",
-                "Open my style chat in \(.applicationName)",
-                "Abre el chat de \(.applicationName)",
-                "Abre mi chat de estilo en \(.applicationName)"
+                "Open my style chat in \(.applicationName)"
             ],
             shortTitle: "Open Chat",
             systemImageName: "bubble.left.and.bubble.right.fill"
@@ -522,9 +518,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: OpenClosetIntent(),
             phrases: [
                 "Open closet in \(.applicationName)",
-                "Show my closet in \(.applicationName)",
-                "Abre el armario de \(.applicationName)",
-                "Enséñame mi armario en \(.applicationName)"
+                "Show my closet in \(.applicationName)"
             ],
             shortTitle: "Open Closet",
             systemImageName: "hanger"
@@ -533,9 +527,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: OpenTryOnIntent(),
             phrases: [
                 "Open try on in \(.applicationName)",
-                "Open the fitting room in \(.applicationName)",
-                "Abre el probador de \(.applicationName)",
-                "Abre el try on en \(.applicationName)"
+                "Open the fitting room in \(.applicationName)"
             ],
             shortTitle: "Open Try On",
             systemImageName: "camera.fill"
@@ -544,9 +536,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: SearchClosetIntent(),
             phrases: [
                 "Search my closet with \(.applicationName)",
-                "Find clothes in \(.applicationName)",
-                "Busca en mi armario con \(.applicationName)",
-                "Encuentra ropa en \(.applicationName)"
+                "Find clothes in \(.applicationName)"
             ],
             shortTitle: "Search Closet",
             systemImageName: "magnifyingglass"
@@ -555,9 +545,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: AddToClosetIntent(),
             phrases: [
                 "Add a garment to \(.applicationName)",
-                "Add clothes to my closet in \(.applicationName)",
-                "Añade una prenda a \(.applicationName)",
-                "Guarda ropa en mi armario de \(.applicationName)"
+                "Add clothes to my closet in \(.applicationName)"
             ],
             shortTitle: "Add to Closet",
             systemImageName: "plus.circle"
@@ -566,9 +554,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: ClosetSummaryIntent(),
             phrases: [
                 "Summarize my closet with \(.applicationName)",
-                "Analyze my wardrobe in \(.applicationName)",
-                "Resume mi armario con \(.applicationName)",
-                "Analiza mi armario en \(.applicationName)"
+                "Analyze my wardrobe in \(.applicationName)"
             ],
             shortTitle: "Closet Summary",
             systemImageName: "chart.bar.doc.horizontal"
@@ -577,9 +563,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: StartStyleConsultationIntent(),
             phrases: [
                 "Ask \(.applicationName) a style question",
-                "Start style advice in \(.applicationName)",
-                "Pregunta a \(.applicationName) sobre estilo",
-                "Pide consejo de estilo en \(.applicationName)"
+                "Start style advice in \(.applicationName)"
             ],
             shortTitle: "Ask Stylist",
             systemImageName: "sparkles.rectangle.stack"
@@ -588,9 +572,7 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
             intent: OpenProfileIntent(),
             phrases: [
                 "Open my style profile in \(.applicationName)",
-                "Show my palette in \(.applicationName)",
-                "Abre mi perfil de estilo en \(.applicationName)",
-                "Muestra mi paleta en \(.applicationName)"
+                "Show my palette in \(.applicationName)"
             ],
             shortTitle: "Style Profile",
             systemImageName: "person.text.rectangle"
@@ -599,5 +581,4 @@ struct PersonalShooperShortcuts: AppShortcutsProvider {
 
     static let shortcutTileColor: ShortcutTileColor = .orange
 }
-
 

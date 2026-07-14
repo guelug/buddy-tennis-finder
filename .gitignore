@@ -1,4 +1,5 @@
 PersonalShooper/LocalSecrets.plist
+PersonalShooper/BackendConfig.plist
 .env
 .env.*
 !.env.example

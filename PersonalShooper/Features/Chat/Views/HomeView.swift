@@ -46,43 +46,42 @@ struct HomeView: View {
         }
     }
 
-    /// Premium-only entry to the 2-week outfit planner.
-    @ViewBuilder
     private var outfitCalendarCard: some View {
-        if appState.isPremium || appState.hasBYOKAccess {
-            Button {
-                showingCalendar = true
-            } label: {
-                HStack(spacing: Theme.Spacing.md) {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.title2)
-                        .foregroundStyle(.white)
-                        .frame(width: 48, height: 48)
-                        .background(Theme.Colors.primaryGradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+        Button {
+            showingCalendar = true
+        } label: {
+            HStack(spacing: Theme.Spacing.md) {
+                Image(systemName: "calendar.badge.sparkles")
+                    .font(.title2)
+                    .foregroundStyle(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Theme.Colors.primaryGradient)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(lang == .spanish ? "Calendario de outfits" : "Outfit calendar")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text(lang == .spanish ? "Planea 15 días con el tiempo de tu zona" : "Plan 15 days with your local weather")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lang == .spanish ? "Tus 5 looks de oficina" : "Your 5 office looks")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(lang == .spanish
+                         ? "Plan semanal automático o manual, gratis"
+                         : "Free automatic or manual weekly plan")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                 }
-                .padding(Theme.Spacing.md)
-                .background(Theme.Colors.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
-                .contentShape(Rectangle())
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            .buttonStyle(.premiumPressable)
+            .padding(Theme.Spacing.md)
+            .background(Theme.Colors.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.premiumPressable)
+        .accessibilityIdentifier("home.weeklyPlanner")
     }
 
     private var heroSection: some View {
