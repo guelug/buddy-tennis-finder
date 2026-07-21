@@ -1,0 +1,406 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para MatchPoint Tennis.
+// Documentación: https://firebase.google.com/docs/firestore/security/rules
+//
+// Modelo de datos (Fase 1):
+//   users/{uid}          → datos privados del usuario autenticado
+//   players/{uid}        → perfil deportivo público (visible para otros jugadores)
+//   clubs/{clubId}       → catálogo público de clubes
+//   matches/{matchId}    → propuestas de partido (Fase 3 lo amplía con resultados)
+//
+// Despliegue:
+//   firebase deploy --only firestore:rules
+// (requiere Firebase CLI: https://firebase.google.com/docs/cli)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function hasVerifiedIdentity() {
+      return request.auth.token.email_verified == true
+        || request.auth.token.firebase.sign_in_provider in ["google.com", "apple.com"];
+    }
+
+    function hasValidPublicProfile(data, uid) {
+      return data.id == uid
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 80
+        && data.age is int
+        && data.age >= 13
+        && data.age <= 100
+        && data.gender in ["female", "male", "other"]
+        && data.clubIds is list
+        && data.clubIds.size() > 0
+        && data.clubIds.size() <= 8
+        && data.level in ["novato", "d", "c", "b", "a"]
+        && data.preferredFormats is list
+        && data.preferredFormats.size() > 0
+        && data.preferredFormats.size() <= 3
+        && data.availability is list
+        && data.availability.size() <= 7
+        && data.bio is string
+        && data.bio.size() <= 500
+        && data.languages is list
+        && data.languages.size() > 0
+        && data.languages.size() <= 8
+        && data.verified is bool
+        && data.verified == hasVerifiedIdentity()
+        && data.profileComplete == true;
+    }
+
+    // --- users: privado por uid ---
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // --- players: lectura pública (para matching/búsqueda), escritura solo por su dueño ---
+    match /players/{uid} {
+      allow read: if request.auth != null;
+      // Las métricas competitivas no son editables desde el cliente. Al crear
+      // un perfil arrancan en valores neutrales; un backend de resultados
+      // validado será quien pueda modificarlas en una fase posterior.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && hasValidPublicProfile(request.resource.data, uid)
+        && request.resource.data.rating == 3
+        && request.resource.data.responseRate == 100
+        && !("skills" in request.resource.data);
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && hasValidPublicProfile(request.resource.data, uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "name", "age", "gender", "clubIds", "city", "country",
+          "latitude", "longitude", "level", "preferredFormats",
+          "availability", "bio", "languages", "photoURL", "verified",
+          "profileComplete", "seekingTeam", "seekingTeamClubId", "updatedAt",
+          // Compatibilidad con perfiles antiguos que aún no tenían métricas.
+          "rating", "responseRate"
+        ])
+        && (
+          (!("rating" in resource.data) && request.resource.data.rating == 3)
+          || (("rating" in resource.data) && request.resource.data.rating == resource.data.rating)
+        )
+        && (
+          (!("responseRate" in resource.data) && request.resource.data.responseRate == 100)
+          || (("responseRate" in resource.data) && request.resource.data.responseRate == resource.data.responseRate)
+        );
+      // Solo el dueño puede darse de baja.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // --- clubs: catálogo público de lectura, escritura solo admin (vía console) ---
+    match /clubs/{clubId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // --- matches ---
+    // Propuestas de partido ABIERTAS: no van dirigidas a una persona concreta.
+    // - Cualquiera autenticado puede leer las propuestas abiertas (nadie las ha
+    //   aceptado) y, por supuesto, las suyas (creadas o aceptadas).
+      // - Solo el creador puede publicar; la plaza se asigna después de una
+      //   solicitud pendiente que el propio creador acepta.
+    match /matches/{matchId} {
+      // En `create` no existe `resource` todavía, validamos sobre request.resource.data.
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "fromPlayerId", "acceptedByPlayerId", "clubId", "proposedAt",
+          "startsAt", "reservationTime", "court", "status", "format",
+          "division", "acceptedLevels", "message", "createdAt"
+        ])
+        && request.resource.data.fromPlayerId == request.auth.uid
+        && request.resource.data.acceptedByPlayerId == null
+        && request.resource.data.status == "proposed"
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId.size() > 0
+        && request.resource.data.court is int
+        && request.resource.data.court >= 1
+        && request.resource.data.court <= 6
+        && request.resource.data.reservationTime is string
+        && request.resource.data.startsAt is string
+        && request.resource.data.proposedAt is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.format == "singles"
+        && request.resource.data.division in ["novato", "d", "c", "b", "a"]
+        && request.resource.data.acceptedLevels is list
+        && request.resource.data.acceptedLevels.size() > 0
+        && request.resource.data.acceptedLevels.size() <= 5
+        && request.resource.data.acceptedLevels.toSet().hasOnly(["novato", "d", "c", "b", "a"])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 280;
+
+      // Lectura: propuestas abiertas (nadie las ha aceptado) o las propias.
+      allow read: if request.auth != null
+        && (
+          (resource.data.acceptedByPlayerId == null && resource.data.status == "proposed")
+          || resource.data.fromPlayerId == request.auth.uid
+          || resource.data.acceptedByPlayerId == request.auth.uid
+        );
+
+      // Transiciones permitidas y mínimas:
+      // - creador: propuesta/aceptada → cancelada;
+      // - creador: propuesta libre → aceptada para una solicitud pendiente;
+      // - rival que aceptó: aceptada → propuesta libre.
+      // Ninguna transición puede modificar reserva, autor, nivel o mensaje.
+      allow update: if request.auth != null
+        && (request.resource.data.fromPlayerId == resource.data.fromPlayerId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["acceptedByPlayerId", "status", "updatedAt"])
+        && (
+          (
+            request.auth.uid == resource.data.fromPlayerId
+            && resource.data.status in ["proposed", "accepted"]
+            && request.resource.data.status == "declined"
+            && request.resource.data.acceptedByPlayerId == resource.data.acceptedByPlayerId
+          )
+          || (
+            request.auth.uid == resource.data.fromPlayerId
+            && resource.data.acceptedByPlayerId == null
+            && resource.data.status == "proposed"
+            && request.resource.data.status == "accepted"
+            && request.resource.data.acceptedByPlayerId is string
+            && exists(/databases/$(database)/documents/matchJoinRequests/$(matchId + "_" + request.resource.data.acceptedByPlayerId))
+            && get(/databases/$(database)/documents/matchJoinRequests/$(matchId + "_" + request.resource.data.acceptedByPlayerId)).data.status == "pending"
+          )
+          || (
+            resource.data.acceptedByPlayerId == request.auth.uid
+            && resource.data.status == "accepted"
+            && request.resource.data.acceptedByPlayerId == null
+            && request.resource.data.status in ["proposed", "declined"]
+          )
+        );
+
+      // El creador puede borrar la propuesta (la UI ofrece cancelar).
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.fromPlayerId;
+    }
+
+    match /matchJoinRequests/{requestId} {
+      allow create: if request.auth != null
+        && requestId == request.resource.data.matchId + "_" + request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          "id", "matchId", "ownerId", "requesterId", "requesterName",
+          "requesterLevel", "status", "createdAt", "createdAtServer"
+        ])
+        && request.resource.data.id == requestId
+        && request.resource.data.requesterId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.requesterName is string
+        && request.resource.data.requesterName.size() > 0
+        && request.resource.data.requesterName.size() <= 80
+        && request.resource.data.requesterLevel in ["novato", "d", "c", "b", "a"]
+        && exists(/databases/$(database)/documents/players/$(request.auth.uid))
+        && request.resource.data.requesterName
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name
+        && request.resource.data.requesterLevel
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.level
+        && (
+          !("isDemo" in get(/databases/$(database)/documents/players/$(request.auth.uid)).data)
+          || get(/databases/$(database)/documents/players/$(request.auth.uid)).data.isDemo != true
+        )
+        && request.resource.data.ownerId == get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.fromPlayerId
+        && get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.status == "proposed"
+        && get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.acceptedByPlayerId == null
+        && (
+          (
+            "acceptedLevels" in get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data
+            && request.resource.data.requesterLevel in get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.acceptedLevels
+          )
+          || (
+            !("acceptedLevels" in get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data)
+            && request.resource.data.requesterLevel == get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.division
+          )
+        );
+
+      allow read: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid || resource.data.requesterId == request.auth.uid);
+
+      allow update: if request.auth != null
+        && (
+          (
+            resource.data.ownerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "updatedAt"])
+            && resource.data.status == "pending"
+            && request.resource.data.status in ["accepted", "declined"]
+          )
+          || (
+            resource.data.requesterId == request.auth.uid
+            && resource.data.status == "declined"
+            && request.resource.data.status == "pending"
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["status", "createdAt", "createdAtServer", "updatedAt"])
+            && exists(/databases/$(database)/documents/players/$(request.auth.uid))
+            && resource.data.requesterName
+              == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name
+            && resource.data.requesterLevel
+              == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.level
+            && (
+              !("isDemo" in get(/databases/$(database)/documents/players/$(request.auth.uid)).data)
+              || get(/databases/$(database)/documents/players/$(request.auth.uid)).data.isDemo != true
+            )
+            && request.resource.data.ownerId == get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.fromPlayerId
+            && get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.status == "proposed"
+            && get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.acceptedByPlayerId == null
+            && (
+              (
+                "acceptedLevels" in get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data
+                && resource.data.requesterLevel in get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.acceptedLevels
+              )
+              || (
+                !("acceptedLevels" in get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data)
+                && resource.data.requesterLevel == get(/databases/$(database)/documents/matches/$(resource.data.matchId)).data.division
+              )
+            )
+          )
+        );
+    }
+
+    // --- Muro profesional de entrenadores ---
+    match /coachAds/{adId} {
+      // Los anuncios activos forman el muro. El propietario también puede ver
+      // su borrador mientras se procesa el pago.
+      allow read: if request.auth != null
+        && (resource.data.status == "active" || resource.data.ownerId == request.auth.uid);
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.id == adId
+        && request.resource.data.status == "pending_payment"
+        && request.resource.data.plan in ["week", "month"]
+        && request.resource.data.coachName is string
+        && request.resource.data.coachName.size() > 0
+        && request.resource.data.headline is string
+        && request.resource.data.headline.size() > 0
+        && request.resource.data.headline.size() <= 90
+        && request.resource.data.bio is string
+        && request.resource.data.bio.size() > 0
+        && request.resource.data.bio.size() <= 700
+        && request.resource.data.city is string
+        && request.resource.data.city.size() <= 80
+        && request.resource.data.clubIds is list
+        && request.resource.data.clubIds.size() <= 8
+        && request.resource.data.specialties is list
+        && request.resource.data.specialties.size() <= 8;
+
+      // El cliente nunca activa ni extiende un anuncio; eso lo hace la función
+      // de verificación de Google Play con privilegios administrativos.
+      allow update: if request.auth != null
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.activeFrom == resource.data.activeFrom
+        && request.resource.data.expiresAt == resource.data.expiresAt;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      match /private/{privateId} {
+        allow create, update: if request.auth != null
+          && privateId == "contact"
+          && getAfter(/databases/$(database)/documents/coachAds/$(adId)).data.ownerId == request.auth.uid
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.keys().hasOnly([
+            "ownerId", "phone", "whatsapp", "email", "website", "updatedAt"
+          ]);
+        allow read: if request.auth != null
+          && privateId == "contact"
+          && (
+            resource.data.ownerId == request.auth.uid
+            || exists(/databases/$(database)/documents/coachInterests/$(adId + "_" + request.auth.uid))
+          );
+      }
+    }
+
+    match /coachInterests/{interestId} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "coachAdId", "coachOwnerId", "interestedUserId",
+          "interestedName", "interestedPhotoURL", "createdAt"
+        ])
+        && request.resource.data.interestedUserId == request.auth.uid
+        && interestId == request.resource.data.coachAdId + "_" + request.auth.uid
+        && request.resource.data.coachOwnerId
+          == get(/databases/$(database)/documents/coachAds/$(request.resource.data.coachAdId)).data.ownerId
+        && get(/databases/$(database)/documents/coachAds/$(request.resource.data.coachAdId)).data.status == "active"
+        && get(/databases/$(database)/documents/coachAds/$(request.resource.data.coachAdId)).data.expiresAt > request.time
+        && request.resource.data.interestedName
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name;
+      allow read: if request.auth != null
+        && (resource.data.coachOwnerId == request.auth.uid || resource.data.interestedUserId == request.auth.uid);
+      allow update: if request.auth != null
+        && resource.data.coachOwnerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["readAt"]);
+      allow delete: if false;
+    }
+
+    // El cliente solo registra el comprobante pendiente. La verificación,
+    // activación y consumición se hacen desde Cloud Functions.
+    match /coachPurchases/{purchaseToken} {
+      allow create: if request.auth != null
+        && purchaseToken == request.resource.data.purchaseToken
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "pending_verification"
+        && request.resource.data.productId in ["coach_ad_7_days", "coach_ad_30_days"];
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /leaguePurchases/{purchaseToken} {
+      allow create: if request.auth != null
+        && purchaseToken == request.resource.data.purchaseToken
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "pending_verification"
+        && request.resource.data.productId == "private_league_create"
+        && request.resource.data.league.name is string
+        && request.resource.data.league.name.size() >= 3
+        && request.resource.data.league.name.size() <= 80
+        && request.resource.data.league.division in ["novato", "d", "c", "b", "a"]
+        && request.resource.data.league.format in ["singles", "doubles"]
+        && request.resource.data.league.maxMembers is int
+        && request.resource.data.league.maxMembers >= 2
+        && request.resource.data.league.maxMembers <= 32;
+      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // La liga es visible para usuarios autenticados que tengan el enlace. Las
+    // altas se procesan en backend para comprobar el código secreto y el cupo.
+    match /privateLeagues/{leagueId} {
+      // El enlace permite abrir una liga concreta; la colección completa no se
+      // puede enumerar. Las consultas de "mis ligas" filtran por memberIds.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null
+        && request.auth.uid in resource.data.memberIds;
+      allow create, update: if false;
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      match /private/{privateId} {
+        allow read: if request.auth != null
+          && privateId == "invite"
+          && request.auth.uid in get(/databases/$(database)/documents/privateLeagues/$(leagueId)).data.memberIds;
+        allow write: if false;
+      }
+    }
+
+    match /leagueJoinRequests/{requestId} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "leagueId", "userId", "inviteCode", "status", "createdAt"
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.leagueId is string
+        && request.resource.data.leagueId.size() > 0
+        && request.resource.data.inviteCode is string
+        && request.resource.data.inviteCode.size() == 8
+        && request.resource.data.status == "pending";
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Denegar por defecto todo lo demás.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360">
+  <defs>
+    <style>
+      @font-face {
+        font-family: "Saira Condensed";
+        src: url("../fonts/SairaCondensed-Black.ttf");
+        font-weight: 900;
+      }
+      .word { font-family: "Saira Condensed", sans-serif; font-style: italic; font-weight: 900; }
+    </style>
+  </defs>
+  <text class="word" x="28" y="205" fill="#102016" font-size="190" letter-spacing="-8">MATCH</text>
+  <text class="word" x="432" y="205" fill="#4D8F19" font-size="190" letter-spacing="-8">P</text>
+  <image href="../generated/tennis-ball-realistic.png" x="510" y="56" width="176" height="176" preserveAspectRatio="xMidYMid meet" />
+  <text class="word" x="665" y="205" fill="#4D8F19" font-size="190" letter-spacing="-8">INT</text>
+  <text class="word" x="430" y="310" fill="#4D8F19" font-size="74" letter-spacing="34">TENNIS</text>
+</svg>

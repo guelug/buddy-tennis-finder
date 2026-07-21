@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071109"/>
+      <stop offset="0.56" stop-color="#12351D"/>
+      <stop offset="1" stop-color="#071009"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#C6F135" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#C6F135" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <style>
+      @font-face { font-family: Saira; src: url('../fonts/SairaCondensed-Black.ttf'); font-weight: 900; }
+      @font-face { font-family: Saira; src: url('../fonts/SairaCondensed-SemiBold.ttf'); font-weight: 600; }
+      .heavy { font-family: Saira, sans-serif; font-weight: 900; font-style: italic; }
+      .body { font-family: Saira, sans-serif; font-weight: 600; }
+    </style>
+  </defs>
+  <rect width="1080" height="1350" fill="url(#bg)"/>
+  <circle cx="810" cy="335" r="440" fill="url(#glow)"/>
+  <g opacity=".18" fill="none" stroke="#C6F135" stroke-width="5">
+    <rect x="70" y="70" width="940" height="1210" rx="54"/>
+    <path d="M70 675h940M540 70v1210M70 280h940M70 1070h940"/>
+    <circle cx="540" cy="675" r="110"/>
+  </g>
+  <g transform="translate(112 120)" filter="url(#shadow)">
+    <text x="0" y="110" class="heavy" font-size="126" fill="#FFFFFF" letter-spacing="-5">MATCHP</text>
+    <circle cx="520" cy="69" r="57" fill="#C6F135"/>
+    <path d="M482 28c24 20 30 60 8 93M558 28c-24 20-30 60-8 93" fill="none" stroke="#0B3E24" stroke-width="8" stroke-linecap="round"/>
+    <text x="578" y="110" class="heavy" font-size="126" fill="#C6F135" letter-spacing="-5">INT</text>
+    <text x="302" y="174" class="body" font-size="38" fill="#C6F135" letter-spacing="17">TENNIS</text>
+  </g>
+  <g transform="translate(110 435)">
+    <text x="0" y="0" class="body" font-size="32" fill="#C6F135" letter-spacing="7">TU PRÓXIMO PARTIDO</text>
+    <text x="0" y="126" class="heavy" font-size="112" fill="#FFFFFF">EMPIEZA</text>
+    <text x="0" y="226" class="heavy" font-size="112" fill="#C6F135">AQUÍ.</text>
+    <text x="0" y="328" class="body" font-size="42" fill="#D9E7DC">Rivales de tu nivel.</text>
+    <text x="0" y="382" class="body" font-size="42" fill="#D9E7DC">Partidos. Ligas. Comunidad.</text>
+  </g>
+  <g transform="translate(110 1042)">
+    <rect width="860" height="150" rx="75" fill="#C6F135"/>
+    <text x="430" y="95" text-anchor="middle" class="heavy" font-size="52" fill="#082214">ÚNETE Y JUGAMOS 🎾</text>
+  </g>
+  <text x="540" y="1260" text-anchor="middle" class="body" font-size="29" fill="#A7B8AA" letter-spacing="3">MATCHPOINTCLUBS.APP</text>
+</svg>

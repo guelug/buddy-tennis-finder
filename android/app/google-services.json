@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "245934421177",
+    "project_id": "tenisbuddy-app",
+    "storage_bucket": "tenisbuddy-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245934421177:android:9ed4cdd31c04cefd475768",
+        "android_client_info": {
+          "package_name": "com.matchpoint.clubs"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "245934421177-2102k1fccue1b6d2382kprab2ts85uca.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.matchpoint.clubs",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "245934421177-dhs3fkq8d6suvr4f1i8tmn6qalr81gif.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.matchpoint.clubs",
+            "certificate_hash": "bcdeb427707740633ec6261a04e09855097ee56e"
+          }
+        },
+        {
+          "client_id": "245934421177-o281506b371adonpntc92qtuj9jvrp09.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.matchpoint.clubs",
+            "certificate_hash": "7f79bb901fd846760650923018f2984e194a67f3"
+          }
+        },
+        {
+          "client_id": "245934421177-e528cpc60jfqpnlgm413bfsu5fbhsl9f.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxm7AUxc6O9r2qX-OV7X9-xa_hL5JeZYk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "245934421177-e528cpc60jfqpnlgm413bfsu5fbhsl9f.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
