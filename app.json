@@ -19,7 +19,7 @@
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "googleServicesFile": "./ios-native/MatchPointTennis/Resources/GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
