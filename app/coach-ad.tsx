@@ -13,7 +13,9 @@ import { getPlayer } from "@/lib/firestore";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { CoachAd, CoachAdPlan, Player } from "@/types";
 
-const inputStyle = {
+// Factory en render: `colors` se muta con el tema; hornearla dejaba el input
+// oscuro en modo claro.
+const inputStyle = () => ({
   backgroundColor: colors.surfaceElevated,
   borderColor: colors.border,
   borderRadius: radii.md,
@@ -23,7 +25,7 @@ const inputStyle = {
   minHeight: 50,
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.sm
-} as const;
+} as const);
 
 export default function CoachAdScreen() {
   const { user } = useAuth();
@@ -93,18 +95,18 @@ export default function CoachAdScreen() {
               </View>
             ) : null}
             <FormSection title="Tu propuesta" icon="tennis">
-              <Field label="Titular"><TextInput value={headline} onChangeText={setHeadline} placeholder="Ej. Mejora tu tenis con sesiones a medida" placeholderTextColor={colors.textTertiary as string} maxLength={90} style={inputStyle} /></Field>
-              <Field label="Preséntate"><TextInput value={bio} onChangeText={setBio} placeholder="Experiencia, metodología y a quién ayudas…" placeholderTextColor={colors.textTertiary as string} multiline maxLength={700} style={[inputStyle, { minHeight: 130, textAlignVertical: "top" }]} /></Field>
-              <Field label="Ciudad"><TextInput value={city} onChangeText={setCity} placeholder="Ciudad" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
-              <Field label="Especialidades (separadas por comas)"><TextInput value={specialties} onChangeText={setSpecialties} placeholder="Iniciación, Técnica, Competición" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
-              <Field label="Precio o llamada a la acción (opcional)"><TextInput value={priceNote} onChangeText={setPriceNote} placeholder="Desde 25 €/hora" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
+              <Field label="Titular"><TextInput value={headline} onChangeText={setHeadline} placeholder="Ej. Mejora tu tenis con sesiones a medida" placeholderTextColor={colors.textTertiary as string} maxLength={90} style={inputStyle()} /></Field>
+              <Field label="Preséntate"><TextInput value={bio} onChangeText={setBio} placeholder="Experiencia, metodología y a quién ayudas…" placeholderTextColor={colors.textTertiary as string} multiline maxLength={700} style={[inputStyle(), { minHeight: 130, textAlignVertical: "top" }]} /></Field>
+              <Field label="Ciudad"><TextInput value={city} onChangeText={setCity} placeholder="Ciudad" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
+              <Field label="Especialidades (separadas por comas)"><TextInput value={specialties} onChangeText={setSpecialties} placeholder="Iniciación, Técnica, Competición" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
+              <Field label="Precio o llamada a la acción (opcional)"><TextInput value={priceNote} onChangeText={setPriceNote} placeholder="Desde 25 €/hora" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
             </FormSection>
 
             <FormSection title="Contacto privado" icon="user">
               <Text style={{ ...typography.footnote, color: colors.textSecondary }}>No aparece en el muro. Solo se revela después de que un jugador pulse “Estoy interesado”.</Text>
-              <Field label="Teléfono"><TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+34…" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
-              <Field label="WhatsApp"><TextInput value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholder="+34…" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
-              <Field label="Email"><TextInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="tu@email.com" placeholderTextColor={colors.textTertiary as string} style={inputStyle} /></Field>
+              <Field label="Teléfono"><TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+34…" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
+              <Field label="WhatsApp"><TextInput value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholder="+34…" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
+              <Field label="Email"><TextInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="tu@email.com" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
             </FormSection>
 
             <FormSection title="Duración" icon="calendar-clock">

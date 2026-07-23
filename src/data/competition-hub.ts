@@ -57,6 +57,18 @@ export const initialLeagues: ClubLeague[] = [
   { id: "l-a-doubles", name: "Liga A · Dobles", division: "a", format: "doubles", status: "open", participants: 0, capacity: 8, demoParticipants: 4, season: "2026 · Apertura" }
 ];
 
+/**
+ * Liga pública oficial de cada rango: la de formato individual. Siempre abierta
+ * y gratuita — cualquier jugador puede inscribirse en la de SU rango. Las ligas
+ * privadas (crear/gestionar) serán de pago más adelante.
+ */
+export function publicLeagueForDivision(division: Division): ClubLeague {
+  return (
+    initialLeagues.find((league) => league.division === division && league.format === "individual")
+    ?? initialLeagues.find((league) => league.division === division)!
+  );
+}
+
 export const tournaments: IndividualTournament[] = [
   { id: "tr-novato", name: "Open MatchPoint · Novato", division: "novato", status: "registration", entrants: 0, capacity: 16, demoEntrants: 8, round: "Inscripción abierta" },
   { id: "tr-d", name: "Open MatchPoint · D", division: "d", status: "registration", entrants: 0, capacity: 24, demoEntrants: 12, round: "Inscripción abierta" },

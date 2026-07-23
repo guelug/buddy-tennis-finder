@@ -39,6 +39,7 @@ export function Chip({
   disabled = false
 }: ChipProps) {
   const pressed = useSharedValue(0);
+  const [hovered, setHovered] = React.useState(false);
 
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(pressed.value, [0, 1], [1, 0.92]);
@@ -67,6 +68,8 @@ export function Chip({
       onPressOut={() => {
         pressed.value = withSpring(0, releaseSpring);
       }}
+      onHoverIn={Platform.OS === "web" ? () => setHovered(true) : undefined}
+      onHoverOut={Platform.OS === "web" ? () => setHovered(false) : undefined}
       disabled={disabled || (!onPress && !onLongPress)}
       accessibilityRole="button"
       accessibilityState={{ selected: active, disabled }}
@@ -77,7 +80,7 @@ export function Chip({
           flexDirection: "row",
           gap: spacing.xs,
           backgroundColor: active ? colors.court : colors.surface,
-          borderColor: active ? colors.court : colors.borderStrong,
+          borderColor: active ? colors.court : hovered && !disabled ? colors.neon : colors.borderStrong,
           borderRadius: radii.pill,
           borderWidth: 1,
           borderCurve: "continuous",
@@ -87,7 +90,10 @@ export function Chip({
           boxShadow: active
             ? "0 4px 12px -4px rgba(11,94,58,0.30), 0 1px 3px -1px rgba(11,26,18,0.06)"
             : "0 1px 2px rgba(11,26,18,0.04)"
-        }
+        },
+        Platform.OS === "web"
+          ? ({ cursor: disabled ? "default" : "pointer", transition: "border-color 0.18s ease, box-shadow 0.18s ease" } as object)
+          : undefined
       ]}
     >
       {icon ? <View>{icon}</View> : null}

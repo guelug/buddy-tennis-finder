@@ -4,13 +4,15 @@ import { Avatar } from "@/components/avatar";
 import { Chip } from "@/components/chip";
 import { Icon } from "@/components/icon";
 import { colors, radii, shadows, spacing, typography } from "@/theme";
+import { useI18n } from "@/lib/i18n";
 import type { CoachAd } from "@/types";
 
 export function CoachCard({ ad, compact = false }: { ad: CoachAd; compact?: boolean }) {
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Ver entrenador ${ad.coachName}`}
+      accessibilityLabel={t("coaches.card.a11y", { name: ad.coachName })}
       onPress={() => router.push({ pathname: "/coach/[id]", params: { id: ad.id } } as never)}
       style={({ pressed }) => ({
         backgroundColor: pressed ? colors.courtLight : colors.surface,
@@ -36,7 +38,7 @@ export function CoachCard({ ad, compact = false }: { ad: CoachAd; compact?: bool
           </View>
           <View style={{ alignItems: "center", flexDirection: "row", gap: 5 }}>
             <Icon name="map-pin" size={13} color={colors.textTertiary as string} />
-            <Text numberOfLines={1} style={{ ...typography.footnote, color: colors.textSecondary }}>{ad.city || "Entrenamiento flexible"}</Text>
+            <Text numberOfLines={1} style={{ ...typography.footnote, color: colors.textSecondary }}>{ad.city || t("coaches.card.flexible")}</Text>
           </View>
         </View>
       </View>
@@ -48,9 +50,9 @@ export function CoachCard({ ad, compact = false }: { ad: CoachAd; compact?: bool
         {ad.specialties.slice(0, 3).map((item) => <Chip key={item} label={item} />)}
       </View>
       <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ ...typography.caption, color: colors.gold }}>{ad.priceNote || "Consulta disponibilidad"}</Text>
+        <Text style={{ ...typography.caption, color: colors.gold }}>{ad.priceNote || t("coaches.card.price")}</Text>
         <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
-          <Text style={{ ...typography.caption, color: colors.neon, fontWeight: "900" }}>VER PERFIL</Text>
+          <Text style={{ ...typography.caption, color: colors.neon, fontWeight: "900" }}>{t("coaches.card.view")}</Text>
           <Icon name="chevron-right" size={15} color={colors.neon as string} />
         </View>
       </View>

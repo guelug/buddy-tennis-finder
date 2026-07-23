@@ -159,6 +159,8 @@ export type Player = {
   seekingTeam?: boolean;
   /** Centro en el que desea formar el equipo; normalmente coincide con clubIds[0]. */
   seekingTeamClubId?: string;
+  /** IDs de ligas públicas (una por rango) a las que el jugador se ha inscrito. */
+  publicLeagues?: string[];
   /** Perfil local de muestra: puede rellenar listados, pero nunca admite acciones. */
   isDemo?: boolean;
 };

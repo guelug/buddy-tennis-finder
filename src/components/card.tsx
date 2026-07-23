@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
   interpolate
 } from "react-native-reanimated";
 import { colors, radii, shadows, spacing, motion, useThemeMode } from "@/theme";
@@ -134,11 +135,14 @@ function InteractiveCard({
   onPress?: () => void;
 }) {
   const pressed = useSharedValue(0);
-  const [hovered, setHovered] = useState(false);
+  const hovered = useSharedValue(0);
+  const [hoverRaised, setHoverRaised] = useState(false);
 
   const animatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(pressed.value, [0, 1], [1, 0.98]);
-    return { transform: [{ scale }] };
+    // En web el hover levanta la card un pelín (lift sutil tipo producto).
+    const translateY = interpolate(hovered.value, [0, 1], [0, -2]);
+    return { transform: [{ translateY }, { scale }] };
   }, []);
 
   return (
@@ -150,12 +154,21 @@ function InteractiveCard({
       onPressOut={() => {
         pressed.value = withSpring(0, motion.tap);
       }}
-      onHoverIn={Platform.OS === "web" ? () => setHovered(true) : undefined}
-      onHoverOut={Platform.OS === "web" ? () => setHovered(false) : undefined}
+      onHoverIn={Platform.OS === "web" ? () => {
+        hovered.value = withTiming(1, { duration: 160 });
+        setHoverRaised(true);
+      } : undefined}
+      onHoverOut={Platform.OS === "web" ? () => {
+        hovered.value = withTiming(0, { duration: 200 });
+        setHoverRaised(false);
+      } : undefined}
       style={[
         animatedStyle,
         style,
-        Platform.OS === "web" && hovered
+        Platform.OS === "web"
+          ? ({ cursor: onPress ? "pointer" : "default", transition: "box-shadow 0.2s ease, border-color 0.2s ease" } as object)
+          : undefined,
+        Platform.OS === "web" && hoverRaised
           ? {
               boxShadow: shadows.floating,
               borderColor: colors.borderStrong

@@ -4,6 +4,14 @@ export const countries = ["Guatemala", "El Salvador", "España"] as const;
 
 export type Country = (typeof countries)[number];
 
+/**
+ * Países disponibles para SELECCIÓN en el onboarding. El lanzamiento inicial es
+ * solo Guatemala; el resto de países (`countries`) permanece en el modelo de
+ * datos para cuando abramos esos mercados. Para habilitar uno nuevo, añádelo
+ * aquí y asegúrate de que tenga ciudades en `CITIES_BY_COUNTRY` y clubes.
+ */
+export const selectableCountries = ["Guatemala"] as const satisfies readonly Country[];
+
 export const CITIES_BY_COUNTRY: Record<Country, string[]> = {
   Guatemala: ["Ciudad de Guatemala"],
   "El Salvador": ["San Salvador"],

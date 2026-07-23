@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Pressable, Text, View, type ViewStyle } from "react-native";
+import { Platform, Pressable, Text, View, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -134,6 +134,12 @@ export function PrimaryButton({
                   ? "0 6px 20px -4px rgba(245,197,66,0.5)"
                   : "0 6px 22px -4px rgba(198,241,53,0.55)"
               }
+            : {}),
+          ...(Platform.OS === "web"
+            ? ({
+                cursor: disabled ? "default" : "pointer",
+                transition: "box-shadow 0.2s ease, opacity 0.2s ease"
+              } as object)
             : {})
         },
         hoverStyle,

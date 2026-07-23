@@ -1,10 +1,12 @@
 import { Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import { TennisBall } from "@/components/tennis-ball";
+import { useI18n } from "@/lib/i18n";
 import { colors, spacing, typography } from "@/theme";
 
-/** Pantalla de carga global con pelota girando. */
+/** Global loading screen with animated tennis ball. */
 export function LoadingView() {
+  const { t } = useI18n();
   return (
     <Animated.View
       entering={FadeIn.duration(300)}
@@ -18,7 +20,7 @@ export function LoadingView() {
       }}
     >
       <TennisBall size={48} animated />
-      <Text style={{ ...typography.body, color: colors.textSecondary }}>Cargando...</Text>
+      <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("common.loading")}</Text>
     </Animated.View>
   );
 }

@@ -5,9 +5,10 @@ import type { PrivateLeague } from "@/types";
 
 export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.matchpoint.clubs";
 export const WEB_APP_URL = process.env.EXPO_PUBLIC_APP_URL || "https://tenisbuddy-app.web.app";
+export const APP_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || WEB_APP_URL;
 
 export function buildAppInviteMessage(playerName: string) {
-  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${PLAY_STORE_URL}`;
+  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${WEB_APP_URL}`;
 }
 
 export function buildLeagueInviteUrl(league: PrivateLeague) {
@@ -18,7 +19,18 @@ export async function shareAppInvite(playerName: string) {
   await Share.share({
     title: "Juega conmigo en MatchPoint Tennis",
     message: buildAppInviteMessage(playerName),
-    url: PLAY_STORE_URL
+    url: WEB_APP_URL
+  });
+}
+
+export async function shareMatchResultImage(uri: string, caption: string) {
+  if (Platform.OS === "web" || !(await Sharing.isAvailableAsync())) {
+    return Share.share({ title: "Resultado en MatchPoint Tennis", message: `${caption}\n\n${WEB_APP_URL}`, url: WEB_APP_URL });
+  }
+  await Sharing.shareAsync(uri, {
+    mimeType: "image/png",
+    dialogTitle: "Comparte tu resultado",
+    UTI: "public.png"
   });
 }
 

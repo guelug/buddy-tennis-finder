@@ -24,6 +24,7 @@ import {
   useAuth
 } from "@/lib/firebase-auth";
 import { broadcast, colors, radii, shadows, spacing, typography, useBreakpoint, useThemeMode } from "@/theme";
+import { useI18n } from "@/lib/i18n";
 
 type EmailMode = "signin" | "signup";
 
@@ -39,6 +40,7 @@ export default function LoginScreen() {
   const { height: viewportHeight } = useWindowDimensions();
   const { isDesktop } = useBreakpoint();
   const { isLight, toggleMode } = useThemeMode();
+  const { t } = useI18n();
   const [busy, setBusy] = useState<"google" | "apple" | "email" | null>(null);
 
   // --- Email + contraseña ---
@@ -87,7 +89,7 @@ export default function LoginScreen() {
         // La navegación la realiza el efecto que observa `user`, cuando
         // AuthProvider ya confirmó y persistió la sesión.
       } catch (error) {
-        Alert.alert("No pudimos iniciar sesión con Google", describeError(error));
+        Alert.alert(t("auth.error.google"), describeError(error, t("auth.error.fallback")));
       } finally {
         setBusy(null);
       }
@@ -96,10 +98,10 @@ export default function LoginScreen() {
 
     if (!isNativeGoogleAuthConfigured()) {
       Alert.alert(
-        "Google todavía no está configurado en este dispositivo",
+        t("auth.googleNotConfigured"),
         Platform.OS === "android"
-          ? "Falta registrar el OAuth Client ID de Android. Mientras tanto puedes entrar con correo y contraseña."
-          : "Falta registrar el OAuth Client ID de iOS. Mientras tanto puedes entrar con correo y contraseña."
+          ? t("auth.googleAndroidMissing")
+          : t("auth.googleIosMissing")
       );
       return;
     }
@@ -107,7 +109,7 @@ export default function LoginScreen() {
       setBusy("google");
       await signInWithGoogleNative();
     } catch (error) {
-      Alert.alert("No pudimos iniciar sesión con Google", describeError(error));
+      Alert.alert(t("auth.error.google"), describeError(error, t("auth.error.fallback")));
     } finally {
       setBusy(null);
     }
@@ -119,7 +121,7 @@ export default function LoginScreen() {
       await signInWithApple();
     } catch (error) {
       if ((error as { code?: string })?.code === "ERR_CANCELED") return;
-      Alert.alert("No pudimos iniciar sesión con Apple", describeError(error));
+      Alert.alert(t("auth.error.apple"), describeError(error, t("auth.error.fallback")));
     } finally {
       setBusy(null);
     }
@@ -131,30 +133,30 @@ export default function LoginScreen() {
     // Cooldown activo: bloqueamos antes de tocar red o Firebase.
     if (cooldownUntil && Date.now() < cooldownUntil) {
       const secondsLeft = Math.ceil((cooldownUntil - Date.now()) / 1000);
-      setEmailError(`Demasiados intentos. Espera ${secondsLeft}s y vuelve a intentar.`);
+      setEmailError(t("auth.error.tooManyAttempts", { seconds: secondsLeft }));
       return;
     }
 
     // Honeypot relleno → tráfico automatizado. No llamamos a Firebase (evita
     // gastar cuota) ni damos pistas de qué falló.
     if (honeypot.trim().length > 0) {
-      setEmailError("No pudimos procesar la solicitud. Intenta de nuevo.");
+      setEmailError(t("auth.error.request"));
       return;
     }
 
     // Formulario completado sospechosamente rápido (solo al crear cuenta).
     if (emailMode === "signup" && formOpenedAt && Date.now() - formOpenedAt < 900) {
-      setEmailError("Tómate un segundo e inténtalo de nuevo.");
+      setEmailError(t("auth.error.wait"));
       return;
     }
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
-      setEmailError("Escribe tu correo y contraseña.");
+      setEmailError(t("auth.error.credentials"));
       return;
     }
     if (emailMode === "signup" && password.length < 6) {
-      setEmailError("La contraseña debe tener al menos 6 caracteres.");
+      setEmailError(t("auth.error.passwordLength"));
       return;
     }
     try {
@@ -184,13 +186,13 @@ export default function LoginScreen() {
   async function handleForgotPassword() {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setEmailError("Escribe tu correo arriba para poder enviarte el enlace.");
+      setEmailError(t("auth.error.emailForReset"));
       return;
     }
     try {
       setBusy("email");
       await resetPassword(trimmedEmail);
-      Alert.alert("Correo enviado", `Te enviamos un enlace para restablecer tu contraseña a ${trimmedEmail}.`);
+      Alert.alert(t("auth.resetSent"), t("auth.resetSentBody", { email: trimmedEmail }));
     } catch (error) {
       setEmailError(describeAuthError(error));
     } finally {
@@ -238,12 +240,12 @@ export default function LoginScreen() {
               MATCHPOINT TENNIS
             </Text>
             <Text style={{ ...typography.footnote, color: textSecondary }}>
-              Rivales, reservas y comunidad de club
+              {t("auth.tagline")}
             </Text>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={isLight ? "Activar modo oscuro" : "Activar modo claro"}
+            accessibilityLabel={isLight ? t("common.enableDarkMode") : t("common.enableLightMode")}
             onPress={toggleMode}
             style={{
               alignItems: "center",
@@ -262,10 +264,10 @@ export default function LoginScreen() {
 
         <View style={{ gap: spacing.xs, marginBottom: spacing.lg }}>
           <Text style={{ ...typography.title, color: textPrimary, fontSize: 26 }}>
-            Inicia sesión
+            {t("auth.title")}
           </Text>
           <Text style={{ ...typography.body, color: textSecondary }}>
-            Entra para guardar tu perfil, encontrar rivales y gestionar tus reservas.
+            {t("auth.subtitle")}
           </Text>
         </View>
 
@@ -287,17 +289,17 @@ export default function LoginScreen() {
                   letterSpacing: 1.4
                 }}
               >
-                RECOMENDADO
+                {t("auth.recommended")}
               </Text>
             </View>
             <Text style={{ ...typography.footnote, color: textTertiary }}>
-              La forma más rápida de entrar
+              {t("auth.fastest")}
             </Text>
           </View>
 
           {showGoogle ? (
             <PrimaryButton
-              label={busy === "google" ? "Conectando..." : "Continuar con Google"}
+              label={busy === "google" ? t("auth.connecting") : t("auth.continueGoogle")}
               onPress={handleGoogle}
               disabled={busy !== null}
               variant="solid"
@@ -318,7 +320,7 @@ export default function LoginScreen() {
 
           {showApple ? (
             <PrimaryButton
-              label={busy === "apple" ? "Conectando..." : "Continuar con Apple"}
+              label={busy === "apple" ? t("auth.connecting") : t("auth.continueApple")}
               onPress={handleApple}
               disabled={busy !== null}
               variant="solid"
@@ -333,11 +335,11 @@ export default function LoginScreen() {
             <>
               <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm, paddingVertical: 2 }}>
                 <View style={{ backgroundColor: cardBorder, flex: 1, height: 1 }} />
-                <Text style={{ ...typography.footnote, color: textTertiary }}>o usa otra opción</Text>
+                <Text style={{ ...typography.footnote, color: textTertiary }}>{t("auth.otherOption")}</Text>
                 <View style={{ backgroundColor: cardBorder, flex: 1, height: 1 }} />
               </View>
               <PrimaryButton
-                label="Entrar con correo"
+                label={t("auth.emailEntry")}
                 onPress={() => {
                   setEmailFormOpen(true);
                   setFormOpenedAt(Date.now());
@@ -357,7 +359,7 @@ export default function LoginScreen() {
             <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
               <View style={{ backgroundColor: cardBorder, flex: 1, height: 1 }} />
               <Text style={{ ...typography.footnote, color: textTertiary }}>
-                {emailMode === "signup" ? "Crear cuenta" : "Iniciar sesión"}
+                {emailMode === "signup" ? t("auth.createAccount") : t("auth.title")}
               </Text>
               <View style={{ backgroundColor: cardBorder, flex: 1, height: 1 }} />
             </View>
@@ -382,7 +384,7 @@ export default function LoginScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="Tu nombre"
+                placeholder={t("auth.namePlaceholder")}
                 placeholderTextColor={textTertiary}
                 autoCapitalize="words"
                 style={[emailInputStyle, { borderColor: cardBorder, color: textPrimary }]}
@@ -391,7 +393,7 @@ export default function LoginScreen() {
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="Correo electrónico"
+              placeholder={t("auth.emailPlaceholder")}
               placeholderTextColor={textTertiary}
               autoCapitalize="none"
               autoCorrect={false}
@@ -402,7 +404,7 @@ export default function LoginScreen() {
             <TextInput
               value={password}
               onChangeText={setPassword}
-              placeholder="Contraseña"
+              placeholder={t("auth.passwordPlaceholder")}
               placeholderTextColor={textTertiary}
               secureTextEntry
               textContentType={emailMode === "signup" ? "newPassword" : "password"}
@@ -416,10 +418,10 @@ export default function LoginScreen() {
             <PrimaryButton
               label={
                 busy === "email"
-                  ? "Un momento..."
+                  ? t("auth.working")
                   : emailMode === "signup"
-                    ? "Crear cuenta"
-                    : "Iniciar sesión"
+                    ? t("auth.createAccount")
+                    : t("auth.title")
               }
               onPress={handleEmailSubmit}
               disabled={busy !== null}
@@ -436,13 +438,13 @@ export default function LoginScreen() {
                 disabled={busy !== null}
               >
                 <Text style={{ ...typography.footnote, color: isLight ? colors.court : colors.neon, fontWeight: "700" }}>
-                  {emailMode === "signup" ? "Ya tengo cuenta" : "Crear cuenta nueva"}
+                  {emailMode === "signup" ? t("auth.haveAccount") : t("auth.createNew")}
                 </Text>
               </Pressable>
               {emailMode === "signin" ? (
                 <Pressable onPress={handleForgotPassword} disabled={busy !== null}>
                   <Text style={{ ...typography.footnote, color: textSecondary }}>
-                    Olvidé mi contraseña
+                    {t("auth.forgotPassword")}
                   </Text>
                 </Pressable>
               ) : null}
@@ -465,7 +467,7 @@ export default function LoginScreen() {
             })}
           >
             <Text style={{ ...typography.caption, color: colors.neon }}>
-              Entrar en modo demo
+              {t("auth.demo")}
             </Text>
           </Pressable>
         ) : null}
@@ -478,7 +480,7 @@ export default function LoginScreen() {
             textAlign: "center"
           }}
         >
-          Al continuar aceptas la Política de Privacidad.{"\n"}No vendemos tus datos a terceros.
+          {t("auth.privacyConsent")}
         </Text>
       </Card>
     </Animated.View>
@@ -519,11 +521,10 @@ export default function LoginScreen() {
                     textShadowRadius: 14
                   }}
                 >
-                  Tu club.{"\n"}Tus rivales.{"\n"}
-                  <Text style={{ color: colors.neon }}>Tu momento.</Text>
+                  {t("auth.desktopTitle")}
                 </Text>
                 <Text style={{ ...typography.body, color: isLight ? "rgba(16,32,22,0.72)" : "rgba(255,255,255,0.78)", fontSize: 16, lineHeight: 24 }}>
-                  Una app para encontrar rivales, publicar reservas y construir tu comunidad de tenis. Equipos y resultados llegarán por fases.
+                  {t("auth.desktopBody")}
                 </Text>
               </View>
               <LiveBallStage label="APP" size={120} />
@@ -605,7 +606,7 @@ export default function LoginScreen() {
                 lineHeight: 18
               }}
             >
-              Encuentra rivales, arma equipos y organiza partidos.
+              {t("auth.mobileTagline")}
             </Text>
           </Animated.View>
 
@@ -615,7 +616,7 @@ export default function LoginScreen() {
           {/* Footer fino (~10%) */}
           <Pressable onPress={toggleMode} style={{ padding: spacing.sm }}>
             <Text style={{ ...typography.footnote, color: textTertiary, fontSize: 12 }}>
-              {isLight ? "Modo oscuro" : "Modo claro"} · v{appVersion}
+              {isLight ? t("common.darkMode") : t("common.lightMode")} · v{appVersion}
             </Text>
           </Pressable>
         </ScrollView>
@@ -624,9 +625,9 @@ export default function LoginScreen() {
   );
 }
 
-function describeError(error: unknown) {
+function describeError(error: unknown, fallback = "Try again in a few moments.") {
   if (error instanceof Error) return error.message;
-  return "Intenta de nuevo en unos momentos.";
+  return fallback;
 }
 
 const emailInputStyle = {

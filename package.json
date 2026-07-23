@@ -5,6 +5,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "migrate:firestore": "node scripts/migrate-firestore-model.mjs",
+    "i18n:validate": "node scripts/validate-i18n.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
@@ -38,7 +39,7 @@
     "expo-file-system": "~18.0.12",
     "expo-font": "~13.0.4",
     "expo-haptics": "~14.0.0",
-    "expo-iap": "^2.2.3",
+    "expo-iap": "^2.9.7",
     "expo-image": "~2.0.7",
     "expo-image-manipulator": "~13.0.6",
     "expo-image-picker": "~16.0.6",
@@ -59,6 +60,7 @@
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",
+    "react-native-view-shot": "~4.0.3",
     "react-native-web": "~0.19.13"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Text, View } from "react-native";
 import { router } from "expo-router";
 import Constants from "expo-constants";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
@@ -22,7 +22,7 @@ import { levelLabel } from "@/lib/matching";
 import { signOut, useAuth } from "@/lib/firebase-auth";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 import { PURCHASES_ENABLED } from "@/lib/features";
-import { subscribeToPlayer, getClubs } from "@/lib/firestore";
+import { subscribeToPlayer, getClubs, requestAndroidBetaAccess } from "@/lib/firestore";
 import { averageStars, getMatchRooms, getReviewsForPlayer } from "@/lib/match-room";
 import { getPlayerRanking } from "@/lib/competition";
 import { openInWaze } from "@/lib/waze";
@@ -105,6 +105,12 @@ function ProfileWeb() {
               <HeaderStat label={data.t("profile.stats.wins")} value={data.winRate !== null ? `${data.winRate}%` : "—"} detail={data.t("profile.stats.played").replace("{count}", String(data.playedCount))} />
             </View>
           }
+        />
+
+        <AndroidBetaBanner
+          name={player.name}
+          userId={data.user?.uid}
+          email={data.user?.email ?? null}
         />
 
         <View style={{ alignItems: "stretch", flexDirection: "row", flexWrap: "wrap", gap: spacing.lg }}>
@@ -243,6 +249,43 @@ function ProfileWeb() {
         </View>
       </WebShell>
     </LiveBackground>
+  );
+}
+
+function AndroidBetaBanner({ name, userId, email }: { name: string; userId?: string; email: string | null }) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  return (
+    <GlassPanel style={{ borderColor: `${colors.neon}66` }}>
+      <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: spacing.lg }}>
+        <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderRadius: radii.xl, height: 54, justifyContent: "center", width: 54 }}>
+          <Icon name="zap" size={25} color={colors.neon as string} />
+        </View>
+        <View style={{ flex: 1, gap: 3, minWidth: 260 }}>
+          <Text style={{ ...broadcast.jersey, color: colors.neon, fontSize: 11, letterSpacing: 1.5 }}>BETA ANDROID ABIERTA</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>MatchPoint Tennis ya está lista para probarse en Android</Text>
+          <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14 }}>Solicita acceso y te añadiremos al grupo de testers. Después podrás instalarla desde Google Play.</Text>
+        </View>
+        <View style={{ gap: spacing.sm, minWidth: 210 }}>
+          <PrimaryButton
+            label={status === "sent" ? "Petición enviada" : status === "sending" ? "Enviando..." : "Solicitar acceso a la beta"}
+            disabled={!userId || status !== "idle"}
+            fullWidth={false}
+            onPress={async () => {
+              if (!userId) return;
+              setStatus("sending");
+              try {
+                await requestAndroidBetaAccess(userId, name, email);
+                setStatus("sent");
+              } catch (error) {
+                setStatus("idle");
+                Alert.alert("No se pudo enviar", describeError(error, "Inténtalo de nuevo."));
+              }
+            }}
+          />
+          <PrimaryButton label="Ver en Google Play" variant="outline" fullWidth={false} onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.matchpoint.clubs")} />
+        </View>
+      </View>
+    </GlassPanel>
   );
 }
 
@@ -986,6 +1029,7 @@ function useProfileData() {
   }, [isCaptain, ranking, player?.verified, t]);
 
   return {
+    user,
     player,
     clubs,
     reviews,

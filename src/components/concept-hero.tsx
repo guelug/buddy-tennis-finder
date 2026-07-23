@@ -70,7 +70,7 @@ export function ConceptHero({ kicker, title, body, metrics, chips, centerLabel =
           <Text style={{ ...broadcast.jersey, color: NEON, fontSize: 12, letterSpacing: 2 }}>
             {kicker}
           </Text>
-          <Text style={{ ...broadcast.hero, color: "#FFFFFF", fontSize: 42, lineHeight: 42 }}>
+          <Text style={{ ...broadcast.hero, color: "#FFFFFF", fontSize: 40, lineHeight: 48, paddingTop: 2 }}>
             {title}
           </Text>
           <Text style={{ ...typography.body, color: "rgba(255,255,255,0.72)", maxWidth: 620 }}>

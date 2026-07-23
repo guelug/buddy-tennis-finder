@@ -180,3 +180,41 @@ test("solicitud, rechazo, reenvío y aceptación respetan identidades y niveles"
   assert.equal(acceptedRequest.data()?.status, "accepted");
   await assertFails(updateDoc(doc(requester, "matchJoinRequests", requestId), { status: "pending" }));
 });
+
+test("la autoevaluación del onboarding se acepta solo con ejes válidos", async () => {
+  const userId = "self-assessed";
+  const user = environment.authenticatedContext(userId, { email_verified: true }).firestore();
+  const skills = { consistency: 7, forehand: 8, backhand: 6, serve: 7, volley: 5 };
+
+  // Crear el perfil con autoevaluación válida (el onboarding siempre la envía).
+  await assertSucceeds(setDoc(doc(user, "players", userId), { ...player(userId, "Autoevaluado", "c"), skills }));
+
+  // Valores fuera de rango o ejes desconocidos se rechazan.
+  await assertFails(setDoc(doc(user, "players", userId), {
+    ...player(userId, "Tramposo", "c"),
+    skills: { ...skills, serve: 99 }
+  }));
+  await assertFails(setDoc(doc(user, "players", userId), {
+    ...player(userId, "Tramposo", "c"),
+    skills: { ...skills, smash: 8 }
+  }));
+
+  // Editar la autoevaluación propia más adelante también está permitido.
+  await assertSucceeds(updateDoc(doc(user, "players", userId), {
+    skills: { ...skills, volley: 6 },
+    updatedAt: serverTimestamp()
+  }));
+
+  // Las métricas competitivas siguen siendo de solo lectura para el cliente.
+  await assertFails(updateDoc(doc(user, "players", userId), { rating: 5, updatedAt: serverTimestamp() }));
+});
+
+test("las reservas admiten clubes con más de 6 canchas", async () => {
+  const ownerId = "club-grande";
+  const owner = environment.authenticatedContext(ownerId, { email_verified: true }).firestore();
+  await assertSucceeds(setDoc(doc(owner, "players", ownerId), player(ownerId, "Organizador", "c")));
+
+  await assertSucceeds(setDoc(doc(owner, "matches", "court-18"), { ...openMatch(ownerId, ["c"]), court: 18 }));
+  await assertFails(setDoc(doc(owner, "matches", "court-25"), { ...openMatch(ownerId, ["c"]), court: 25 }));
+  await assertFails(setDoc(doc(owner, "matches", "court-zero"), { ...openMatch(ownerId, ["c"]), court: 0 }));
+});

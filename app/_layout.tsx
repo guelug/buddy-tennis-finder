@@ -6,7 +6,8 @@ import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LayoutAnimationConfig } from "react-native-reanimated";
 import { AuthProvider } from "@/lib/firebase-auth";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n";
+import { detectDeviceLanguage, DICTIONARIES, FALLBACK_LANGUAGE, translate } from "@/lib/i18n-catalog";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { AuthGate } from "@/components/auth-gate";
 import { PurchaseProvider } from "@/components/purchase-provider";
@@ -32,7 +33,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ alignItems: "center", backgroundColor: colors.background, flex: 1, gap: 16, justifyContent: "center" }}>
           <ActivityIndicator color={colors.neon as string} size="large" />
-          <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: "600", letterSpacing: 0.1 }}>Abriendo MatchPoint Tennis…</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 15, fontWeight: "600", letterSpacing: 0.1 }}>
+            {translate(DICTIONARIES[detectDeviceLanguage()], DICTIONARIES[FALLBACK_LANGUAGE], "common.openingApp")}
+          </Text>
         </View>
       </GestureHandlerRootView>
     );
@@ -53,6 +56,7 @@ export default function RootLayout() {
 
 function RootLayoutContent() {
   const { isLight } = useThemeMode();
+  const { t } = useI18n();
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: isLight ? "#F6F9F3" : colors.background }}>
@@ -71,20 +75,20 @@ function RootLayoutContent() {
               }}
             >
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="login" options={{ title: "Iniciar sesión", headerShown: false }} />
+              <Stack.Screen name="login" options={{ title: t("nav.login"), headerShown: false }} />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="player/[id]" options={{ headerShown: false }} />
-              <Stack.Screen name="coaches" options={{ title: "Entrenadores" }} />
-              <Stack.Screen name="coach/[id]" options={{ title: "Perfil del entrenador" }} />
-              <Stack.Screen name="coach-ad" options={{ title: "Anunciarme", presentation: "modal" }} />
-              <Stack.Screen name="coach-interests" options={{ title: "Jugadores interesados" }} />
-              <Stack.Screen name="private-leagues" options={{ title: "Ligas privadas" }} />
-              <Stack.Screen name="private-league" options={{ title: "Liga privada" }} />
-              <Stack.Screen name="invite" options={{ title: "Invitar amigos" }} />
-              <Stack.Screen name="privacy" options={{ title: "Privacidad" }} />
-              <Stack.Screen name="terms" options={{ title: "Términos de uso" }} />
-              <Stack.Screen name="delete-account" options={{ title: "Eliminar cuenta" }} />
-              <Stack.Screen name="support" options={{ title: "Soporte" }} />
+              <Stack.Screen name="coaches" options={{ title: t("nav.coaches") }} />
+              <Stack.Screen name="coach/[id]" options={{ title: t("nav.coachProfile") }} />
+              <Stack.Screen name="coach-ad" options={{ title: t("nav.coachAd"), presentation: "modal" }} />
+              <Stack.Screen name="coach-interests" options={{ title: t("profile.coachInterests") }} />
+              <Stack.Screen name="private-leagues" options={{ title: t("profile.privateLeagues") }} />
+              <Stack.Screen name="private-league" options={{ title: t("nav.privateLeague") }} />
+              <Stack.Screen name="invite" options={{ title: t("nav.inviteFriends") }} />
+              <Stack.Screen name="privacy" options={{ title: t("profile.privacy") }} />
+              <Stack.Screen name="terms" options={{ title: t("profile.terms") }} />
+              <Stack.Screen name="delete-account" options={{ title: t("nav.deleteAccount") }} />
+              <Stack.Screen name="support" options={{ title: t("support.title") }} />
             </Stack>
           </AuthGate>
         </PurchaseProvider>

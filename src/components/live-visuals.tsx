@@ -38,7 +38,7 @@ export function LiveBackground({
   const { height: viewportHeight } = useWindowDimensions();
   const effectiveLight = light ?? isLight;
   const effectiveOverlay = effectiveLight
-    ? lightOverlay ?? Math.max(overlay ?? 0.42, 0.55)
+    ? lightOverlay ?? Math.max(overlay ?? 0.42, 0.62)
     : overlay ?? 0.58;
   const backgroundSource = effectiveLight ? (lightSource ?? liveHeroLight) : (source ?? liveHeroDark);
 

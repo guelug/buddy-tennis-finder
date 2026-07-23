@@ -3,7 +3,7 @@
     "name": "MatchPoint Tennis",
     "slug": "matchpoint-clubs",
     "scheme": "matchpoint",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -18,10 +18,15 @@
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,
-      "bundleIdentifier": "com.matchpoint.clubs"
+      "bundleIdentifier": "com.matchpoint.clubs",
+      "buildNumber": "11",
+      "googleServicesFile": "./ios-native/MatchPointTennis/Resources/GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
-      "versionCode": 9,
+      "versionCode": 11,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
@@ -79,9 +84,9 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
           }
         }
       ],

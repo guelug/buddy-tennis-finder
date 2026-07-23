@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { ActivityIndicator } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
 import * as Haptics from "expo-haptics";
 import { Icon } from "@/components/icon";
 import { PrimaryButton } from "@/components/primary-button";
+import { useI18n } from "@/lib/i18n";
 import { colors, spacing } from "@/theme";
 
 type SearchCandidatesCtaProps = {
@@ -21,7 +22,9 @@ type SearchCandidatesCtaProps = {
 
 /** CTA principal para buscar rivales — pulso dorado estilo Betguate. */
 export function SearchCandidatesCta({ loading = false, count, onPress }: SearchCandidatesCtaProps) {
+  const { t } = useI18n();
   const pulse = useSharedValue(1);
+  const glow = useSharedValue(1);
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -34,15 +37,24 @@ export function SearchCandidatesCta({ loading = false, count, onPress }: SearchC
     );
   }, [pulse]);
 
+  useEffect(() => {
+    glow.value = withTiming(loading ? 0 : 1, { duration: 220 });
+  }, [glow, loading]);
+
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: loading ? 1 : pulse.value }]
   }));
 
+  // El glow baja/sube con fade para que el estado loading no dé un salto visual.
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value
+  }));
+
   const label = loading
-    ? "Buscando rivales..."
+    ? t("rivals.cta.searching")
     : count !== undefined && count > 0
-      ? `Buscar candidatos · ${count} encontrados`
-      : "Buscar candidatos";
+      ? t("rivals.cta.found").replace("{count}", String(count))
+      : t("rivals.cta.default");
 
   return (
     <Animated.View style={pulseStyle}>
@@ -51,15 +63,23 @@ export function SearchCandidatesCta({ loading = false, count, onPress }: SearchC
         variant="solid"
         size="lg"
         disabled={loading}
-        icon={<Icon name="search" size={18} color={colors.textOnBall as string} />}
+        icon={
+          loading ? (
+            <ActivityIndicator size="small" color={colors.textOnBall as string} />
+          ) : (
+            <Icon name="search" size={18} color={colors.textOnBall as string} />
+          )
+        }
         onPress={() => {
           if (process.env.EXPO_OS === "ios") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           onPress();
         }}
       />
-      {!loading ? (
-        <View
-          style={{
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          glowStyle,
+          {
             backgroundColor: `${colors.neon}55`,
             borderRadius: 999,
             bottom: -6,
@@ -68,9 +88,9 @@ export function SearchCandidatesCta({ loading = false, count, onPress }: SearchC
             position: "absolute",
             right: spacing.xl,
             zIndex: -1
-          }}
-        />
-      ) : null}
+          }
+        ]}
+      />
     </Animated.View>
   );
 }

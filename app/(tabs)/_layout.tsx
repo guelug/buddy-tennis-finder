@@ -48,7 +48,13 @@ export default function TabsLayout() {
           headerShown: !isDesktop,
           headerShadowVisible: false,
           headerTransparent: false,
+          headerTitleAlign: "center",
           headerStatusBarHeight: isWeb ? undefined : statusBarTopInset(insets.top),
+          headerLeft: () => (
+            <View style={{ paddingLeft: spacing.xs, justifyContent: "center" }}>
+              <BrandLockup size="sm" stacked={false} light={isLight} />
+            </View>
+          ),
           headerStyle: {
             backgroundColor: colors.surface,
             minHeight: Platform.OS === "android" ? 52 + statusBarTopInset(insets.top) : undefined
@@ -71,7 +77,7 @@ export default function TabsLayout() {
           },
           headerRight: () => (
             <Pressable
-              accessibilityLabel={isLight ? "Activar modo oscuro" : "Activar modo claro"}
+              accessibilityLabel={t(isLight ? "common.darkMode" : "common.lightMode")}
               hitSlop={8}
               onPress={toggleMode}
               style={{
@@ -88,7 +94,7 @@ export default function TabsLayout() {
               }}
             >
               <Icon name={isLight ? "zap" : "globe"} size={18} color={colors.court as string} weight="bold" />
-              <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "600", marginLeft: 6 }}>{isLight ? "Oscuro" : "Claro"}</Text>
+              <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "600", marginLeft: 6 }}>{t(isLight ? "common.darkMode" : "common.lightMode")}</Text>
             </Pressable>
           ),
           tabBarActiveTintColor: colors.neon as string,
@@ -151,15 +157,20 @@ function ConceptMobileTabBar({ state, navigation }: { state: any; navigation: an
       <BlurView
         intensity={isLight ? 38 : 32}
         tint={isLight ? "systemChromeMaterialLight" : "systemChromeMaterialDark"}
+        experimentalBlurMethod={Platform.OS === "android" ? "dimezisBlurView" : undefined}
         style={{
-          backgroundColor: isLight ? "rgba(249,252,247,0.88)" : "rgba(11,16,12,0.86)",
+          backgroundColor: isLight ? "rgba(249,252,247,0.72)" : "rgba(11,16,12,0.72)",
           borderColor: colors.borderStrong,
           borderCurve: "continuous",
           borderRadius: 30,
           borderWidth: 1,
           boxShadow: shadows.floating,
           height: mobileTabBar.pillHeight,
-          overflow: "visible"
+          // `hidden` recorta el blur al radio: con `visible` iOS pintaba el
+          // efecto como un rectángulo opaco (las esquinas no se recortaban).
+          // La pelota central es un hermano fuera de este BlurView, así que
+          // no se ve afectada por el recorte.
+          overflow: "hidden"
         }}
       >
         <View
@@ -351,7 +362,7 @@ function TopNav({ compact = false }: { compact?: boolean }) {
             );
           })}
           <Pressable
-            accessibilityLabel={isLight ? "Activar modo oscuro" : "Activar modo claro"}
+            accessibilityLabel={t(isLight ? "common.darkMode" : "common.lightMode")}
             onPress={toggleMode}
             style={{
               alignItems: "center",
@@ -364,7 +375,7 @@ function TopNav({ compact = false }: { compact?: boolean }) {
             }}
           >
             <Icon name={isLight ? "zap" : "globe"} size={17} color={colors.court as string} weight="bold" />
-            <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "600", marginLeft: 6 }}>{isLight ? "Oscuro" : "Claro"}</Text>
+            <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "600", marginLeft: 6 }}>{t(isLight ? "common.darkMode" : "common.lightMode")}</Text>
           </Pressable>
         </View>
       </View>

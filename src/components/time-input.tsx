@@ -58,6 +58,9 @@ export function TimeInput({ value, onChange, placeholder = "18:00", compact, inv
       style={[
         timeInputBase,
         {
+          // Color de fondo en render: `colors` se muta según el tema, así que
+          // no puede hornearse en `timeInputBase` (quedaría oscuro en claro).
+          backgroundColor: colors.surface,
           borderColor: invalid ? colors.danger : colors.border,
           color: invalid ? colors.danger : colors.textPrimary,
           paddingHorizontal: compact ? 10 : spacing.md,
@@ -77,7 +80,6 @@ function formatTimeDisplay(value: string) {
 
 const timeInputBase = {
   ...typography.body,
-  backgroundColor: colors.surface,
   borderRadius: radii.md,
   borderWidth: 1,
   flex: 1,

@@ -20,8 +20,8 @@ import { bgRankingLive, bgRankingLiveLight, BroadcastHeader, GlassPanel, LiveBac
 import { DivisionBadge, DivisionIdentity as DivisionIdentityMark } from "@/components/division-badge";
 import { buildProvisionalRankings, DIVISION_LABELS, DIVISION_META, rankingsByDivision, TIER_META } from "@/data/rankings";
 import { currentPlayer } from "@/data/seed";
-import { initialLeagues, teamStandings, tournaments, type ClubLeague } from "@/data/competition-hub";
-import { getAllPlayers, getClubs } from "@/lib/firestore";
+import { initialLeagues, publicLeagueForDivision, teamStandings, tournaments, type ClubLeague } from "@/data/competition-hub";
+import { getAllPlayers, getClubs, getPlayer, joinPublicLeague, leavePublicLeague } from "@/lib/firestore";
 import { useAuth } from "@/lib/firebase-auth";
 import { useI18n } from "@/lib/i18n";
 import { PURCHASES_ENABLED } from "@/lib/features";
@@ -56,7 +56,7 @@ type RankingScreenProps = {
 function LigaNative({ rankings, currentPlayerId, currentLevel }: RankingScreenProps) {
   const [division, setDivision] = useState<Division>(currentLevel);
   const [mode, setMode] = useState<CompetitionMode>("individual");
-  const content = <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} />;
+  const content = <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} />;
   return (
     <LiveBackground source={bgRankingLive} lightSource={bgRankingLiveLight} overlay={0.4}>
       <ScreenShell width="base">{content}</ScreenShell>
@@ -70,7 +70,7 @@ function LigaWeb({ rankings, currentPlayerId, currentLevel }: RankingScreenProps
   return (
     <LiveBackground source={bgRankingLive} lightSource={bgRankingLiveLight} overlay={0.36}>
       <WebShell>
-        <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} />
+        <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} />
       </WebShell>
     </LiveBackground>
   );
@@ -202,7 +202,7 @@ function DivisionSelector({ division, onChange }: { division: Division; onChange
   );
 }
 
-function CompetitionSection({ mode, division, onDivisionChange }: { mode: Exclude<CompetitionMode, "individual">; division: Division; onDivisionChange: (division: Division) => void }) {
+function CompetitionSection({ mode, division, onDivisionChange, userLevel }: { mode: Exclude<CompetitionMode, "individual">; division: Division; onDivisionChange: (division: Division) => void; userLevel: Division }) {
   const { t } = useI18n();
   return (
     <View style={{ gap: spacing.lg }}>
@@ -212,6 +212,9 @@ function CompetitionSection({ mode, division, onDivisionChange }: { mode: Exclud
         subtitle={mode === "teams" ? t("ranking.teams.subtitle") : mode === "leagues" ? t("ranking.leagues.subtitle") : t("ranking.tournaments.subtitle")}
         trailing={<DivisionSelector division={division} onChange={onDivisionChange} />}
       />
+      {/* Las ligas públicas SÍ son reales: el jugador puede inscribirse en la de
+          su rango. El resto (equipos/torneos) es preview. */}
+      {mode === "leagues" ? <PublicLeaguePanel userLevel={userLevel} /> : null}
       <Card style={{ backgroundColor: colors.infoBg, borderColor: `${colors.info}44` }}>
         <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.md }}>
           <Icon name="zap" size={20} color={colors.info as string} />
@@ -223,6 +226,71 @@ function CompetitionSection({ mode, division, onDivisionChange }: { mode: Exclud
       </Card>
       {mode === "teams" ? <TeamStandings division={division} /> : mode === "leagues" ? <LeagueManager division={division} /> : <TournamentGrid division={division} />}
     </View>
+  );
+}
+
+/**
+ * Liga pública del rango del jugador: siempre abierta y gratis. La inscripción
+ * se persiste en el propio perfil (`publicLeagues`). En modo demo (sin Firebase)
+ * el estado es local para poder ver el flujo.
+ */
+function PublicLeaguePanel({ userLevel }: { userLevel: Division }) {
+  const { t } = useI18n();
+  const { user, isConfigured } = useAuth();
+  const league = publicLeagueForDivision(userLevel);
+  const [joined, setJoined] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  React.useEffect(() => {
+    let active = true;
+    if (!isConfigured || !user) return;
+    getPlayer(user.uid)
+      .then((player) => { if (active && player) setJoined(Boolean(player.publicLeagues?.includes(league.id))); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isConfigured, user, league.id]);
+
+  const toggle = async () => {
+    const next = !joined;
+    setJoined(next); // optimista
+    if (isConfigured && user) {
+      setBusy(true);
+      try {
+        if (next) await joinPublicLeague(user.uid, league.id);
+        else await leavePublicLeague(user.uid, league.id);
+      } catch {
+        setJoined(!next); // revertir si falla
+      } finally {
+        setBusy(false);
+      }
+    }
+  };
+
+  return (
+    <Card variant="premium" style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, boxShadow: shadows.courtGlow }}>
+      <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
+        <Text style={{ ...broadcast.jersey, color: colors.neon, fontSize: 12, letterSpacing: 1.6 }}>{t("ranking.publicLeague.eyebrow")}</Text>
+        <DivisionBadge division={userLevel} size={26} active />
+      </View>
+      <Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 22, marginTop: 4 }}>{league.name}</Text>
+      <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("ranking.publicLeague.body")}</Text>
+      <View style={{ marginTop: spacing.sm }}>
+        <PrimaryButton
+          label={busy ? t("ranking.publicLeague.joining") : joined ? t("ranking.publicLeague.leave") : t("ranking.publicLeague.join")}
+          variant={joined ? "outline" : "solid"}
+          onPress={toggle}
+          disabled={busy}
+          icon={joined ? <Icon name="check-badge" size={16} color={colors.court as string} /> : undefined}
+        />
+      </View>
+      {joined ? (
+        <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.xs, marginTop: spacing.xs }}>
+          <Icon name="check-badge" size={14} color={colors.neon as string} />
+          <Text style={{ ...typography.footnote, color: colors.neon, fontWeight: "800" }}>{t("ranking.publicLeague.joined")}</Text>
+        </View>
+      ) : null}
+      <Text style={{ ...typography.footnote, color: colors.textTertiary, marginTop: spacing.xs }}>{t("ranking.publicLeague.private")}</Text>
+    </Card>
   );
 }
 
@@ -338,7 +406,8 @@ function LigaContent({
   mode,
   onModeChange,
   rankings,
-  currentPlayerId
+  currentPlayerId,
+  currentLevel
 }: {
   division: Division;
   onDivisionChange: (d: Division) => void;
@@ -346,6 +415,7 @@ function LigaContent({
   onModeChange: (mode: CompetitionMode) => void;
   rankings: Record<Division, RankingEntry[]>;
   currentPlayerId: string;
+  currentLevel: Division;
 }) {
   const { isWebDesktop } = usePlatformLayout();
   const { t } = useI18n();
@@ -375,7 +445,7 @@ function LigaContent({
     return (
       <View style={{ gap: spacing.lg }}>
         {modeNav}
-        <CompetitionSection mode={mode} division={division} onDivisionChange={onDivisionChange} />
+        <CompetitionSection mode={mode} division={division} onDivisionChange={onDivisionChange} userLevel={currentLevel} />
       </View>
     );
   }

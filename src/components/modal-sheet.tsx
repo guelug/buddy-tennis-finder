@@ -2,6 +2,7 @@ import * as React from "react";
 import { BackHandler, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, mobileTabBar, radii, shadows, spacing, useBreakpoint } from "@/theme";
+import { useI18n } from "@/lib/i18n";
 
 type ModalSheetProps = {
   visible: boolean;
@@ -22,6 +23,7 @@ type ModalSheetProps = {
  */
 export function ModalSheet({ visible, onClose, children, maxWidth = 520 }: ModalSheetProps) {
   const { isWide } = useBreakpoint();
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
   React.useEffect(() => {
@@ -51,7 +53,7 @@ export function ModalSheet({ visible, onClose, children, maxWidth = 520 }: Modal
         zIndex: 1000
       }}
     >
-      <Pressable accessibilityLabel="Cerrar panel" style={{ bottom: 0, left: 0, position: "absolute", right: 0, top: 0 }} onPress={onClose} />
+      <Pressable accessibilityLabel={t("common.closePanel")} style={{ bottom: 0, left: 0, position: "absolute", right: 0, top: 0 }} onPress={onClose} />
       <View
         style={{
           backgroundColor: colors.surface,

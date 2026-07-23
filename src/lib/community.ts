@@ -350,15 +350,19 @@ export async function getPrivateLeague(id: string): Promise<PrivateLeague | null
 }
 
 export async function joinPrivateLeague(id: string, inviteCode: string): Promise<PrivateLeague> {
-  const uid = auth.currentUser?.uid;
+  const uid = isFirebaseConfigured ? auth.currentUser?.uid : null;
   if (!uid) throw new Error("Inicia sesión para unirte.");
+  // Limpiamos espacios accidentales (teclado móvil, copiar/pegar): sin este
+  // trim las reglas rechazaban la solicitud con un críptico "permission denied".
+  const code = inviteCode.trim().toUpperCase();
+  if (code.length !== 8) throw new Error("El código de invitación debe tener 8 caracteres.");
   // Cada intento usa un documento nuevo: si el usuario se equivoca de código
   // puede volver a intentarlo sin reabrir ni mutar una solicitud ya procesada.
   const requestRef = doc(collection(db, "leagueJoinRequests"));
   await setDoc(requestRef, {
     leagueId: id,
     userId: uid,
-    inviteCode: inviteCode.toUpperCase(),
+    inviteCode: code,
     status: "pending",
     createdAt: serverTimestamp()
   });

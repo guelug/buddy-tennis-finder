@@ -11,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Icon } from "@/components/icon";
 import { uploadProfilePhoto } from "@/lib/profile-photo";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, shadows, spacing, typography } from "@/theme";
 
 type UploadState = "idle" | "scanning" | "complete" | "error";
@@ -26,6 +27,7 @@ export function ProfilePhotoUploader({
   value?: string | null;
   onChange: (url: string) => void;
 }) {
+  const { t } = useI18n();
   const [preview, setPreview] = useState<string | null>(value ?? null);
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState(0);
@@ -68,7 +70,7 @@ export function ProfilePhotoUploader({
   return (
     <View style={{ alignItems: "center", gap: spacing.md }}>
       <Pressable
-        accessibilityLabel="Seleccionar foto de perfil"
+        accessibilityLabel={t("onboarding.photo.a11y")}
         disabled={state === "scanning"}
         onPress={choosePhoto}
         style={{
@@ -86,7 +88,7 @@ export function ProfilePhotoUploader({
         ) : (
           <View style={{ alignItems: "center", backgroundColor: colors.surfaceCourt, flex: 1, gap: spacing.sm, justifyContent: "center" }}>
             <Icon name="user" size={42} color={colors.neon as string} />
-            <Text style={{ ...typography.caption, color: colors.textSecondary }}>Añade tu foto</Text>
+            <Text style={{ ...typography.caption, color: colors.textSecondary }}>{t("onboarding.photo.add")}</Text>
           </View>
         )}
 
@@ -109,7 +111,7 @@ export function ProfilePhotoUploader({
             />
             <View style={{ alignItems: "center", bottom: 0, justifyContent: "center", left: 0, position: "absolute", right: 0, top: 0 }}>
               <View style={{ backgroundColor: "rgba(4,12,7,0.82)", borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}>
-                <Text style={{ ...typography.caption, color: colors.neon }}>ESCANEANDO · {Math.round(progress * 100)}%</Text>
+                <Text style={{ ...typography.caption, color: colors.neon }}>{t("onboarding.photo.scanning", { percent: Math.round(progress * 100) })}</Text>
               </View>
             </View>
           </>
@@ -124,10 +126,14 @@ export function ProfilePhotoUploader({
 
       <View style={{ alignItems: "center", gap: 3 }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>
-          {state === "scanning" ? "Optimizando tu perfil" : state === "complete" ? "Foto lista" : `Foto de ${name || "jugador"}`}
+          {state === "scanning"
+            ? t("onboarding.photo.optimizing")
+            : state === "complete"
+              ? t("onboarding.photo.ready")
+              : t("onboarding.photo.label", { name: name || t("onboarding.photo.playerFallback") })}
         </Text>
         <Text style={{ ...typography.footnote, color: state === "error" ? colors.danger : colors.textSecondary, textAlign: "center" }}>
-          {state === "error" ? "No pudimos subirla. Toca para reintentar." : "Toca la imagen para cambiarla · JPG o PNG"}
+          {state === "error" ? t("onboarding.photo.error") : t("onboarding.photo.hint")}
         </Text>
       </View>
     </View>

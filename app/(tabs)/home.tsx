@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, ImageBackground, Pressable, Text, View } from "react-native";
+import { Image, ImageBackground, Platform, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Animated, { FadeIn, FadeInUp } from "react-native-reanimated";
@@ -170,10 +170,19 @@ export default function HomeScreen() {
 
 function HomeHeader({ player, intro, isDesktop, isLight, toggleMode }: { player: Player | null; intro: string; isDesktop: boolean; isLight: boolean; toggleMode: () => void }) {
   const { t } = useI18n();
-  const modeButton = <Pressable onPress={toggleMode} style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: colors.borderStrong, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}><Icon name={isLight ? "zap" : "globe"} size={16} color={colors.neon as string} /><Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "800" }}>{isLight ? t("settings.theme.dark") : t("settings.theme.light")}</Text></Pressable>;
   const greeting = t(greetingKeyForCurrentTime());
-  if (!isDesktop) return <View style={{ gap: spacing.md, paddingTop: spacing.sm }}><View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}><BrandLockup size="md" light={isLight} />{modeButton}</View><Animated.View entering={FadeInUp.springify().damping(20)} style={{ gap: spacing.xs }}><Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 27 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text><Text style={{ ...typography.body, color: colors.textSecondary }}>{intro}</Text></Animated.View></View>;
-  return <View style={{ alignItems: "flex-end", flexDirection: "row", gap: spacing.lg, justifyContent: "space-between", paddingTop: spacing.lg }}><BrandLockup size="lg" light={isLight} /><Animated.View entering={FadeInUp.springify().damping(20)} style={{ alignItems: "flex-end", flex: 1, gap: spacing.xs, maxWidth: 620 }}><Text style={{ ...broadcast.hero, color: colors.textPrimary, fontSize: 38, lineHeight: 40 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text><Text style={{ ...typography.body, color: colors.textSecondary, textAlign: "right" }}>{intro}</Text></Animated.View>{modeButton}</View>;
+  if (!isDesktop) {
+    const modeButton = <Pressable onPress={toggleMode} style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: colors.borderStrong, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}><Icon name={isLight ? "zap" : "globe"} size={16} color={colors.neon as string} /><Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "800" }}>{isLight ? t("settings.theme.dark") : t("settings.theme.light")}</Text></Pressable>;
+    return <View style={{ gap: spacing.md, paddingTop: spacing.sm }}><View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}><BrandLockup size="md" light={isLight} />{modeButton}</View><Animated.View entering={FadeInUp.springify().damping(20)} style={{ gap: spacing.xs }}><Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 27 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text><Text style={{ ...typography.body, color: colors.textSecondary }}>{intro}</Text></Animated.View></View>;
+  }
+  // Desktop: el TopNav ya muestra el BrandLockup y el toggle de tema — aquí solo el saludo.
+  return (
+    <Animated.View entering={FadeInUp.springify().damping(20)} style={{ gap: spacing.xs, maxWidth: 720, paddingTop: spacing.lg }}>
+      <Text style={{ ...broadcast.jersey, color: colors.neon, letterSpacing: 2 }}>{t("tabs.home").toUpperCase()}</Text>
+      <Text style={{ ...broadcast.hero, color: colors.textPrimary, fontSize: 38, lineHeight: 40 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text>
+      <Text style={{ ...typography.body, color: colors.textSecondary }}>{intro}</Text>
+    </Animated.View>
+  );
 }
 
 function greetingKeyForCurrentTime() {
@@ -339,8 +348,18 @@ function NextMatchCard({ proposal, club, player, desktop = false }: { proposal?:
 }
 
 function SectionTitle({ title, subtitle, trailing }: { title: string; subtitle: string; trailing?: string }) { return <View style={{ gap: 2, marginTop: spacing.sm }}><View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}><Text style={{ ...typography.headline, color: colors.textPrimary }}>{title}</Text>{trailing ? <Text style={{ ...typography.footnote, color: colors.gold }}>{trailing}</Text> : null}</View><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{subtitle}</Text></View>; }
-function StoryCard({ tag, title, body, image, desktop }: { tag: string; title: string; body: string; index: number; image: number; desktop: boolean }) { return <Card variant="interactive" style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: .82 }} style={{ height: desktop ? 280 : 150, justifyContent: "flex-end" }}><View style={{ backgroundColor: "rgba(3,8,5,.76)", gap: desktop ? spacing.sm : 3, padding: desktop ? spacing.xl : spacing.md }}><View style={{ alignSelf: "flex-start", backgroundColor: colors.neon, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 }}><Text style={{ ...typography.footnote, color: colors.textOnBall, fontWeight: "900" }}>{tag}</Text></View><Text style={{ ...typography.subheadline, color: "#fff", fontSize: desktop ? 22 : 17 }}>{title}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.72)", fontSize: desktop ? 14 : 12 }} numberOfLines={2}>{body}</Text></View></ImageBackground></Card>; }
-function CommerceCard({ name, detail, priceLabel, image, desktop }: { name: string; detail: string; priceLabel: string; image: number; desktop: boolean }) { return <Card style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: .78 }} style={{ height: desktop ? 190 : 112, justifyContent: "flex-end" }}><View style={{ backgroundColor: "rgba(3,8,5,.78)", padding: desktop ? spacing.lg : spacing.sm }}><Text style={{ ...typography.caption, color: "#fff", fontSize: desktop ? 18 : 13 }}>{name}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.68)", fontSize: desktop ? 14 : 12 }}>{detail}</Text><Text style={{ ...typography.footnote, color: colors.neon, fontWeight: "800", marginTop: 3 }}>{priceLabel}</Text></View></ImageBackground></Card>; }
+function StoryCard({ tag, title, body, image, desktop }: { tag: string; title: string; body: string; index: number; image: number; desktop: boolean }) {
+  const { isLight } = useThemeMode();
+  // En claro la imagen se lava sobre la card blanca: el scrim necesita más
+  // fuerza para que el texto blanco siga siendo legible.
+  const scrim = isLight ? "rgba(3,8,5,.84)" : "rgba(3,8,5,.76)";
+  return <Card variant="interactive" style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: isLight ? .92 : .82 }} style={{ height: desktop ? 280 : 150, justifyContent: "flex-end" }}><View style={{ backgroundColor: scrim, gap: desktop ? spacing.sm : 3, padding: desktop ? spacing.xl : spacing.md }}><View style={{ alignSelf: "flex-start", backgroundColor: colors.neon, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 }}><Text style={{ ...typography.footnote, color: colors.textOnBall, fontWeight: "900" }}>{tag}</Text></View><Text style={{ ...typography.subheadline, color: "#fff", fontSize: desktop ? 22 : 17 }}>{title}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.78)", fontSize: desktop ? 14 : 12 }} numberOfLines={2}>{body}</Text></View></ImageBackground></Card>;
+}
+function CommerceCard({ name, detail, priceLabel, image, desktop }: { name: string; detail: string; priceLabel: string; image: number; desktop: boolean }) {
+  const { isLight } = useThemeMode();
+  const scrim = isLight ? "rgba(3,8,5,.86)" : "rgba(3,8,5,.78)";
+  return <Card style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: isLight ? .92 : .78 }} style={{ height: desktop ? 190 : 112, justifyContent: "flex-end" }}><View style={{ backgroundColor: scrim, padding: desktop ? spacing.lg : spacing.sm }}><Text style={{ ...typography.caption, color: "#fff", fontSize: desktop ? 18 : 13 }}>{name}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.74)", fontSize: desktop ? 14 : 12 }}>{detail}</Text><Text style={{ ...typography.footnote, color: isLight ? "#DBFF63" : colors.neon, fontWeight: "800", marginTop: 3 }}>{priceLabel}</Text></View></ImageBackground></Card>;
+}
 function QuickAction({
   imageDark,
   imageLight,
@@ -357,28 +376,43 @@ function QuickAction({
   onPress: () => void;
 }) {
   const { isLight } = useThemeMode();
+  const [hovered, setHovered] = useState(false);
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: desktop ? "flex-start" : "center",
-        backgroundColor: pressed
-          ? colors.courtLight
-          : isLight
-            ? "rgba(255,255,255,0.92)"
-            : "rgba(15,23,17,.88)",
-        borderColor: isLight ? "rgba(55,91,42,0.16)" : colors.borderStrong,
-        borderRadius: radii.lg,
-        borderWidth: 1,
-        boxShadow: desktop ? (isLight ? "0 12px 32px rgba(36,62,43,.09)" : shadows.card) : shadows.subtle,
-        flex: 1,
-        gap: spacing.sm,
-        minHeight: desktop ? 160 : 100,
-        minWidth: 100,
-        justifyContent: "center",
-        overflow: "hidden",
-        padding: desktop ? spacing.xl : spacing.sm
-      })}
+      onHoverIn={Platform.OS === "web" ? () => setHovered(true) : undefined}
+      onHoverOut={Platform.OS === "web" ? () => setHovered(false) : undefined}
+      style={({ pressed }) => [
+        {
+          alignItems: desktop ? "flex-start" : "center",
+          backgroundColor: pressed
+            ? colors.courtLight
+            : isLight
+              ? "rgba(255,255,255,0.92)"
+              : "rgba(15,23,17,.88)",
+          borderColor: isLight ? "rgba(55,91,42,0.16)" : colors.borderStrong,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          boxShadow: desktop ? (isLight ? "0 12px 32px rgba(36,62,43,.09)" : shadows.card) : shadows.subtle,
+          flex: 1,
+          gap: spacing.sm,
+          minHeight: desktop ? 160 : 100,
+          minWidth: 100,
+          justifyContent: "center",
+          overflow: "hidden",
+          padding: desktop ? spacing.xl : spacing.sm
+        },
+        Platform.OS === "web"
+          ? ({ cursor: "pointer", transition: "box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease" } as object)
+          : undefined,
+        Platform.OS === "web" && hovered
+          ? {
+              borderColor: isLight ? "rgba(55,91,42,0.32)" : `${colors.neon}44`,
+              boxShadow: isLight ? "0 18px 40px rgba(36,62,43,.14)" : shadows.floating,
+              transform: [{ translateY: -2 }]
+            }
+          : undefined
+      ]}
     >
       <Image
         source={isLight ? imageLight : imageDark}

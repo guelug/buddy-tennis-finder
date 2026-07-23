@@ -377,6 +377,7 @@ function CardActionBar({
 
 /** Anillo de compatibilidad estilo concepto ("86%"). */
 function MatchScoreBadge({ score, compact = false }: { score: number; compact?: boolean }) {
+  const { isLight } = useThemeMode();
   const pct = compatibilityPct(score);
 
   if (compact) {
@@ -395,12 +396,14 @@ function MatchScoreBadge({ score, compact = false }: { score: number; compact?: 
     );
   }
 
+  // En claro el neón es verde oscuro: sobre disco negro no contrasta, así que
+  // el disco pasa a blanco con borde neón (misma lectura "broadcast LED").
   return (
     <Animated.View
       entering={FadeIn.delay(200).springify()}
       style={{
         alignItems: "center",
-        backgroundColor: "rgba(8,19,10,0.85)",
+        backgroundColor: isLight ? "#FFFFFF" : "rgba(8,19,10,0.85)",
         borderColor: colors.neon,
         borderRadius: 999,
         borderWidth: 3,

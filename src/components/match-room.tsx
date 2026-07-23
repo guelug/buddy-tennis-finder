@@ -12,6 +12,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import ViewShot, { captureRef } from "react-native-view-shot";
 import { Avatar } from "@/components/avatar";
 import { BallDrop } from "@/components/ball-bounce";
 import { Card } from "@/components/card";
@@ -26,6 +27,7 @@ import {
   submitReview,
   validateResult
 } from "@/lib/match-room";
+import { shareMatchResultImage } from "@/lib/share";
 import { broadcast, colors, radii, shadows, spacing, typography } from "@/theme";
 import { MatchRoom, MatchRoomStatus, PlayerSkills, SetScore, TeamSide } from "@/types";
 
@@ -255,6 +257,39 @@ function FaceOff({ room }: { room: MatchRoom }) {
         <Text style={{ ...broadcast.rank, color: colors.textTertiary, fontSize: 26 }}>VS</Text>
       </View>
       <TeamColumn room={room} side="B" highlight={winner === "B"} />
+    </View>
+  );
+}
+
+function ResultShareCard({ room, clubName }: { room: MatchRoom; clubName?: string }) {
+  const winner = room.result?.winner;
+  const winnerNames = winner === "A" ? room.teamA.playerNames : room.teamB.playerNames;
+  const score = room.result?.sets.map((set) => `${set.a}–${set.b}`).join("  ") ?? "";
+  return (
+    <View collapsable={false} style={{ aspectRatio: 4 / 5, backgroundColor: "#071B12", borderRadius: radii.xl, overflow: "hidden", padding: 24, width: "100%" }}>
+      <View style={{ backgroundColor: "#C6F13522", borderRadius: 999, height: 260, position: "absolute", right: -100, top: -80, width: 260 }} />
+      <View style={{ borderColor: "#C6F13533", borderRadius: 999, borderWidth: 2, bottom: -150, height: 360, left: -130, position: "absolute", width: 360 }} />
+      <View style={{ borderColor: "#FFFFFF16", borderWidth: 1, bottom: 28, left: 28, position: "absolute", right: 28, top: 92 }} />
+      <View style={{ backgroundColor: "#FFFFFF16", height: 1, left: 28, position: "absolute", right: 28, top: "50%" }} />
+      <View style={{ alignItems: "center", flex: 1, justifyContent: "space-between" }}>
+        <View style={{ alignItems: "center", gap: 3 }}>
+          <Text style={{ ...broadcast.jersey, color: "#C6F135", fontSize: 12, letterSpacing: 2.4 }}>MATCHPOINT TENNIS</Text>
+          <Text style={{ ...typography.footnote, color: "#FFFFFF99" }}>{matchDate(room.playedAt)} · {clubName ?? "Club"}</Text>
+        </View>
+        <View style={{ alignItems: "center", gap: 10, width: "100%" }}>
+          <View style={{ backgroundColor: "#C6F135", borderRadius: radii.pill, paddingHorizontal: 14, paddingVertical: 5 }}>
+            <Text style={{ ...broadcast.jersey, color: "#071B12", fontSize: 11, letterSpacing: 1.7 }}>RESULTADO FINAL</Text>
+          </View>
+          <Text numberOfLines={2} style={{ ...broadcast.hero, color: "white", fontSize: 29, lineHeight: 32, textAlign: "center" }}>{room.teamA.playerNames.join(" + ")}</Text>
+          <Text style={{ ...broadcast.jersey, color: "#FFFFFF77", fontSize: 15, letterSpacing: 3 }}>VS</Text>
+          <Text numberOfLines={2} style={{ ...broadcast.hero, color: "white", fontSize: 29, lineHeight: 32, textAlign: "center" }}>{room.teamB.playerNames.join(" + ")}</Text>
+        </View>
+        <View style={{ alignItems: "center", gap: 7 }}>
+          <Text style={{ ...broadcast.scoreboard, color: "#C6F135", fontSize: 38, lineHeight: 42 }}>{score}</Text>
+          <Text style={{ ...broadcast.jersey, color: "#FFD76A", fontSize: 12, letterSpacing: 1.5 }}>🏆 {winnerNames.join(" + ")} GANA</Text>
+          <Text style={{ ...typography.footnote, color: "#FFFFFF88" }}>Encuentra rival. Juega. Comparte.</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -745,6 +780,8 @@ export function MatchRoomSheet({
   onClose: () => void;
 }) {
   const [busy, setBusy] = React.useState<"report" | "validate" | "dispute" | "review" | null>(null);
+  const [sharing, setSharing] = React.useState(false);
+  const resultCardRef = React.useRef<ViewShot>(null);
   const a = roomAffordances(room, currentPlayerId);
   const meta = STATUS_META[room.status];
 
@@ -798,6 +835,33 @@ export function MatchRoomSheet({
       ) : null}
 
       {room.status === "validated" ? <ValidationStamp /> : null}
+
+      {room.status === "validated" && room.result ? (
+        <View style={{ gap: spacing.sm }}>
+          <ViewShot ref={resultCardRef} options={{ format: "png", quality: 1 }}>
+            <ResultShareCard room={room} clubName={clubName} />
+          </ViewShot>
+          <SpotlightCta
+            label={sharing ? "Preparando imagen..." : "Compartir resultado"}
+            disabled={sharing}
+            icon={<Icon name="send" size={16} color={colors.textOnBall as string} />}
+            onPress={async () => {
+              if (sharing || !resultCardRef.current) return;
+              setSharing(true);
+              try {
+                const uri = await captureRef(resultCardRef, { format: "png", quality: 1, width: 1080, height: 1350 });
+                const score = room.result?.sets.map((set) => `${set.a}-${set.b}`).join(", ") ?? "";
+                await shareMatchResultImage(uri, `${room.teamA.playerNames.join(" + ")} vs ${room.teamB.playerNames.join(" + ")} · ${score}`);
+              } catch (error) {
+                Alert.alert("No se pudo compartir", error instanceof Error ? error.message : "Inténtalo de nuevo.");
+              } finally {
+                setSharing(false);
+              }
+            }}
+          />
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, textAlign: "center" }}>Imagen 4:5 lista para Instagram, WhatsApp y otras redes.</Text>
+        </View>
+      ) : null}
 
       <StatusStepper status={room.status} />
 

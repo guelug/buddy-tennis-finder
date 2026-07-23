@@ -6,7 +6,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import { useEffect } from "react";
-import { colors, radii } from "@/theme";
+import { colors, radii, useThemeMode } from "@/theme";
 
 /**
  * Shimmer / skeleton placeholder estilo Betguate.
@@ -23,6 +23,7 @@ export function Skeleton({
   borderRadius?: number;
   style?: object;
 }) {
+  const { isLight } = useThemeMode();
   const translateX = useSharedValue(-200);
 
   useEffect(() => {
@@ -56,7 +57,9 @@ export function Skeleton({
           {
             width: "60%",
             height: "100%",
-            backgroundColor: "rgba(255,255,255,0.55)"
+            // En claro la base es casi blanca: el brillo blanco necesita más
+            // opacidad para que el barrido se perciba.
+            backgroundColor: isLight ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.55)"
           }
         ]}
       />

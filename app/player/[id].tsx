@@ -17,11 +17,13 @@ import { players as seedPlayers } from "@/data/seed";
 import { isFirebaseConfigured } from "@/../firebase.config";
 import { levelLabel } from "@/lib/matching";
 import { openInWaze } from "@/lib/waze";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, shadows, spacing, typography } from "@/theme";
 import { Club, MatchReview, Player } from "@/types";
 
 export default function PublicPlayerProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useI18n();
   const [player, setPlayer] = useState<Player | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [reviews, setReviews] = useState<MatchReview[]>([]);
@@ -54,8 +56,8 @@ export default function PublicPlayerProfile() {
         <ScreenShell topSafe bottomInset={16}>
           <BackButton />
           <GlassPanel>
-            <Text style={{ ...typography.title, color: colors.textPrimary }}>Perfil no disponible</Text>
-            <Text style={{ ...typography.body, color: colors.textSecondary }}>Este jugador ya no está activo o su perfil no es público.</Text>
+            <Text style={{ ...typography.title, color: colors.textPrimary }}>{t("player.unavailable.title")}</Text>
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("player.unavailable.body")}</Text>
           </GlassPanel>
         </ScreenShell>
       </LiveBackground>
@@ -77,23 +79,23 @@ export default function PublicPlayerProfile() {
                 <Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 27 }}>{player.name}</Text>
                 {player.verified ? <Icon name="check-badge" size={19} color={colors.hardCourt as string} /> : null}
               </View>
-              <Text style={{ ...typography.body, color: colors.textSecondary }}>{player.age} años · Nivel {levelLabel(player.level)} · ★ {player.rating.toFixed(1)}</Text>
+              <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("player.yearsLevel", { age: player.age, level: levelLabel(player.level), rating: player.rating.toFixed(1) })}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, justifyContent: "center" }}>
                 {player.preferredFormats.map((format) => <Chip key={format} label={formatLabel(format)} active />)}
               </View>
               {player.bio ? <Text style={{ ...typography.body, color: colors.textSecondary, lineHeight: 21, textAlign: "center" }}>{player.bio}</Text> : null}
             </View>
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <Stat value={`${player.responseRate}%`} label="Respuesta" />
-              <Stat value={`${reviews.length}`} label="Valoraciones" />
-              <Stat value={levelLabel(player.level)} label="Categoría" />
+              <Stat value={`${player.responseRate}%`} label={t("player.response")} />
+              <Stat value={`${reviews.length}`} label={t("player.reviews")} />
+              <Stat value={levelLabel(player.level)} label={t("player.category")} />
             </View>
           </GlassPanel>
         </Animated.View>
 
         <Animated.View entering={FadeIn.delay(90).springify()}>
           <GlassPanel>
-            <Text style={{ ...typography.headline, color: colors.textPrimary }}>Nivel técnico</Text>
+            <Text style={{ ...typography.headline, color: colors.textPrimary }}>{t("profile.skills.title")}</Text>
             <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{skillSummary.count ? `Media de ${skillSummary.count} valoraciones de rivales` : "Estimación provisional hasta recibir valoraciones"}</Text>
             <SkillRadar skills={skillSummary.skills} size={260} provisional={skillSummary.count === 0} />
           </GlassPanel>

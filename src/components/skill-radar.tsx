@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Circle, Line, Polygon } from "react-native-svg";
 import { colors, spacing, typography, useThemeMode } from "@/theme";
+import { useI18n } from "@/lib/i18n";
 import { PlayerSkills } from "@/types";
 
 /**
@@ -20,12 +21,12 @@ import { PlayerSkills } from "@/types";
  * radar que "se enciende".
  */
 
-const AXES: Array<{ key: keyof PlayerSkills; label: string }> = [
-  { key: "consistency", label: "Consistencia" },
-  { key: "forehand", label: "Derecha" },
-  { key: "backhand", label: "Revés" },
-  { key: "serve", label: "Servicio" },
-  { key: "volley", label: "Volea" }
+const AXES: Array<{ key: keyof PlayerSkills; labelKey: string }> = [
+  { key: "consistency", labelKey: "skills.consistency" },
+  { key: "forehand", labelKey: "skills.forehand" },
+  { key: "backhand", labelKey: "skills.backhand" },
+  { key: "serve", labelKey: "skills.serve" },
+  { key: "volley", labelKey: "skills.volley" }
 ];
 
 /** Derivación estable cuando el jugador aún no tiene skills guardadas. */
@@ -88,6 +89,7 @@ export function SkillRadar({
   provisional?: boolean;
 }) {
   const { isLight } = useThemeMode();
+  const { t } = useI18n();
   // Margen para labels alrededor del pentágono.
   const labelGutter = 34;
   const plot = size - labelGutter * 2;
@@ -176,7 +178,7 @@ export function SkillRadar({
       </View>
 
       {/* Labels por eje: nombre en secundario, valor en primario */}
-      {AXES.map(({ key, label }, index) => {
+      {AXES.map(({ key, labelKey }, index) => {
         const point = vertex(center, radius, index, 1.0);
         const x = labelGutter + point.x;
         const y = labelGutter + point.y;
@@ -193,7 +195,7 @@ export function SkillRadar({
         return (
           <View key={key} pointerEvents="none" style={[{ position: "absolute", gap: 1 }, style]}>
             <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.xs }}>
-              <Text style={{ ...typography.footnote, color: colors.textSecondary, fontSize: 11 }}>{label}</Text>
+              <Text style={{ ...typography.footnote, color: colors.textSecondary, fontSize: 11 }}>{t(labelKey)}</Text>
               <Text style={{ ...typography.caption, color: colors.textPrimary, fontSize: 12, fontWeight: "800" }}>
                 {skills[key].toFixed(1)}
               </Text>

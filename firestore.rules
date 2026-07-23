@@ -49,6 +49,26 @@ service cloud.firestore {
         && data.profileComplete == true;
     }
 
+    // La autoevaluación inicial del onboarding es opcional; si llega, debe
+    // traer exactamente los cinco ejes con valores numéricos entre 1 y 10.
+    function hasValidSelfAssessment(data) {
+      return !("skills" in data)
+        || (
+          data.skills is map
+          && data.skills.keys().hasOnly(["consistency", "forehand", "backhand", "serve", "volley"])
+          && data.skills.consistency is number
+          && data.skills.consistency >= 1 && data.skills.consistency <= 10
+          && data.skills.forehand is number
+          && data.skills.forehand >= 1 && data.skills.forehand <= 10
+          && data.skills.backhand is number
+          && data.skills.backhand >= 1 && data.skills.backhand <= 10
+          && data.skills.serve is number
+          && data.skills.serve >= 1 && data.skills.serve <= 10
+          && data.skills.volley is number
+          && data.skills.volley >= 1 && data.skills.volley <= 10
+        );
+    }
+
     // --- users: privado por uid ---
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
@@ -66,7 +86,7 @@ service cloud.firestore {
         && hasValidPublicProfile(request.resource.data, uid)
         && request.resource.data.rating == 3
         && request.resource.data.responseRate == 100
-        && !("skills" in request.resource.data);
+        && hasValidSelfAssessment(request.resource.data);
 
       allow update: if request.auth != null
         && request.auth.uid == uid
@@ -77,8 +97,13 @@ service cloud.firestore {
           "availability", "bio", "languages", "photoURL", "verified",
           "profileComplete", "seekingTeam", "seekingTeamClubId", "updatedAt",
           // Compatibilidad con perfiles antiguos que aún no tenían métricas.
-          "rating", "responseRate"
+          "rating", "responseRate",
+          // Autoevaluación del onboarding (validada en hasValidSelfAssessment).
+          "skills",
+          // Inscripción del propio jugador a ligas públicas (una por rango).
+          "publicLeagues"
         ])
+        && hasValidSelfAssessment(request.resource.data)
         && (
           (!("rating" in resource.data) && request.resource.data.rating == 3)
           || (("rating" in resource.data) && request.resource.data.rating == resource.data.rating)
@@ -118,7 +143,9 @@ service cloud.firestore {
         && request.resource.data.clubId.size() > 0
         && request.resource.data.court is int
         && request.resource.data.court >= 1
-        && request.resource.data.court <= 6
+        // El catálogo tiene clubes con más de 6 canchas; el cliente valida
+        // contra el total real del club y aquí solo ponemos un tope sanitario.
+        && request.resource.data.court <= 24
         && request.resource.data.reservationTime is string
         && request.resource.data.startsAt is string
         && request.resource.data.proposedAt is string
@@ -396,6 +423,20 @@ service cloud.firestore {
         && request.resource.data.status == "pending";
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow update, delete: if false;
+    }
+
+    match /androidBetaRequests/{userId} {
+      allow create: if request.auth != null
+        && userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == "pending"
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 160;
+      allow get: if request.auth != null && userId == request.auth.uid;
+      allow list, update, delete: if false;
     }
 
     // Denegar por defecto todo lo demás.

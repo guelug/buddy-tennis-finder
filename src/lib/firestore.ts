@@ -5,6 +5,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  arrayUnion,
+  arrayRemove,
   query,
   where,
   orderBy,
@@ -146,6 +148,27 @@ export async function getPlayer(uid: string): Promise<Player | null> {
 }
 
 /**
+ * Inscribe al jugador en la liga pública de su rango (una por rango). La
+ * pertenencia se guarda en su propio documento `players/{uid}` como array
+ * `publicLeagues`; las reglas solo permiten al dueño modificarlo.
+ */
+export async function joinPublicLeague(uid: string, leagueId: string): Promise<void> {
+  if (!isFirebaseConfigured) return;
+  await updateDoc(doc(db, PLAYERS_COLLECTION, uid), {
+    publicLeagues: arrayUnion(leagueId),
+    updatedAt: serverTimestamp()
+  });
+}
+
+export async function leavePublicLeague(uid: string, leagueId: string): Promise<void> {
+  if (!isFirebaseConfigured) return;
+  await updateDoc(doc(db, PLAYERS_COLLECTION, uid), {
+    publicLeagues: arrayRemove(leagueId),
+    updatedAt: serverTimestamp()
+  });
+}
+
+/**
  * Crea o reemplaza el perfil deportivo del usuario autenticado.
  * Se invoca desde el onboarding o desde "editar perfil".
  */
@@ -207,6 +230,17 @@ export async function updatePlayerFields(uid: string, fields: Partial<Player>): 
     updatedAt: serverTimestamp()
   });
   playersCache = null;
+}
+
+export async function requestAndroidBetaAccess(uid: string, name: string, email: string | null): Promise<void> {
+  if (!isFirebaseConfigured) throw new Error("Firebase no está configurado.");
+  await setDoc(doc(db, "androidBetaRequests", uid), {
+    userId: uid,
+    name: name.trim().slice(0, 80),
+    email: email?.trim().slice(0, 160) ?? "",
+    status: "pending",
+    requestedAt: serverTimestamp()
+  }, { merge: true });
 }
 
 /** Suscripción en tiempo real al perfil del usuario autenticado. */

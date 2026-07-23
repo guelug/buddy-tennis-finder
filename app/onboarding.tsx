@@ -32,8 +32,8 @@ import { getClubs, getPlayer, savePlayerProfile } from "@/lib/firestore";
 import { openInWaze } from "@/lib/waze";
 import { colors, contentWidth, spacing, statusBarTopInset, typography, radii, shadows, useThemeMode } from "@/theme";
 import { Club, Gender, MatchFormat, PlayerProfileInput, PlayerSkills, SkillLevel } from "@/types";
-import { CITIES_BY_COUNTRY, countries, Country } from "@/data/seed";
-import { useI18n } from "@/lib/i18n";
+import { CITIES_BY_COUNTRY, selectableCountries, Country } from "@/data/seed";
+import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 
 const LEVELS: Array<{ label: string; labelKey?: string; value: SkillLevel; icon: IconName }> = [
   { label: "Novato", labelKey: "onboarding.level.novato", value: "novato", icon: "tennis" },
@@ -126,8 +126,17 @@ export default function OnboardingScreen() {
   const [name, setName] = useState(user?.displayName ?? "");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
-  const [country, setCountry] = useState<Country | null>(null);
-  const [city, setCity] = useState<string | null>(null);
+  // Si solo hay un país seleccionable (lanzamiento en Guatemala) lo
+  // preseleccionamos, y si ese país tiene una sola ciudad, también. Cuando se
+  // abran más mercados vuelve a exigir selección manual automáticamente.
+  const [country, setCountry] = useState<Country | null>(
+    selectableCountries.length === 1 ? selectableCountries[0] : null
+  );
+  const [city, setCity] = useState<string | null>(() => {
+    const initialCountry = selectableCountries.length === 1 ? selectableCountries[0] : null;
+    const initialCities = initialCountry ? CITIES_BY_COUNTRY[initialCountry] : [];
+    return initialCities.length === 1 ? initialCities[0] : null;
+  });
   const [clubIds, setClubIds] = useState<string[]>([]);
   const [level, setLevel] = useState<SkillLevel>("c");
   const [formats, setFormats] = useState<MatchFormat[]>(["singles"]);
@@ -310,7 +319,7 @@ export default function OnboardingScreen() {
   if (clubsError) {
     return (
       <View style={{ alignItems: "center", backgroundColor: colors.background, flex: 1, justifyContent: "center", padding: spacing.xl }}>
-        <View style={glassErrorStyle}>
+        <View style={glassErrorStyle()}>
           <View style={{ alignItems: "center", gap: spacing.md }}>
             <Icon name="building" size={36} color={colors.warning as string} />
             <Text style={{ ...typography.headline, color: colors.textPrimary, textAlign: "center" }}>{t("onboarding.errorTitle")}</Text>
@@ -522,7 +531,7 @@ function IdentityStep({
   ageValid: boolean;
   touched: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const filteredClubs = useMemo(() => {
     if (!country || !city) return [];
     return clubs.filter((c) => c.country === country && c.city === city);
@@ -531,7 +540,20 @@ function IdentityStep({
   const cityOptions = useMemo(() => (country ? CITIES_BY_COUNTRY[country] : []), [country]);
 
   return (
-    <View style={cardWrapper}>
+    <View style={cardWrapper()}>
+      <Field label={t("settings.language")}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+          {SUPPORTED_LANGUAGES.map((language) => (
+            <Chip
+              key={language.code}
+              active={lang === language.code}
+              label={language.label}
+              onPress={() => setLang(language.code)}
+            />
+          ))}
+        </View>
+      </Field>
+
       {userId ? <ProfilePhotoUploader uid={userId} name={name} value={photoURL} onChange={setPhotoURL} /> : null}
 
       <Field label={t("onboarding.field.name")} required>
@@ -540,7 +562,7 @@ function IdentityStep({
           onChangeText={setName}
           placeholder={t("onboarding.field.namePlaceholder")}
           placeholderTextColor={colors.textTertiary}
-          style={inputStyle}
+          style={inputStyle()}
           autoComplete="name"
           accessibilityLabel={t("onboarding.a11y.name")}
         />
@@ -554,7 +576,7 @@ function IdentityStep({
             placeholder={t("onboarding.field.agePlaceholder")}
             keyboardType="numeric"
             placeholderTextColor={colors.textTertiary}
-            style={[inputStyle, touched && !ageValid ? { borderColor: colors.danger, color: colors.danger } : null]}
+            style={[inputStyle(), touched && !ageValid ? { borderColor: colors.danger, color: colors.danger } : null]}
             accessibilityLabel={t("onboarding.a11y.age")}
           />
           {touched && !ageValid ? <Text style={{ ...typography.footnote, color: colors.danger, marginTop: spacing.xs }}>{t("onboarding.field.ageError")}</Text> : null}
@@ -570,14 +592,17 @@ function IdentityStep({
 
       <Field label={t("onboarding.field.country")} required>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {countries.map((c) => (
+          {selectableCountries.map((c) => (
             <Chip
               key={c}
               active={country === c}
               label={c}
               onPress={() => {
                 setCountry(c);
-                setCity(null);
+                // Si el país tiene una sola ciudad la fijamos directamente para
+                // ahorrar un toque; si tiene varias, obligamos a re-elegir.
+                const nextCities = CITIES_BY_COUNTRY[c] ?? [];
+                setCity(nextCities.length === 1 ? nextCities[0] : null);
                 setClubIds([]);
               }}
             />
@@ -618,10 +643,7 @@ function IdentityStep({
                     active={selected}
                     label={isPrimary ? `${club.name} ★` : club.name}
                     onPress={() => toggleClub(club.id)}
-                    onLongPress={() => {
-                      if (selected) moveClubToFirst(club.id);
-                      else moveClubToFirst(club.id);
-                    }}
+                    onLongPress={() => moveClubToFirst(club.id)}
                   />
                 );
               })}
@@ -672,7 +694,7 @@ function GameStep({
 }) {
   const { t } = useI18n();
   return (
-    <View style={cardWrapper}>
+    <View style={cardWrapper()}>
       <Field label={t("onboarding.field.level")}>
         <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
           {t("onboarding.field.levelHint")}
@@ -742,7 +764,7 @@ function GameStep({
           multiline
           numberOfLines={3}
           placeholderTextColor={colors.textTertiary}
-          style={[inputStyle, { minHeight: 84, textAlignVertical: "top" }]}
+          style={[inputStyle(), { minHeight: 84, textAlignVertical: "top" }]}
           accessibilityLabel={t("onboarding.a11y.bio")}
         />
       </Field>
@@ -764,7 +786,7 @@ function ScheduleStep({
   const { isLight } = useThemeMode();
   const { t } = useI18n();
   return (
-    <View style={cardWrapper}>
+    <View style={cardWrapper()}>
       <View style={{ gap: spacing.sm, marginBottom: spacing.md }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("onboarding.schedule.title")}</Text>
         <Text style={{ ...typography.body, color: colors.textSecondary }}>
@@ -906,7 +928,10 @@ function StepProgress({ current, total }: { current: number; total: number }) {
   );
 }
 
-const inputStyle: TextStyle = {
+// Factories evaluadas en cada render: `colors`/`shadows` son singletons que el
+// proveedor de tema muta según el modo. Definirlas a nivel de módulo horneaba
+// los colores oscuros y dejaba tarjetas/inputs oscuros en modo claro.
+const inputStyle = (): TextStyle => ({
   ...typography.body,
   backgroundColor: colors.surfaceElevated,
   borderColor: colors.borderStrong,
@@ -916,19 +941,19 @@ const inputStyle: TextStyle = {
   paddingHorizontal: spacing.md,
   paddingVertical: spacing.md,
   minHeight: 48
-};
+});
 
-const cardWrapper: ViewStyle = {
+const cardWrapper = (): ViewStyle => ({
   backgroundColor: colors.surface,
   borderRadius: radii.lg,
   borderWidth: 1,
   borderColor: colors.borderStrong,
-  boxShadow: "0 8px 24px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.22)",
+  boxShadow: shadows.card,
   gap: spacing.lg,
   padding: spacing.lg
-};
+});
 
-const glassErrorStyle: ViewStyle = {
+const glassErrorStyle = (): ViewStyle => ({
   alignItems: "center",
   backgroundColor: colors.surface,
   borderColor: colors.borderStrong,
@@ -939,7 +964,7 @@ const glassErrorStyle: ViewStyle = {
   maxWidth: 440,
   padding: spacing.xl,
   width: "100%"
-};
+});
 
 const wazeRowStyle: ViewStyle = {
   flexDirection: "row",

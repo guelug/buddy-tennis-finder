@@ -8,7 +8,6 @@ import { compatibilityPct, levelLabel, rankCandidates, rankOpenProposals } from 
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
-import { ConceptHero } from "@/components/concept-hero";
 import { CourtRally } from "@/components/court-rally";
 import { DateField } from "@/components/date-field";
 import { Icon } from "@/components/icon";
@@ -20,6 +19,7 @@ import { ScreenShell } from "@/components/screen-shell";
 import { ScreenHero } from "@/components/screen-hero";
 import { WebShell } from "@/components/web/web-shell";
 import { SearchCandidatesCta } from "@/components/search-candidates-cta";
+import { SkeletonCard } from "@/components/skeleton-card";
 import { TopPlayersPreview } from "@/components/top-players-preview";
 import { buildProvisionalRankings, DIVISION_LABELS } from "@/data/rankings";
 import { useI18n } from "@/lib/i18n";
@@ -171,22 +171,43 @@ function DiscoverNative() {
           </View>
         </Animated.View>
 
-        <View style={{ gap: spacing.sm }}>
-          {state.visibleCandidates.map((candidate, index) => (
-            <PlayerCard
-              key={candidate.player.id}
-              variant="native"
-              candidate={candidate}
-              clubs={state.clubs}
-              index={index}
-            />
-          ))}
-          {state.visibleCandidates.length === 0 ? <EmptyRivals query={state.nameQuery} /> : null}
-        </View>
+        <CandidateResults state={state} />
       </ScreenShell>
 
       <PublishModal state={state} />
     </LiveBackground>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Resultados de búsqueda (nativo): skeletons mientras carga, lista atenuada
+// al re-buscar con resultados previos — sin saltos ni flash de estado vacío.
+// ---------------------------------------------------------------------------
+
+function CandidateResults({ state }: { state: DiscoverState }) {
+  const showSkeletons = state.searching ? state.visibleCandidates.length === 0 : !state.loaded;
+
+  if (showSkeletons) {
+    return (
+      <Animated.View entering={FadeIn.duration(220)}>
+        <SkeletonCard layout="player" count={3} />
+      </Animated.View>
+    );
+  }
+
+  return (
+    <View style={{ gap: spacing.sm, opacity: state.searching ? 0.55 : 1 }}>
+      {state.visibleCandidates.map((candidate, index) => (
+        <PlayerCard
+          key={candidate.player.id}
+          variant="native"
+          candidate={candidate}
+          clubs={state.clubs}
+          index={index}
+        />
+      ))}
+      {state.loaded && state.visibleCandidates.length === 0 ? <EmptyRivals query={state.nameQuery} /> : null}
+    </View>
   );
 }
 
@@ -575,6 +596,7 @@ function OpenProposalRow({
   onAccept: () => void;
 }) {
   const { isLight } = useThemeMode();
+  const { t } = useI18n();
   return (
     <View
       style={{
@@ -617,16 +639,16 @@ function OpenProposalRow({
                 paddingVertical: 2
               }}
             >
-              <Text style={{ ...typography.footnote, color: colors.neon, fontWeight: "800" }}>Tu club</Text>
+              <Text style={{ ...typography.footnote, color: colors.neon, fontWeight: "800" }}>{t("rivals.open.yourClub")}</Text>
             </View>
           ) : null}
         </View>
         <Text style={{ ...typography.footnote, color: colors.textSecondary }} numberOfLines={1}>
-          {formatReservation(proposal)} · Cancha {proposal.court} · {formatAcceptedLevels(proposal)}
+          {formatReservation(proposal)} · {t("common.court").replace("{court}", String(proposal.court))} · {formatAcceptedLevels(proposal)}
         </Text>
       </View>
       <PrimaryButton
-        label={requested ? "Enviada" : accepting ? "…" : "Solicitar"}
+        label={requested ? t("rivals.open.sentShort") : accepting ? "…" : t("rivals.open.requestShort")}
         fullWidth={false}
         disabled={accepting || requested}
         onPress={onAccept}
@@ -642,6 +664,7 @@ function OpenProposalRow({
 
 function useDiscoverState() {
   const { isWide } = usePlatformLayout();
+  const { t } = useI18n();
   const params = useLocalSearchParams<{ publish?: string }>();
   const latestRequest = useRef(0);
   const handledPublishParam = useRef(false);
@@ -652,6 +675,8 @@ function useDiscoverState() {
   const [allProposals, setAllProposals] = useState<MatchProposal[]>([]);
   const [joinRequests, setJoinRequests] = useState<MatchJoinRequest[]>([]);
   const [searching, setSearching] = useState(false);
+  /** true tras el primer intento de carga — evita el flash de "Sin rivales". */
+  const [loaded, setLoaded] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -680,7 +705,9 @@ function useDiscoverState() {
   };
 
   useEffect(() => {
-    loadCandidates().catch((error: unknown) => setLoadError(describeError(error)));
+    loadCandidates()
+      .catch((error: unknown) => setLoadError(describeError(error)))
+      .finally(() => setLoaded(true));
   }, [preferences]);
 
   const searchCandidates = async () => {
@@ -700,7 +727,7 @@ function useDiscoverState() {
   const publishMatch = async (input: PublishInput) => {
     if (!currentPlayer) return;
     try {
-      validatePublishInput(input, clubs);
+      validatePublishInput(input, clubs, t);
       await createProposal({
         clubId: input.clubId,
         startsAt: buildStartsAt(input.reservationDate, input.startTime).toISOString(),
@@ -713,10 +740,10 @@ function useDiscoverState() {
       });
       setPublishOpen(false);
       if (process.env.EXPO_OS === "ios") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Partido publicado 🎾", "Los jugadores de los niveles elegidos podrán solicitar una plaza.");
+      Alert.alert(t("rivals.alert.published"), t("rivals.alert.publishedBody"));
       await loadCandidates();
     } catch (error) {
-      Alert.alert("No se pudo publicar", describeError(error));
+      Alert.alert(t("rivals.alert.publishFailed"), describeError(error));
     }
   };
 
@@ -726,9 +753,9 @@ function useDiscoverState() {
       const request = await requestMatchJoin(id);
       setJoinRequests((current) => [...current.filter((item) => item.id !== request.id), request]);
       if (process.env.EXPO_OS === "ios") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Solicitud enviada", "El organizador decidirá quién ocupa la plaza. Te aparecerá como confirmada cuando la acepte.");
+      Alert.alert(t("matches.join.sent"), t("rivals.alert.sentBody"));
     } catch (error) {
-      Alert.alert("No se pudo solicitar", describeError(error));
+      Alert.alert(t("matches.alert.requestFailed"), describeError(error));
     } finally {
       setAcceptingId(null);
     }
@@ -777,6 +804,7 @@ function useDiscoverState() {
     nameQuery,
     setNameQuery,
     loadError,
+    loaded,
     searching,
     searchCandidates,
     /** Recarga para pull-to-refresh (sin el delay teatral de searchCandidates). */
@@ -856,7 +884,7 @@ function PublishForm({
     format: "singles",
     acceptedLevels,
     message
-  }, clubs);
+  }, clubs, t);
   const canSubmit = validationMessage === null && acceptedLevels.length > 0;
 
   useEffect(() => {
@@ -870,12 +898,12 @@ function PublishForm({
           <Icon name="tennis" size={20} color={colors.gold} />
         </View>
         <View>
-          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Publicar partido informal</Text>
-          <Text style={{ ...typography.footnote, color: colors.textSecondary }}>Elige los niveles y aprueba las solicitudes</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("rivals.publish.title")}</Text>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("rivals.form.subtitle")}</Text>
         </View>
       </View>
 
-      <FormRow label="Club">
+      <FormRow label={t("rivals.form.club")}>
         <ScrollView
           horizontal
           contentContainerStyle={{ gap: spacing.xs, paddingRight: spacing.md }}
@@ -887,20 +915,20 @@ function PublishForm({
         </ScrollView>
       </FormRow>
 
-      <FormRow label="Fecha de la reserva">
+      <FormRow label={t("rivals.form.date")}>
         <DateField value={reservationDate} onChange={setReservationDate} minimumDate={new Date()} />
       </FormRow>
 
       <View style={{ flexDirection: "row", gap: spacing.sm }}>
-        <FormRow label="Inicio" style={{ flex: 1 }}>
+        <FormRow label={t("rivals.form.start")} style={{ flex: 1 }}>
           <FormInput value={startTime} onChange={setStartTime} placeholder="10:00" maxLength={5} keyboardType="numbers-and-punctuation" />
         </FormRow>
-        <FormRow label="Fin" style={{ flex: 1 }}>
+        <FormRow label={t("rivals.form.end")} style={{ flex: 1 }}>
           <FormInput value={endTime} onChange={setEndTime} placeholder="12:00" maxLength={5} keyboardType="numbers-and-punctuation" />
         </FormRow>
       </View>
 
-      <FormRow label="Cancha">
+      <FormRow label={t("rivals.form.court")}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
           {courtOptions.map((courtNumber) => (
             <Chip
@@ -913,14 +941,14 @@ function PublishForm({
         </View>
       </FormRow>
 
-      <FormRow label="Formato">
-        <Chip label="Singles" active />
+      <FormRow label={t("rivals.filters.format")}>
+        <Chip label={t("onboarding.format.singles")} active />
         <Text style={{ ...typography.footnote, color: colors.textTertiary }}>
-          Dobles y mixto se activarán cuando el flujo de equipos pueda reunir y confirmar a las cuatro personas.
+          {t("rivals.form.formatNote")}
         </Text>
       </FormRow>
 
-      <FormRow label="Niveles aceptados">
+      <FormRow label={t("rivals.form.levels")}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
           {levelOptions.filter((item) => item.value !== "any").map((item) => {
             const level = item.value as SkillLevel;
@@ -928,12 +956,12 @@ function PublishForm({
           })}
         </View>
         <Text style={{ ...typography.footnote, color: colors.textSecondary }}>
-          Solo estos niveles podrán solicitar entrar. Debes elegir al menos uno.
+          {t("rivals.form.levelsNote")}
         </Text>
       </FormRow>
 
-      <FormRow label="Mensaje (opcional)">
-        <FormInput value={message} onChange={setMessage} placeholder="Ej. Busco rival parejo, cancha ya reservada." multiline maxLength={280} />
+      <FormRow label={t("rivals.form.message")}>
+        <FormInput value={message} onChange={setMessage} placeholder={t("rivals.form.messagePlaceholder")} multiline maxLength={280} />
         <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "right", fontVariant: ["tabular-nums"] }}>
           {message.length}/280
         </Text>
@@ -947,13 +975,13 @@ function PublishForm({
 
       <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
         <PrimaryButton
-          label="Publicar partido"
+          label={t("rivals.publish.cta")}
           size="lg"
           icon={<Icon name="send" size={16} color={colors.textOnBrand as string} />}
           disabled={!canSubmit}
           onPress={() => onSubmit({ clubId, reservationDate, startTime, endTime, court, format: "singles", acceptedLevels, message })}
         />
-        <PrimaryButton label="Cancelar" variant="ghost" onPress={onCancel} />
+        <PrimaryButton label={t("common.cancel")} variant="ghost" onPress={onCancel} />
       </View>
     </View>
   );
@@ -1171,30 +1199,30 @@ function buildStartsAt(dateInput: string, time: string) {
   return result;
 }
 
-function getPublishValidationMessage(input: PublishInput, clubs: Club[]): string | null {
+function getPublishValidationMessage(input: PublishInput, clubs: Club[], t: (key: string) => string): string | null {
   const club = clubs.find((item) => item.id === input.clubId);
-  if (!club) return "Selecciona un club válido.";
+  if (!club) return t("rivals.validation.club");
   if (!Number.isInteger(input.court) || input.court < 1 || input.court > club.courts) {
-    return `Selecciona una cancha entre 1 y ${club.courts}.`;
+    return t("rivals.validation.court").replace("{courts}", String(club.courts));
   }
   let startsAt: Date;
   let endsAt: Date;
   try {
     startsAt = buildStartsAt(input.reservationDate, input.startTime);
     endsAt = buildStartsAt(input.reservationDate, input.endTime);
-  } catch (error) {
-    return describeError(error);
+  } catch {
+    return t("rivals.validation.dateTime");
   }
-  if (endsAt <= startsAt) return "La hora de fin debe ser posterior a la de inicio.";
+  if (endsAt <= startsAt) return t("rivals.validation.endAfterStart");
   if (startsAt.getTime() < Date.now() + 5 * 60 * 1000) {
-    return "Elige una reserva futura (al menos 5 minutos desde ahora).";
+    return t("rivals.validation.future");
   }
-  if (input.message.length > 280) return "El mensaje no puede superar 280 caracteres.";
+  if (input.message.length > 280) return t("rivals.validation.messageTooLong");
   return null;
 }
 
-function validatePublishInput(input: PublishInput, clubs: Club[]) {
-  const message = getPublishValidationMessage(input, clubs);
+function validatePublishInput(input: PublishInput, clubs: Club[], t: (key: string) => string) {
+  const message = getPublishValidationMessage(input, clubs, t);
   if (message) throw new Error(message);
 }
 

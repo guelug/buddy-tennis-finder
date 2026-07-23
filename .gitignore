@@ -16,6 +16,14 @@ outputs/
 .claude/
 android/app/debug.keystore
 
+# Artefactos de build iOS (regenerables; nunca commitear)
+ios/build
+ios/Pods
+ios/DerivedData
+ios-native/build
+**/*.xcarchive
+**/DerivedData
+
 # Google Play service-account credentials (never commit these)
 credentials/google-play-service-account.json
 credentials/*.jks

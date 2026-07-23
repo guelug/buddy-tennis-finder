@@ -87,7 +87,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!connected) return;
     void getProducts([...PURCHASE_PRODUCT_IDS]);
-    void getAvailablePurchases();
+    void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
   }, [connected, getProducts, getAvailablePurchases]);
 
   const forgetIntent = useCallback(async (ownerId: string, productId: string) => {
@@ -116,7 +116,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
       }
       // El backend consume el producto. Refrescamos la caché de Billing para
       // que pueda volver a comprarse una nueva publicación o liga.
-      void getAvailablePurchases();
+      void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
     } catch (error) {
       setOutcome({
         kind: intent.kind,
@@ -148,7 +148,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     const intent = intents.find((item) => item.productId === productId && item.ownerId === user.uid);
     if (currentPurchaseError.code === "E_ALREADY_OWNED") {
       setOutcome({ kind: productId === PRIVATE_LEAGUE_PRODUCT.id ? "league" : "coach", productId, status: "recovering", adId: intent?.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent?.createdAt, message: "Recuperando la compra anterior…", occurredAt: Date.now() });
-      void getAvailablePurchases();
+      void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
       return;
     }
     const kind = productId === PRIVATE_LEAGUE_PRODUCT.id ? "league" : "coach";
@@ -164,11 +164,17 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     setOutcome(null);
     const accountHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, intent.ownerId);
     try {
-      await requestPurchase({ skus: [intent.productId], obfuscatedAccountIdAndroid: accountHash });
+      await requestPurchase({
+        request: {
+          ios: { sku: intent.productId },
+          android: { skus: [intent.productId], obfuscatedAccountIdAndroid: accountHash }
+        },
+        type: "inapp"
+      });
     } catch (error) {
       const code = (error as { code?: string })?.code;
       if (code === "E_ALREADY_OWNED") {
-        void getAvailablePurchases();
+        void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
         return intent.createdAt;
       }
       await forgetIntent(intent.ownerId, intent.productId);
