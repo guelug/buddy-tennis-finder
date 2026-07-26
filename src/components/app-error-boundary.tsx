@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Pressable, Text, View } from "react-native";
+import { recordError } from "@/lib/crash-reporting";
 import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 
@@ -24,6 +25,7 @@ export class AppErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.warn("[matchpoint] Error de render capturado:", error, info.componentStack);
+    recordError(error, `render-error: ${info.componentStack?.slice(0, 200) ?? ""}`);
   }
 
   render() {

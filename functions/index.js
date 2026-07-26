@@ -1,3 +1,14 @@
+// Verificación server-side de compras (Google Play). Requiere el plan Blaze
+// para desplegarse (Cloud Functions), por eso `PURCHASES_ENABLED`
+// (src/lib/features.ts) está desactivado por defecto en ambas plataformas:
+// la app no depende de que estas funciones estén desplegadas para arrancar.
+//
+// TODO(android-purchases): esta función solo sabe hablar con la API de
+// Google Play. Antes de reactivarla en producción, sustituir/complementar
+// con Stripe u otra pasarela si Blaze no es viable.
+// TODO(ios-purchases): no existe todavía verificación de recibos de Apple
+// aquí (App Store Server API o JWS de StoreKit 2). No activar
+// `EXPO_PUBLIC_IOS_PURCHASES_ENABLED` hasta añadirla.
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
@@ -61,6 +72,13 @@ exports.verifyCoachPurchase = onDocumentCreated({
     await snapshot.ref.update({ status: "rejected", reason: "Producto no válido." });
     return;
   }
+  if (purchase.platform && purchase.platform !== "android") {
+    // Ver TODO(ios-purchases) al principio del archivo: todavía no hay
+    // verificación de recibos de Apple, así que no intentamos validar contra
+    // la API de Google Play con un token que no es suyo.
+    await snapshot.ref.update({ status: "rejected", reason: "Verificación de iOS aún no implementada." });
+    return;
+  }
 
   try {
     const { publisher, orderId, alreadyConsumed } = await verifyProduct(purchase.productId, purchase.purchaseToken, purchase.ownerId);
@@ -115,6 +133,11 @@ exports.verifyLeaguePurchase = onDocumentCreated({
   const purchase = snapshot.data();
   if (purchase.productId !== LEAGUE_PRODUCT || purchase.purchaseToken !== event.params.purchaseToken) {
     await snapshot.ref.update({ status: "rejected", reason: "Producto no válido." });
+    return;
+  }
+  if (purchase.platform && purchase.platform !== "android") {
+    // Ver TODO(ios-purchases) al principio del archivo.
+    await snapshot.ref.update({ status: "rejected", reason: "Verificación de iOS aún no implementada." });
     return;
   }
   try {

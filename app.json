@@ -54,6 +54,7 @@
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/app-check",
+      "@react-native-firebase/crashlytics",
       "expo-router",
       "expo-asset",
       "expo-font",

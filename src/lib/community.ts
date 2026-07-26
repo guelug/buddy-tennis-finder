@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
 import {
   collection,
@@ -159,6 +160,11 @@ export async function createCoachAdDraft(
   return ad;
 }
 
+// TODO(purchase-verification): `functions/index.js` solo verifica compras de
+// Google Play (Android). Este registro se usa igual en ambas plataformas
+// porque hoy `PURCHASES_ENABLED` (src/lib/features.ts) está desactivado por
+// defecto en las dos; antes de habilitar iOS hay que añadir la verificación
+// del recibo de Apple en el backend.
 export async function registerCoachPurchase(adId: string, productId: string, purchaseToken: string, transactionId?: string | null) {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("La sesión ha caducado.");
@@ -169,7 +175,7 @@ export async function registerCoachPurchase(adId: string, productId: string, pur
     productId,
     purchaseToken,
     transactionId: transactionId ?? "",
-    platform: "android",
+    platform: Platform.OS,
     status: "pending_verification",
     createdAt: serverTimestamp()
   });
@@ -182,7 +188,7 @@ export function waitForCoachPurchaseVerification(purchaseToken: string, timeoutM
       if (settled) return;
       settled = true;
       unsubscribe();
-      reject(new Error("Google Play está verificando el pago. Tu anuncio se activará automáticamente en unos minutos."));
+      reject(new Error(Platform.OS === "ios" ? "App Store está verificando el pago. Tu anuncio se activará automáticamente en unos minutos." : "Google Play está verificando el pago. Tu anuncio se activará automáticamente en unos minutos."));
     }, timeoutMs);
     const unsubscribe = onSnapshot(doc(db, "coachPurchases", purchaseToken), (snapshot) => {
       if (!snapshot.exists() || settled) return;
@@ -196,7 +202,7 @@ export function waitForCoachPurchaseVerification(purchaseToken: string, timeoutM
         settled = true;
         clearTimeout(timeout);
         unsubscribe();
-        reject(new Error("Google Play no pudo validar esta compra."));
+        reject(new Error(Platform.OS === "ios" ? "App Store no pudo validar esta compra." : "Google Play no pudo validar esta compra."));
       }
     }, (error) => {
       if (settled) return;
@@ -272,6 +278,8 @@ export async function markCoachInterestRead(id: string) {
   await updateDoc(doc(db, "coachInterests", id), { readAt: serverTimestamp() });
 }
 
+// TODO(purchase-verification): mismo hueco que registerCoachPurchase — la
+// verificación server-side hoy solo cubre Google Play.
 export async function registerLeaguePurchase(input: PrivateLeagueInput, purchaseToken: string, transactionId?: string | null) {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("La sesión ha caducado.");
@@ -280,7 +288,7 @@ export async function registerLeaguePurchase(input: PrivateLeagueInput, purchase
     productId: PRIVATE_LEAGUE_PRODUCT.id,
     purchaseToken,
     transactionId: transactionId ?? "",
-    platform: "android",
+    platform: Platform.OS,
     status: "pending_verification",
     league: {
       name: input.name.trim().slice(0, 80),
@@ -301,7 +309,7 @@ export function waitForLeaguePurchaseVerification(purchaseToken: string, timeout
       if (settled) return;
       settled = true;
       unsubscribe();
-      reject(new Error("Google Play está verificando el pago. La liga aparecerá automáticamente en unos minutos."));
+      reject(new Error(Platform.OS === "ios" ? "App Store está verificando el pago. La liga aparecerá automáticamente en unos minutos." : "Google Play está verificando el pago. La liga aparecerá automáticamente en unos minutos."));
     }, timeoutMs);
     const unsubscribe = onSnapshot(purchaseRef, (snapshot) => {
       if (!snapshot.exists() || settled) return;
@@ -315,7 +323,7 @@ export function waitForLeaguePurchaseVerification(purchaseToken: string, timeout
         settled = true;
         clearTimeout(timeout);
         unsubscribe();
-        reject(new Error("Google Play no pudo validar esta compra."));
+        reject(new Error(Platform.OS === "ios" ? "App Store no pudo validar esta compra." : "Google Play no pudo validar esta compra."));
       }
     }, (error) => {
       if (settled) return;

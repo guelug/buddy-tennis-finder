@@ -11,12 +11,15 @@ import { detectDeviceLanguage, DICTIONARIES, FALLBACK_LANGUAGE, translate } from
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { AuthGate } from "@/components/auth-gate";
 import { PurchaseProvider } from "@/components/purchase-provider";
+import { initCrashReporting } from "@/lib/crash-reporting";
 import { useAppFonts } from "@/lib/use-app-fonts";
 import { colors, ThemeModeProvider, useThemeMode } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync().catch((error: unknown) => {
   console.warn("[matchpoint] No se pudo mantener el splash nativo", error);
 });
+
+initCrashReporting();
 
 export default function RootLayout() {
   const fontsLoaded = useAppFonts();

@@ -17,6 +17,7 @@ import {
 } from "@react-native-firebase/auth";
 import { doc, serverTimestamp, setDoc } from "@react-native-firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
+import { setCrashReportingUser } from "@/lib/crash-reporting";
 import {
   isNativeGoogleSignInConfigured,
   requestNativeGoogleIdToken,
@@ -194,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
       setUser(mapFirebaseUser(firebaseUser));
       setLoading(false);
+      setCrashReportingUser(firebaseUser?.uid ?? null);
       if (firebaseUser) syncPrivateIdentity(firebaseUser).catch((error) => console.warn("[matchpoint] identity sync", error));
     });
 
