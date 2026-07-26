@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Platform, Pressable, Text } from "react-native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Icon } from "@/components/icon";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { DateFieldProps } from "./date-field";
 
@@ -19,6 +20,7 @@ function serializeDate(date: Date) {
 }
 
 export function DateField({ value, onChange, minimumDate }: DateFieldProps) {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const selectedDate = useMemo(() => parseDate(value), [value]);
 
@@ -27,10 +29,23 @@ export function DateField({ value, onChange, minimumDate }: DateFieldProps) {
     if (event.type === "set" && nextDate) onChange(serializeDate(nextDate));
   };
 
+  const formattedDate = (() => {
+    try {
+      return selectedDate.toLocaleDateString(locale, {
+        weekday: "short",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      });
+    } catch {
+      return selectedDate.toDateString();
+    }
+  })();
+
   return (
     <>
       <Pressable
-        accessibilityLabel="Elegir fecha de la reserva"
+        accessibilityLabel={t("date.picker.a11y")}
         accessibilityRole="button"
         onPress={() => setOpen(true)}
         style={({ pressed }) => ({
@@ -47,12 +62,7 @@ export function DateField({ value, onChange, minimumDate }: DateFieldProps) {
       >
         <Icon name="calendar-clock" size={18} color={colors.court as string} />
         <Text style={{ ...typography.bodyEmphasized, color: colors.textPrimary, flex: 1 }}>
-          {selectedDate.toLocaleDateString("es", {
-            weekday: "short",
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-          })}
+          {formattedDate}
         </Text>
         <Icon name="chevron-right" size={15} color={colors.textTertiary as string} />
       </Pressable>

@@ -7,6 +7,19 @@ import {
   TeamSide
 } from "@/types";
 import { isFirebaseConfigured } from "@/../firebase.config";
+import { auth, db } from "@/../firebase.config";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  runTransaction,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where
+} from "firebase/firestore";
 
 /**
  * Sala del partido — store del ciclo de vida de un partido jugado:
@@ -210,7 +223,7 @@ const rooms: MatchRoom[] = [
 // ---------------------------------------------------------------------------
 
 export async function getMatchRooms(playerId?: string): Promise<MatchRoom[]> {
-  if (isFirebaseConfigured) return [];
+  if (isFirebaseConfigured) return getFirebaseMatchRooms(playerId ?? auth.currentUser?.uid);
   await wait();
   const sorted = [...rooms].sort((a, b) => (a.playedAt > b.playedAt ? -1 : 1));
   if (!playerId) return sorted.map(cloneRoom);
@@ -238,7 +251,23 @@ export async function reportResult(
   playerId: string,
   input: { winner: TeamSide; sets: SetScore[] }
 ): Promise<MatchRoom> {
-  requireDemoMode();
+  if (isFirebaseConfigured) {
+    const room = await getFirebaseRoom(roomId);
+    if (!roomAffordances(room, playerId).canReport) throw new Error("Solo un participante puede registrar el resultado.");
+    if (!validSets(input.sets)) throw new Error("El marcador no es válido.");
+    await updateDoc(doc(db, "matches", roomId), {
+      resultStatus: "awaiting_validation",
+      result: {
+        winner: input.winner,
+        sets: input.sets,
+        reportedById: playerId,
+        reportedByName: nameOf(room, playerId),
+        reportedAt: new Date().toISOString()
+      },
+      updatedAt: serverTimestamp()
+    });
+    return getFirebaseRoom(roomId);
+  }
   await wait();
   const room = requireRoom(roomId);
   const affordances = roomAffordances(room, playerId);
@@ -260,7 +289,42 @@ export async function reportResult(
 }
 
 export async function validateResult(roomId: string, playerId: string): Promise<MatchRoom> {
-  requireDemoMode();
+  if (isFirebaseConfigured) {
+    const room = await getFirebaseRoom(roomId);
+    if (!roomAffordances(room, playerId).canValidate || !room.result) {
+      throw new Error("Solo el rival puede validar este resultado.");
+    }
+    const matchRef = doc(db, "matches", roomId);
+    const rankingRef = doc(db, "rankingResults", roomId);
+    await runTransaction(db, async (transaction) => {
+      const fresh = await transaction.get(matchRef);
+      const data = fresh.data();
+      if (!fresh.exists() || data?.resultStatus !== "awaiting_validation" || data.result?.reportedById === playerId) {
+        throw new Error("El resultado ya cambió o no te corresponde validarlo.");
+      }
+      transaction.update(matchRef, {
+        resultStatus: "validated",
+        validation: {
+          playerId,
+          playerName: nameOf(room, playerId),
+          validatedAt: new Date().toISOString()
+        },
+        updatedAt: serverTimestamp()
+      });
+      transaction.set(rankingRef, {
+        matchId: roomId,
+        city: String(data.city || ""),
+        division: data.division,
+        playerAId: data.fromPlayerId,
+        playerBId: data.acceptedByPlayerId,
+        winnerId: data.result.winner === "A" ? data.fromPlayerId : data.acceptedByPlayerId,
+        playedAt: data.startsAt,
+        validatedById: playerId,
+        createdAt: serverTimestamp()
+      });
+    });
+    return getFirebaseRoom(roomId);
+  }
   await wait();
   const room = requireRoom(roomId);
   if (!roomAffordances(room, playerId).canValidate) {
@@ -276,7 +340,15 @@ export async function validateResult(roomId: string, playerId: string): Promise<
 }
 
 export async function disputeResult(roomId: string, playerId: string): Promise<MatchRoom> {
-  requireDemoMode();
+  if (isFirebaseConfigured) {
+    const room = await getFirebaseRoom(roomId);
+    if (!roomAffordances(room, playerId).canValidate) throw new Error("Solo el rival puede disputar este resultado.");
+    await updateDoc(doc(db, "matches", roomId), {
+      resultStatus: "disputed",
+      updatedAt: serverTimestamp()
+    });
+    return getFirebaseRoom(roomId);
+  }
   await wait();
   const room = requireRoom(roomId);
   if (!roomAffordances(room, playerId).canValidate) {
@@ -327,6 +399,55 @@ function requireDemoMode() {
   if (isFirebaseConfigured) {
     throw new Error("El registro de resultados estará disponible en la siguiente fase beta.");
   }
+}
+
+function validSets(sets: SetScore[]) {
+  return sets.length >= 1 && sets.length <= 5 && sets.every((set) =>
+    Number.isInteger(set.a) && Number.isInteger(set.b)
+    && set.a >= 0 && set.a <= 99 && set.b >= 0 && set.b <= 99 && set.a !== set.b
+  );
+}
+
+async function getFirebaseMatchRooms(playerId?: string): Promise<MatchRoom[]> {
+  if (!playerId) return [];
+  const [owned, joined] = await Promise.all([
+    getDocs(query(collection(db, "matches"), where("fromPlayerId", "==", playerId))),
+    getDocs(query(collection(db, "matches"), where("acceptedByPlayerId", "==", playerId)))
+  ]);
+  const matches = new Map([...owned.docs, ...joined.docs].map((item) => [item.id, item]));
+  const result = await Promise.all(Array.from(matches.values()).map(async (item): Promise<MatchRoom | null> => {
+    const data = item.data();
+    if (data.status !== "accepted" || !data.acceptedByPlayerId || new Date(data.startsAt).getTime() > Date.now()) return null;
+    const [owner, rival] = await Promise.all([
+      getDoc(doc(db, "players", data.fromPlayerId)),
+      getDoc(doc(db, "players", data.acceptedByPlayerId))
+    ]);
+    const ownerName = String(owner.data()?.name || "Jugador");
+    const rivalName = String(rival.data()?.name || "Rival");
+    return {
+      id: item.id,
+      format: data.format,
+      division: data.division,
+      clubId: data.clubId,
+      playedAt: data.startsAt,
+      teamA: { side: "A", playerIds: [data.fromPlayerId], playerNames: [ownerName], captainId: data.fromPlayerId },
+      teamB: { side: "B", playerIds: [data.acceptedByPlayerId], playerNames: [rivalName], captainId: data.acceptedByPlayerId },
+      status: (data.resultStatus || "awaiting_result") as MatchRoomStatus,
+      result: data.result,
+      validation: data.validation,
+      reviews: []
+    } satisfies MatchRoom;
+  }));
+  return result.filter((room): room is MatchRoom => room !== null)
+    .sort((a, b) => b.playedAt.localeCompare(a.playedAt));
+}
+
+async function getFirebaseRoom(roomId: string): Promise<MatchRoom> {
+  const playerId = auth.currentUser?.uid;
+  const roomsForPlayer = await getFirebaseMatchRooms(playerId);
+  const room = roomsForPlayer.find((item) => item.id === roomId);
+  if (!room) throw new Error("No encontramos este partido o todavía no se ha jugado.");
+  return room;
 }
 
 // ---------------------------------------------------------------------------

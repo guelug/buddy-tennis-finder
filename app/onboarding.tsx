@@ -26,6 +26,7 @@ import { WazeLogo } from "@/components/icons/waze-logo";
 import { BrandLockup } from "@/components/brand-lockup";
 import { LiveBackground } from "@/components/live-visuals";
 import { LoadingView } from "@/components/loading-view";
+import { MatchBuddyPicker } from "@/components/match-buddy-picker";
 import { skillsFromRating } from "@/components/skill-radar";
 import { useAuth } from "@/lib/firebase-auth";
 import { getClubs, getPlayer, savePlayerProfile } from "@/lib/firestore";
@@ -84,28 +85,56 @@ const SKILL_AXES: Array<{ key: keyof PlayerSkills; labelKey: string }> = [
 ];
 
 type DayAvailability = { active: boolean; start: string; end: string };
-type StepIndex = 0 | 1 | 2;
 
-const STEPS = [
-  {
-    key: "identity",
-    eyebrowKey: "onboarding.step1.eyebrow",
-    titleKey: "onboarding.step1.title",
-    subtitleKey: "onboarding.step1.subtitle"
-  },
-  {
-    key: "game",
-    eyebrowKey: "onboarding.step2.eyebrow",
-    titleKey: "onboarding.step2.title",
-    subtitleKey: "onboarding.step2.subtitle"
-  },
-  {
-    key: "schedule",
-    eyebrowKey: "onboarding.step3.eyebrow",
-    titleKey: "onboarding.step3.title",
-    subtitleKey: "onboarding.step3.subtitle"
-  }
-] as const;
+/**
+ * El onboarding avanza pregunta a pregunta: cada pantalla pide una sola cosa,
+ * con su propia validación. `section` agrupa las preguntas bajo el mismo
+ * antetítulo (Perfil · Juego · Agenda) para que el usuario sepa dónde está.
+ */
+type QuestionKey =
+  | "language"
+  | "buddy"
+  | "name"
+  | "age"
+  | "gender"
+  | "location"
+  | "clubs"
+  | "level"
+  | "formats"
+  | "languages"
+  | "skills"
+  | "bio"
+  | "schedule";
+
+const QUESTIONS: Array<{ key: QuestionKey; eyebrowKey: string; titleKey: string; subtitleKey: string }> = [
+  { key: "language", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.language.title", subtitleKey: "onboarding.q.language.subtitle" },
+  { key: "buddy", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.buddy.title", subtitleKey: "onboarding.q.buddy.subtitle" },
+  { key: "name", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.name.title", subtitleKey: "onboarding.q.name.subtitle" },
+  { key: "age", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.age.title", subtitleKey: "onboarding.q.age.subtitle" },
+  { key: "gender", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.gender.title", subtitleKey: "onboarding.q.gender.subtitle" },
+  { key: "location", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.location.title", subtitleKey: "onboarding.q.location.subtitle" },
+  { key: "clubs", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.clubs.title", subtitleKey: "onboarding.q.clubs.subtitle" },
+  { key: "level", eyebrowKey: "onboarding.step2.eyebrow", titleKey: "onboarding.q.level.title", subtitleKey: "onboarding.q.level.subtitle" },
+  { key: "formats", eyebrowKey: "onboarding.step2.eyebrow", titleKey: "onboarding.q.formats.title", subtitleKey: "onboarding.q.formats.subtitle" },
+  { key: "languages", eyebrowKey: "onboarding.step2.eyebrow", titleKey: "onboarding.q.languages.title", subtitleKey: "onboarding.q.languages.subtitle" },
+  { key: "skills", eyebrowKey: "onboarding.step2.eyebrow", titleKey: "onboarding.q.skills.title", subtitleKey: "onboarding.q.skills.subtitle" },
+  { key: "bio", eyebrowKey: "onboarding.step2.eyebrow", titleKey: "onboarding.q.bio.title", subtitleKey: "onboarding.q.bio.subtitle" },
+  { key: "schedule", eyebrowKey: "onboarding.step3.eyebrow", titleKey: "onboarding.q.schedule.title", subtitleKey: "onboarding.q.schedule.subtitle" }
+];
+
+const LAST_STEP = QUESTIONS.length - 1;
+
+/**
+ * `selectableCountries` es una tupla literal, así que comparar su `length`
+ * contra 1 lo resolvía TypeScript en tiempo de compilación. Con la lista
+ * ensanchada, la preselección vuelve a depender de cuántos mercados haya
+ * abiertos en cada momento.
+ */
+const OPEN_COUNTRIES: readonly Country[] = selectableCountries;
+
+function onlyOption<T>(options: readonly T[]): T | null {
+  return options.length === 1 ? options[0] : null;
+}
 
 export default function OnboardingScreen() {
   const { width } = useWindowDimensions();
@@ -114,7 +143,7 @@ export default function OnboardingScreen() {
   const { isLight } = useThemeMode();
   const { user } = useAuth();
   const { t } = useI18n();
-  const [step, setStep] = useState<StepIndex>(0);
+  const [step, setStep] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loadingClubs, setLoadingClubs] = useState(true);
@@ -129,13 +158,10 @@ export default function OnboardingScreen() {
   // Si solo hay un país seleccionable (lanzamiento en Guatemala) lo
   // preseleccionamos, y si ese país tiene una sola ciudad, también. Cuando se
   // abran más mercados vuelve a exigir selección manual automáticamente.
-  const [country, setCountry] = useState<Country | null>(
-    selectableCountries.length === 1 ? selectableCountries[0] : null
-  );
+  const [country, setCountry] = useState<Country | null>(() => onlyOption(OPEN_COUNTRIES));
   const [city, setCity] = useState<string | null>(() => {
-    const initialCountry = selectableCountries.length === 1 ? selectableCountries[0] : null;
-    const initialCities = initialCountry ? CITIES_BY_COUNTRY[initialCountry] : [];
-    return initialCities.length === 1 ? initialCities[0] : null;
+    const initialCountry = onlyOption(OPEN_COUNTRIES);
+    return initialCountry ? onlyOption(CITIES_BY_COUNTRY[initialCountry]) : null;
   });
   const [clubIds, setClubIds] = useState<string[]>([]);
   const [level, setLevel] = useState<SkillLevel>("c");
@@ -145,7 +171,7 @@ export default function OnboardingScreen() {
   const [skills, setSkills] = useState<PlayerSkills>(() => skillsFromRating(3));
   const [availability, setAvailability] = useState<Record<string, DayAvailability>>({});
   const [isFirstProfile, setIsFirstProfile] = useState(true);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [touched, setTouched] = useState(false);
 
   const loadClubs = () => {
     setLoadingClubs(true);
@@ -222,47 +248,57 @@ export default function OnboardingScreen() {
   const ageNum = Number(age);
   const ageValid = age.trim() !== "" && Number.isFinite(ageNum) && ageNum >= 13 && ageNum <= 100;
 
-  const step0Valid = name.trim().length > 1 && ageValid && gender !== null && country !== null && city !== null && clubIds.length > 0;
-  const step1Valid = formats.length > 0 && languages.length > 0;
-  const canSave = step0Valid && step1Valid;
+  /** Validez de cada pregunta: solo bloquea el avance de su propia pantalla. */
+  const answered: Record<QuestionKey, boolean> = {
+    language: true,
+    buddy: true,
+    name: name.trim().length > 1,
+    age: ageValid,
+    gender: gender !== null,
+    location: country !== null && city !== null,
+    clubs: clubIds.length > 0,
+    level: true,
+    formats: formats.length > 0,
+    languages: languages.length > 0,
+    skills: true,
+    bio: true,
+    schedule: true
+  };
 
-  const stepMeta = STEPS[step];
+  const question = QUESTIONS[step];
+  const currentValid = answered[question.key];
+  const canSave = QUESTIONS.every((item) => answered[item.key]);
+
+  /** Primera pregunta sin responder — para el atajo "Guardar" al editar. */
+  const firstUnanswered = useMemo(
+    () => QUESTIONS.findIndex((item) => !answered[item.key]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [name, age, gender, country, city, clubIds, formats, languages]
+  );
 
   const stepHint = useMemo(() => {
-    if (step === 0 && !step0Valid) {
-      return t("onboarding.hint.step0");
-    }
-    if (step === 1 && !step1Valid) {
-      return t("onboarding.hint.step1");
-    }
-    return null;
-  }, [step, step0Valid, step1Valid, t]);
+    if (currentValid) return null;
+    if (question.key === "clubs" && (!country || !city)) return t("onboarding.q.clubs.pickCity");
+    return t("onboarding.hint.answer");
+  }, [currentValid, question.key, country, city, t]);
 
-  function goToStep(next: StepIndex) {
-    setStep(next);
+  function goToStep(next: number) {
+    setStep(Math.max(0, Math.min(LAST_STEP, next)));
+    setTouched(false);
+    setSaveMessage(null);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
   function goNext() {
+    setTouched(true);
     setSaveMessage(null);
-    setTouched((prev) => ({ ...prev, [step]: true }));
-    if (step === 0 && !step0Valid) {
-      setSaveMessage(t("onboarding.save.reviewStep"));
-      return;
-    }
-    if (step === 1 && !step1Valid) {
-      setSaveMessage(t("onboarding.save.reviewGame"));
-      return;
-    }
-    if (step < 2) {
-      if (Platform.OS !== "web") void Haptics.selectionAsync();
-      goToStep((step + 1) as StepIndex);
-    }
+    if (!currentValid) return;
+    if (Platform.OS !== "web") void Haptics.selectionAsync();
+    if (step < LAST_STEP) goToStep(step + 1);
   }
 
   function goBack() {
-    setSaveMessage(null);
-    if (step > 0) goToStep((step - 1) as StepIndex);
+    if (step > 0) goToStep(step - 1);
   }
 
   async function handleSave() {
@@ -273,6 +309,7 @@ export default function OnboardingScreen() {
     }
     if (!canSave || gender === null) {
       setSaveMessage(t("onboarding.save.reviewRequired"));
+      if (firstUnanswered >= 0) goToStep(firstUnanswered);
       return;
     }
 
@@ -351,66 +388,57 @@ export default function OnboardingScreen() {
     >
       <View style={{ width: "100%", maxWidth: contentWidth.narrow + 80, gap: spacing.lg }}>
         <BrandBadge />
-        <StepProgress current={step} total={STEPS.length} />
+        <StepProgress current={step} total={QUESTIONS.length} />
 
-        <Animated.View key={`header-${step}`} entering={FadeIn.duration(280)}>
+        <Animated.View key={`header-${step}`} entering={FadeIn.duration(240)}>
           <View style={{ gap: spacing.sm, paddingHorizontal: spacing.base, marginTop: spacing.sm }}>
             <Text style={{ ...typography.caption, color: colors.court, textTransform: "uppercase", letterSpacing: 1.4, fontWeight: "800" }}>
-              {isFirstProfile ? t(stepMeta.eyebrowKey) : `${t("onboarding.editing")} · ${t(stepMeta.eyebrowKey)}`}
+              {isFirstProfile ? t(question.eyebrowKey) : `${t("onboarding.editing")} · ${t(question.eyebrowKey)}`}
             </Text>
-            <Text style={{ ...typography.largeTitle, color: colors.textPrimary, letterSpacing: -0.2 }}>{t(stepMeta.titleKey)}</Text>
-            <Text style={{ ...typography.body, color: colors.textSecondary }}>{t(stepMeta.subtitleKey)}</Text>
+            <Text style={{ ...typography.largeTitle, color: colors.textPrimary, letterSpacing: -0.2 }}>{t(question.titleKey)}</Text>
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>{t(question.subtitleKey)}</Text>
           </View>
         </Animated.View>
 
         <Animated.View key={`body-${step}`} entering={FadeInRight.springify().damping(22).stiffness(180)} exiting={FadeOutLeft.duration(150)}>
-          {step === 0 ? (
-            <IdentityStep
-              userId={user?.uid}
-              name={name}
-              setName={setName}
-              age={age}
-              setAge={setAge}
-              gender={gender}
-              setGender={setGender}
-              country={country}
-              setCountry={setCountry}
-              city={city}
-              setCity={setCity}
-              photoURL={photoURL}
-              setPhotoURL={setPhotoURL}
-              clubs={clubs}
-              clubIds={clubIds}
-              toggleClub={toggleClub}
-              moveClubToFirst={moveClubToFirst}
-              setClubIds={setClubIds}
-              primaryClub={primaryClub}
-              ageValid={ageValid}
-              touched={touched[0]}
-            />
-          ) : null}
-          {step === 1 ? (
-            <GameStep
-              level={level}
-              setLevel={setLevel}
-              formats={formats}
-              toggleFormat={toggleFormat}
-              languages={languages}
-              toggleLanguage={toggleLanguage}
-              bio={bio}
-              setBio={setBio}
-              skills={skills}
-              setSkill={(key, value) => setSkills((current) => ({ ...current, [key]: value }))}
-            />
-          ) : null}
-          {step === 2 ? (
-            <ScheduleStep
-              compact={compact}
-              availability={availability}
-              setAvailability={setAvailability}
-              toggleDay={toggleDay}
-            />
-          ) : null}
+          <QuestionCard
+            question={question.key}
+            compact={compact}
+            userId={user?.uid}
+            name={name}
+            setName={setName}
+            age={age}
+            setAge={setAge}
+            ageValid={ageValid}
+            gender={gender}
+            setGender={setGender}
+            country={country}
+            setCountry={setCountry}
+            city={city}
+            setCity={setCity}
+            photoURL={photoURL}
+            setPhotoURL={setPhotoURL}
+            clubs={clubs}
+            clubIds={clubIds}
+            toggleClub={toggleClub}
+            moveClubToFirst={moveClubToFirst}
+            setClubIds={setClubIds}
+            primaryClub={primaryClub}
+            level={level}
+            setLevel={setLevel}
+            formats={formats}
+            toggleFormat={toggleFormat}
+            languages={languages}
+            toggleLanguage={toggleLanguage}
+            bio={bio}
+            setBio={setBio}
+            skills={skills}
+            setSkill={(key, value) => setSkills((current) => ({ ...current, [key]: value }))}
+            availability={availability}
+            setAvailability={setAvailability}
+            toggleDay={toggleDay}
+            touched={touched}
+          />
         </Animated.View>
 
         {saveMessage ? (
@@ -418,8 +446,8 @@ export default function OnboardingScreen() {
             {saveMessage}
           </Text>
         ) : null}
-        {stepHint ? (
-          <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
+        {touched && stepHint ? (
+          <Text style={{ ...typography.footnote, color: colors.danger, textAlign: "center" }}>
             {stepHint}
           </Text>
         ) : null}
@@ -452,29 +480,45 @@ export default function OnboardingScreen() {
             backdropFilter: Platform.OS === "web" ? "blur(14px)" : undefined
           }}
         >
-          <View style={{ alignSelf: "center", flexDirection: "row", gap: spacing.sm, maxWidth: contentWidth.narrow + 80, width: "100%" }}>
-            {step > 0 ? (
-              <View style={{ flex: 1 }}>
-                <PrimaryButton label={t("onboarding.back")} variant="outline" onPress={goBack} disabled={saving} />
+          <View style={{ alignSelf: "center", gap: spacing.sm, maxWidth: contentWidth.narrow + 80, width: "100%" }}>
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {step > 0 ? (
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton label={t("onboarding.back")} variant="outline" onPress={goBack} disabled={saving} />
+                </View>
+              ) : null}
+              <View style={{ flex: step > 0 ? 1.4 : 1 }}>
+                {/* El botón nunca se deshabilita por falta de respuesta: al
+                    pulsarlo se marca la pregunta como tocada y aparece la pista
+                    que explica qué falta. Deshabilitarlo dejaba al usuario
+                    bloqueado sin ningún mensaje. */}
+                {step < LAST_STEP ? (
+                  <PrimaryButton
+                    label={t("onboarding.next")}
+                    onPress={goNext}
+                    disabled={saving}
+                    size="lg"
+                  />
+                ) : (
+                  <PrimaryButton
+                    label={saving ? t("onboarding.saving") : isFirstProfile ? t("onboarding.saveAndStart") : t("onboarding.saveChanges")}
+                    onPress={handleSave}
+                    disabled={saving}
+                    size="lg"
+                  />
+                )}
               </View>
-            ) : null}
-            <View style={{ flex: step > 0 ? 1.4 : 1 }}>
-              {step < 2 ? (
-                <PrimaryButton
-                  label={t("onboarding.next")}
-                  onPress={goNext}
-                  disabled={(step === 0 && !step0Valid) || (step === 1 && !step1Valid)}
-                  size="lg"
-                />
-              ) : (
-                <PrimaryButton
-                  label={saving ? t("onboarding.saving") : isFirstProfile ? t("onboarding.saveAndStart") : t("onboarding.saveChanges")}
-                  onPress={handleSave}
-                  disabled={!canSave || saving}
-                  size="lg"
-                />
-              )}
             </View>
+            {/* Al editar un perfil ya creado nadie debería recorrer las 13
+                pantallas para cambiar un dato: se guarda desde cualquier paso. */}
+            {!isFirstProfile && step < LAST_STEP ? (
+              <PrimaryButton
+                label={saving ? t("onboarding.saving") : t("onboarding.saveChanges")}
+                variant="ghost"
+                onPress={handleSave}
+                disabled={saving}
+              />
+            ) : null}
           </View>
         </View>
       </View>
@@ -483,37 +527,18 @@ export default function OnboardingScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Pasos
+// Pregunta actual
 // ---------------------------------------------------------------------------
 
-function IdentityStep({
-  userId,
-  name,
-  setName,
-  age,
-  setAge,
-  gender,
-  setGender,
-  country,
-  setCountry,
-  city,
-  setCity,
-  photoURL,
-  setPhotoURL,
-  clubs,
-  clubIds,
-  toggleClub,
-  moveClubToFirst,
-  setClubIds,
-  primaryClub,
-  ageValid,
-  touched
-}: {
+type QuestionCardProps = {
+  question: QuestionKey;
+  compact: boolean;
   userId?: string;
   name: string;
   setName: (v: string) => void;
   age: string;
   setAge: (v: string) => void;
+  ageValid: boolean;
   gender: Gender | null;
   setGender: (v: Gender) => void;
   country: Country | null;
@@ -528,159 +553,6 @@ function IdentityStep({
   moveClubToFirst: (id: string) => void;
   setClubIds: (v: string[]) => void;
   primaryClub?: Club;
-  ageValid: boolean;
-  touched: boolean;
-}) {
-  const { t, lang, setLang } = useI18n();
-  const filteredClubs = useMemo(() => {
-    if (!country || !city) return [];
-    return clubs.filter((c) => c.country === country && c.city === city);
-  }, [clubs, country, city]);
-
-  const cityOptions = useMemo(() => (country ? CITIES_BY_COUNTRY[country] : []), [country]);
-
-  return (
-    <View style={cardWrapper()}>
-      <Field label={t("settings.language")}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {SUPPORTED_LANGUAGES.map((language) => (
-            <Chip
-              key={language.code}
-              active={lang === language.code}
-              label={language.label}
-              onPress={() => setLang(language.code)}
-            />
-          ))}
-        </View>
-      </Field>
-
-      {userId ? <ProfilePhotoUploader uid={userId} name={name} value={photoURL} onChange={setPhotoURL} /> : null}
-
-      <Field label={t("onboarding.field.name")} required>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder={t("onboarding.field.namePlaceholder")}
-          placeholderTextColor={colors.textTertiary}
-          style={inputStyle()}
-          autoComplete="name"
-          accessibilityLabel={t("onboarding.a11y.name")}
-        />
-      </Field>
-
-      <View style={{ flexDirection: "row", gap: spacing.md }}>
-        <Field label={t("onboarding.field.age")} required style={{ flex: 1 }}>
-          <TextInput
-            value={age}
-            onChangeText={(text) => setAge(text.replace(/[^0-9]/g, "").slice(0, 3))}
-            placeholder={t("onboarding.field.agePlaceholder")}
-            keyboardType="numeric"
-            placeholderTextColor={colors.textTertiary}
-            style={[inputStyle(), touched && !ageValid ? { borderColor: colors.danger, color: colors.danger } : null]}
-            accessibilityLabel={t("onboarding.a11y.age")}
-          />
-          {touched && !ageValid ? <Text style={{ ...typography.footnote, color: colors.danger, marginTop: spacing.xs }}>{t("onboarding.field.ageError")}</Text> : null}
-        </Field>
-        <Field label={t("onboarding.field.gender")} required style={{ flex: 1 }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-            {GENDER_OPTIONS.map((g) => (
-              <Chip key={g.value} active={gender === g.value} label={t(g.labelKey)} onPress={() => setGender(g.value)} />
-            ))}
-          </View>
-        </Field>
-      </View>
-
-      <Field label={t("onboarding.field.country")} required>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {selectableCountries.map((c) => (
-            <Chip
-              key={c}
-              active={country === c}
-              label={c}
-              onPress={() => {
-                setCountry(c);
-                // Si el país tiene una sola ciudad la fijamos directamente para
-                // ahorrar un toque; si tiene varias, obligamos a re-elegir.
-                const nextCities = CITIES_BY_COUNTRY[c] ?? [];
-                setCity(nextCities.length === 1 ? nextCities[0] : null);
-                setClubIds([]);
-              }}
-            />
-          ))}
-        </View>
-      </Field>
-
-      {country ? (
-        <Field label={t("onboarding.field.city")} required>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-            {cityOptions.map((c) => (
-              <Chip key={c} active={city === c} label={c} onPress={() => {
-   setCity(c);
-   setClubIds([]);
- }} />
-            ))}
-          </View>
-        </Field>
-      ) : null}
-
-      {country && city ? (
-        <Field label={t("onboarding.field.clubs")} required>
-          <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
-            {t("onboarding.field.clubsHint")}
-          </Text>
-          {filteredClubs.length === 0 ? (
-            <Text style={{ ...typography.footnote, color: colors.textTertiary }}>
-              {t("onboarding.clubs.empty").replace("{city}", city).replace("{country}", country)}
-            </Text>
-          ) : (
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-              {filteredClubs.map((club) => {
-                const selected = clubIds.includes(club.id);
-                const isPrimary = clubIds[0] === club.id;
-                return (
-                  <Chip
-                    key={club.id}
-                    active={selected}
-                    label={isPrimary ? `${club.name} ★` : club.name}
-                    onPress={() => toggleClub(club.id)}
-                    onLongPress={() => moveClubToFirst(club.id)}
-                  />
-                );
-              })}
-            </View>
-          )}
-          {primaryClub ? (
-            <Pressable onPress={() => openInWaze(primaryClub.latitude, primaryClub.longitude, primaryClub.name)} style={wazeRowStyle}>
-              <WazeLogo size={15} color={colors.court} />
-              <Text style={{ ...typography.caption, color: colors.court }}>
-                {t("onboarding.clubs.waze").replace("{club}", primaryClub.name)}
-              </Text>
-            </Pressable>
-          ) : null}
-        </Field>
-      ) : null}
-    </View>
-  );
-}
-
-const GENDER_OPTIONS: Array<{ labelKey: string; value: Gender }> = [
-  { labelKey: "onboarding.gender.female", value: "female" },
-  { labelKey: "onboarding.gender.male", value: "male" },
-  { labelKey: "onboarding.gender.other", value: "other" }
-];
-
-function GameStep({
-  level,
-  setLevel,
-  formats,
-  toggleFormat,
-  languages,
-  toggleLanguage,
-  bio,
-  setBio,
-  skills,
-  setSkill
-}: {
   level: SkillLevel;
   setLevel: (v: SkillLevel) => void;
   formats: MatchFormat[];
@@ -691,86 +563,316 @@ function GameStep({
   setBio: (v: string) => void;
   skills: PlayerSkills;
   setSkill: (key: keyof PlayerSkills, value: number) => void;
-}) {
-  const { t } = useI18n();
+  availability: Record<string, DayAvailability>;
+  setAvailability: React.Dispatch<React.SetStateAction<Record<string, DayAvailability>>>;
+  toggleDay: (day: string) => void;
+  touched: boolean;
+};
+
+function QuestionCard(props: QuestionCardProps) {
+  const { t, lang, setLang } = useI18n();
+  const { question } = props;
+
+  const cityOptions = useMemo(() => (props.country ? CITIES_BY_COUNTRY[props.country] : []), [props.country]);
+  const filteredClubs = useMemo(() => {
+    if (!props.country || !props.city) return [];
+    return props.clubs.filter((c) => c.country === props.country && c.city === props.city);
+  }, [props.clubs, props.country, props.city]);
+
+  if (question === "language") {
+    return (
+      <View style={cardWrapper()}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+          {SUPPORTED_LANGUAGES.map((language) => (
+            <Chip
+              key={language.code}
+              active={lang === language.code}
+              label={language.label}
+              onPress={() => setLang(language.code)}
+            />
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (question === "buddy") {
+    return (
+      <View style={{ gap: spacing.lg }}>
+        <View style={{ backgroundColor: colors.surface, borderColor: colors.borderStrong, borderCurve: "continuous", borderRadius: radii.xl, borderWidth: 1, padding: spacing.base }}>
+          <MatchBuddyPicker compact={props.compact} />
+        </View>
+        {props.userId ? (
+          <View style={cardWrapper()}>
+            <ProfilePhotoUploader uid={props.userId} name={props.name} value={props.photoURL} onChange={props.setPhotoURL} />
+          </View>
+        ) : null}
+      </View>
+    );
+  }
+
+  if (question === "name") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.name")} required>
+          <TextInput
+            value={props.name}
+            onChangeText={props.setName}
+            placeholder={t("onboarding.field.namePlaceholder")}
+            placeholderTextColor={colors.textTertiary}
+            style={inputStyle()}
+            autoComplete="name"
+            autoFocus
+            accessibilityLabel={t("onboarding.a11y.name")}
+          />
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "age") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.age")} required>
+          <TextInput
+            value={props.age}
+            onChangeText={(text) => props.setAge(text.replace(/[^0-9]/g, "").slice(0, 3))}
+            placeholder={t("onboarding.field.agePlaceholder")}
+            keyboardType="numeric"
+            placeholderTextColor={colors.textTertiary}
+            style={[inputStyle(), props.touched && !props.ageValid ? { borderColor: colors.danger, color: colors.danger } : null]}
+            accessibilityLabel={t("onboarding.a11y.age")}
+          />
+          {props.touched && !props.ageValid ? (
+            <Text style={{ ...typography.footnote, color: colors.danger, marginTop: spacing.xs }}>{t("onboarding.field.ageError")}</Text>
+          ) : null}
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "gender") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.gender")} required>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {GENDER_OPTIONS.map((g) => (
+              <Chip key={g.value} active={props.gender === g.value} label={t(g.labelKey)} onPress={() => props.setGender(g.value)} />
+            ))}
+          </View>
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "location") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.country")} required>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {selectableCountries.map((c) => (
+              <Chip
+                key={c}
+                active={props.country === c}
+                label={c}
+                onPress={() => {
+                  props.setCountry(c);
+                  // Si el país tiene una sola ciudad la fijamos directamente para
+                  // ahorrar un toque; si tiene varias, obligamos a re-elegir.
+                  const nextCities = CITIES_BY_COUNTRY[c] ?? [];
+                  props.setCity(nextCities.length === 1 ? nextCities[0] : null);
+                  props.setClubIds([]);
+                }}
+              />
+            ))}
+          </View>
+        </Field>
+        {props.country ? (
+          <Field label={t("onboarding.field.city")} required>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+              {cityOptions.map((c) => (
+                <Chip
+                  key={c}
+                  active={props.city === c}
+                  label={c}
+                  onPress={() => {
+                    props.setCity(c);
+                    props.setClubIds([]);
+                  }}
+                />
+              ))}
+            </View>
+          </Field>
+        ) : null}
+      </View>
+    );
+  }
+
+  if (question === "clubs") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.clubs")} required>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
+            {t("onboarding.field.clubsHint")}
+          </Text>
+          {!props.country || !props.city ? (
+            <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{t("onboarding.q.clubs.pickCity")}</Text>
+          ) : filteredClubs.length === 0 ? (
+            <Text style={{ ...typography.footnote, color: colors.textTertiary }}>
+              {t("onboarding.clubs.empty").replace("{city}", props.city).replace("{country}", props.country)}
+            </Text>
+          ) : (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+              {filteredClubs.map((club) => {
+                const selected = props.clubIds.includes(club.id);
+                const isPrimary = props.clubIds[0] === club.id;
+                return (
+                  <Chip
+                    key={club.id}
+                    active={selected}
+                    label={isPrimary ? `${club.name} ★` : club.name}
+                    onPress={() => props.toggleClub(club.id)}
+                    onLongPress={() => props.moveClubToFirst(club.id)}
+                  />
+                );
+              })}
+            </View>
+          )}
+          {props.primaryClub ? (
+            <Pressable
+              onPress={() => openInWaze(props.primaryClub!.latitude, props.primaryClub!.longitude, props.primaryClub!.name)}
+              style={wazeRowStyle}
+            >
+              <WazeLogo size={15} color={colors.court} />
+              <Text style={{ ...typography.caption, color: colors.court }}>
+                {t("onboarding.clubs.waze").replace("{club}", props.primaryClub.name)}
+              </Text>
+            </Pressable>
+          ) : null}
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "level") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.level")}>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
+            {t("onboarding.field.levelHint")}
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {LEVELS.map((l) => (
+              <Chip
+                key={l.value}
+                active={props.level === l.value}
+                label={l.labelKey ? t(l.labelKey) : l.label}
+                icon={<Icon name={l.icon} size={14} color={props.level === l.value ? colors.textOnBrand : colors.textPrimary} />}
+                onPress={() => props.setLevel(l.value)}
+              />
+            ))}
+          </View>
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "formats") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.formats")} required>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {FORMATS.map((f) => (
+              <Chip
+                key={f.value}
+                active={props.formats.includes(f.value)}
+                label={t(f.labelKey)}
+                icon={<Icon name={f.icon} size={14} color={props.formats.includes(f.value) ? colors.textOnBrand : colors.textPrimary} />}
+                onPress={() => props.toggleFormat(f.value)}
+              />
+            ))}
+          </View>
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "languages") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.languages")} required>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+            {LANGUAGES.map((language) => (
+              <Chip
+                key={language.label}
+                label={t(language.labelKey)}
+                active={props.languages.includes(language.label)}
+                icon={<Icon name={language.icon} size={13} color={props.languages.includes(language.label) ? colors.textOnBrand : colors.textPrimary} />}
+                onPress={() => props.toggleLanguage(language.label)}
+              />
+            ))}
+          </View>
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "skills") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.skills")}>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
+            {t("onboarding.field.skillsHint")}
+          </Text>
+          <View style={{ gap: spacing.md }}>
+            {SKILL_AXES.map((axis) => (
+              <SkillAxisInput
+                key={axis.key}
+                label={t(axis.labelKey)}
+                value={props.skills[axis.key]}
+                onChange={(value) => props.setSkill(axis.key, value)}
+              />
+            ))}
+          </View>
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "bio") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.bio")}>
+          <TextInput
+            value={props.bio}
+            onChangeText={props.setBio}
+            placeholder={t("onboarding.field.bioPlaceholder")}
+            multiline
+            numberOfLines={3}
+            placeholderTextColor={colors.textTertiary}
+            style={[inputStyle(), { minHeight: 84, textAlignVertical: "top" }]}
+            accessibilityLabel={t("onboarding.a11y.bio")}
+          />
+        </Field>
+      </View>
+    );
+  }
+
   return (
-    <View style={cardWrapper()}>
-      <Field label={t("onboarding.field.level")}>
-        <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
-          {t("onboarding.field.levelHint")}
-        </Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {LEVELS.map((l) => (
-            <Chip
-              key={l.value}
-              active={level === l.value}
-              label={l.labelKey ? t(l.labelKey) : l.label}
-              icon={<Icon name={l.icon} size={14} color={level === l.value ? colors.textOnBrand : colors.textPrimary} />}
-              onPress={() => setLevel(l.value)}
-            />
-          ))}
-        </View>
-      </Field>
-
-      <Field label={t("onboarding.field.formats")}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {FORMATS.map((f) => (
-            <Chip
-              key={f.value}
-              active={formats.includes(f.value)}
-              label={t(f.labelKey)}
-              icon={<Icon name={f.icon} size={14} color={formats.includes(f.value) ? colors.textOnBrand : colors.textPrimary} />}
-              onPress={() => toggleFormat(f.value)}
-            />
-          ))}
-        </View>
-      </Field>
-
-      <Field label={t("onboarding.field.languages")}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-          {LANGUAGES.map((language) => (
-            <Chip
-              key={language.label}
-              label={t(language.labelKey)}
-              active={languages.includes(language.label)}
-              icon={<Icon name={language.icon} size={13} color={languages.includes(language.label) ? colors.textOnBrand : colors.textPrimary} />}
-              onPress={() => toggleLanguage(language.label)}
-            />
-          ))}
-        </View>
-      </Field>
-
-      <Field label={t("onboarding.field.skills")}>
-        <Text style={{ ...typography.footnote, color: colors.textSecondary, marginBottom: spacing.xs }}>
-          {t("onboarding.field.skillsHint")}
-        </Text>
-        <View style={{ gap: spacing.md }}>
-          {SKILL_AXES.map((axis) => (
-            <SkillAxisInput
-              key={axis.key}
-              label={t(axis.labelKey)}
-              value={skills[axis.key]}
-              onChange={(value) => setSkill(axis.key, value)}
-            />
-          ))}
-        </View>
-      </Field>
-
-      <Field label={t("onboarding.field.bio")}>
-        <TextInput
-          value={bio}
-          onChangeText={setBio}
-          placeholder={t("onboarding.field.bioPlaceholder")}
-          multiline
-          numberOfLines={3}
-          placeholderTextColor={colors.textTertiary}
-          style={[inputStyle(), { minHeight: 84, textAlignVertical: "top" }]}
-          accessibilityLabel={t("onboarding.a11y.bio")}
-        />
-      </Field>
-    </View>
+    <ScheduleStep
+      compact={props.compact}
+      availability={props.availability}
+      setAvailability={props.setAvailability}
+      toggleDay={props.toggleDay}
+    />
   );
 }
+
+const GENDER_OPTIONS: Array<{ labelKey: string; value: Gender }> = [
+  { labelKey: "onboarding.gender.female", value: "female" },
+  { labelKey: "onboarding.gender.male", value: "male" },
+  { labelKey: "onboarding.gender.other", value: "other" }
+];
 
 function ScheduleStep({
   compact,
@@ -783,7 +885,6 @@ function ScheduleStep({
   setAvailability: React.Dispatch<React.SetStateAction<Record<string, DayAvailability>>>;
   toggleDay: (day: string) => void;
 }) {
-  const { isLight } = useThemeMode();
   const { t } = useI18n();
   return (
     <View style={cardWrapper()}>
@@ -907,7 +1008,7 @@ function StepProgress({ current, total }: { current: number; total: number }) {
   const { t } = useI18n();
   return (
     <View style={{ gap: spacing.sm, paddingHorizontal: spacing.base }}>
-      <View style={{ flexDirection: "row", gap: spacing.xs }}>
+      <View style={{ flexDirection: "row", gap: 3 }}>
         {Array.from({ length: total }).map((_, i) => (
           <View
             key={i}

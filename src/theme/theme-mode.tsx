@@ -27,7 +27,7 @@ function isThemePreference(value: unknown): value is ThemePreference {
 
 export function ThemeModeProvider({ children }: React.PropsWithChildren) {
   const systemScheme = useColorScheme();
-  const [preference, setPreferenceState] = React.useState<ThemePreference>("system");
+  const [preference, setPreferenceState] = React.useState<ThemePreference>("dark");
 
   React.useEffect(() => {
     let active = true;

@@ -16,6 +16,7 @@ import { ScreenShell } from "@/components/screen-shell";
 import { averageReviewSkills, SkillRadar, skillsFromRating } from "@/components/skill-radar";
 import { StarRating } from "@/components/star-rating";
 import { CountUp } from "@/components/count-up";
+import { MatchBuddyPicker } from "@/components/match-buddy-picker";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { WebShell } from "@/components/web/web-shell";
 import { levelLabel } from "@/lib/matching";
@@ -485,6 +486,11 @@ function SettingsSection() {
   ];
   return (
     <GroupedList title={t("settings.title")}>
+      <GroupedRow label="Match Buddy" value="Tu compañero de IA" icon="users">
+        <View style={{ marginTop: spacing.sm }}>
+          <MatchBuddyPicker compact />
+        </View>
+      </GroupedRow>
       <GroupedRow label={t("settings.appearance")} value={t("settings.appearanceHint")} icon="zap">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, marginTop: spacing.xs }}>
           {themeOptions.map((option) => (
@@ -525,6 +531,7 @@ function SettingsPanel() {
   return (
     <GlassPanel>
       <PanelTitle icon="zap" title={t("settings.title")} hint={t("settings.appearanceHint")} />
+      <MatchBuddyPicker />
       <View style={{ gap: spacing.xs }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary, fontSize: 15 }}>{t("settings.appearance")}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Platform, Text, View } from "react-native";
 import { Icon } from "@/components/icon";
 import { PrimaryButton } from "@/components/primary-button";
 import { usePurchases } from "@/components/purchase-provider";
@@ -12,6 +12,7 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
   const handledOutcome = useRef(0);
   const productId = COACH_PRODUCTS[ad.plan].id;
   const { connected, products, outcome, startCoachPurchase } = usePurchases();
+  const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
 
   useEffect(() => {
     if (!outcome || outcome.kind !== "coach" || outcome.adId !== ad.id || handledOutcome.current === outcome.occurredAt) return;
@@ -35,11 +36,11 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
   const buy = async () => {
     setProcessing(true);
     try {
-      if (!connected) throw new Error("Google Play no está disponible en este momento.");
+      if (!connected) throw new Error(`${storeName} no está disponible en este momento.`);
       await startCoachPurchase(ad);
     } catch (error) {
       setProcessing(false);
-      Alert.alert("No se pudo abrir Google Play", error instanceof Error ? error.message : "Inténtalo de nuevo.");
+      Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
     }
   };
 
@@ -55,7 +56,7 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
       </View>
       <PrimaryButton label={processing ? "Verificando…" : `Publicar ${COACH_PRODUCTS[ad.plan].days} días`} disabled={processing} onPress={() => void buy()} />
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
-        Compra procesada por Google Play. El anuncio se activa tras validar el pago.
+        Compra procesada por {storeName}. El anuncio se activa tras validar el pago.
       </Text>
     </View>
   );

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Pressable, Text, View } from "react-native";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 
 type Props = React.PropsWithChildren<{
@@ -28,37 +29,42 @@ export class AppErrorBoundary extends React.Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children;
     if (this.props.fallback !== undefined) return this.props.fallback;
+    return <ErrorScreen onRetry={() => this.setState({ error: null })} />;
+  }
+}
 
-    return (
-      <View
+function ErrorScreen({ onRetry }: { onRetry: () => void }) {
+  const { t } = useI18n();
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        backgroundColor: colors.background,
+        flex: 1,
+        gap: spacing.md,
+        justifyContent: "center",
+        padding: spacing.xl
+      }}
+    >
+      <Text style={{ ...typography.title, color: colors.textPrimary, textAlign: "center" }}>
+        {t("errors.title")}
+      </Text>
+      <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: "center" }}>
+        {t("errors.body")}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("common.retry")}
+        onPress={onRetry}
         style={{
-          alignItems: "center",
-          backgroundColor: colors.background,
-          flex: 1,
-          gap: spacing.md,
-          justifyContent: "center",
-          padding: spacing.xl
+          backgroundColor: colors.spotlight,
+          borderRadius: radii.pill,
+          paddingHorizontal: spacing.xl,
+          paddingVertical: spacing.md
         }}
       >
-        <Text style={{ ...typography.title, color: colors.textPrimary, textAlign: "center" }}>
-          Algo salió mal
-        </Text>
-        <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: "center" }}>
-          Ocurrió un error inesperado. Puedes reintentar sin cerrar la app.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => this.setState({ error: null })}
-          style={{
-            backgroundColor: colors.spotlight,
-            borderRadius: radii.pill,
-            paddingHorizontal: spacing.xl,
-            paddingVertical: spacing.md
-          }}
-        >
-          <Text style={{ ...typography.headline, color: colors.textOnBall, fontSize: 15 }}>Reintentar</Text>
-        </Pressable>
-      </View>
-    );
-  }
+        <Text style={{ ...typography.headline, color: colors.textOnBall, fontSize: 15 }}>{t("common.retry")}</Text>
+      </Pressable>
+    </View>
+  );
 }

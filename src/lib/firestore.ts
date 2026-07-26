@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   setDoc,
   updateDoc,
   arrayUnion,
@@ -16,7 +17,7 @@ import {
   type Unsubscribe
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "@/../firebase.config";
-import { Club, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel } from "@/types";
+import { Club, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
 
 // ----------------------------------------------------------------------------
 // Clubs (catálogo público). En el futuro vendrán de Firestore;
@@ -160,6 +161,24 @@ export async function joinPublicLeague(uid: string, leagueId: string): Promise<v
   });
 }
 
+/**
+ * Inscritos reales de una liga pública. Se consultan por el array
+ * `publicLeagues` del propio perfil, así que no hace falta una colección
+ * aparte ni reglas nuevas. Nunca devuelve perfiles de muestra.
+ */
+export async function getPublicLeagueMembers(leagueId: string): Promise<Player[]> {
+  if (!isFirebaseConfigured) return [];
+  const snapshot = await getDocs(query(
+    collection(db, PLAYERS_COLLECTION),
+    where("publicLeagues", "array-contains", leagueId),
+    limit(100)
+  ));
+  return snapshot.docs
+    .map((d) => normalizePlayerDocument(d.data(), d.id))
+    .filter((player) => player.isDemo !== true)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function leavePublicLeague(uid: string, leagueId: string): Promise<void> {
   if (!isFirebaseConfigured) return;
   await updateDoc(doc(db, PLAYERS_COLLECTION, uid), {
@@ -267,7 +286,8 @@ export async function getAllPlayers(): Promise<Player[]> {
   try {
     const q = query(
       collection(db, PLAYERS_COLLECTION),
-      where("profileComplete", "==", true)
+      where("profileComplete", "==", true),
+      limit(100)
     );
     const snapshot = await getDocs(q);
     const value = withDemoPlayers(snapshot.docs.map((d) => normalizePlayerDocument(d.data(), d.id)));
@@ -279,6 +299,37 @@ export async function getAllPlayers(): Promise<Player[]> {
   }
 }
 
+/**
+ * Devuelve un conjunto acotado de perfiles para descubrimiento/ranking.
+ * La ciudad se filtra en Firestore para que abrir una pantalla no lea el
+ * directorio mundial completo. El límite es además una defensa de cuota.
+ */
+export async function getPlayersForArea(city: string, division?: Player["level"]): Promise<Player[]> {
+  if (!isFirebaseConfigured) {
+    return withDemoPlayers(seedPlayers.map((player) => ({ ...player, profileComplete: true, isDemo: player.id !== "me" })))
+      .filter((player) => !city || player.city === city)
+      .filter((player) => !division || player.level === division);
+  }
+  const constraints: QueryConstraint[] = [
+    where("profileComplete", "==", true),
+    where("city", "==", city)
+  ];
+  if (division) constraints.push(where("level", "==", division));
+  constraints.push(limit(100));
+  const snapshot = await getDocs(query(collection(db, PLAYERS_COLLECTION), ...constraints));
+  return snapshot.docs.map((item) => normalizePlayerDocument(item.data(), item.id));
+}
+
+export async function getValidatedRankingResults(city: string): Promise<ValidatedRankingResult[]> {
+  if (!isFirebaseConfigured) return [];
+  const snapshot = await getDocs(query(
+    collection(db, "rankingResults"),
+    where("city", "==", city),
+    limit(500)
+  ));
+  return snapshot.docs.map((item) => ({ ...(item.data() as ValidatedRankingResult), matchId: item.id }));
+}
+
 /** Versión reactiva de getAllPlayers para futuras pantallas de ranking. */
 export function subscribeToAllPlayers(onNext: (players: Player[]) => void): Unsubscribe {
   if (!isFirebaseConfigured) {
@@ -286,7 +337,7 @@ export function subscribeToAllPlayers(onNext: (players: Player[]) => void): Unsu
     return () => {};
   }
 
-  const constraints: QueryConstraint[] = [where("profileComplete", "==", true), orderBy("rating", "desc")];
+  const constraints: QueryConstraint[] = [where("profileComplete", "==", true), orderBy("rating", "desc"), limit(100)];
   return onSnapshot(query(collection(db, PLAYERS_COLLECTION), ...constraints), (snapshot) => {
     onNext(withDemoPlayers(snapshot.docs.map((d) => normalizePlayerDocument(d.data(), d.id))));
   });

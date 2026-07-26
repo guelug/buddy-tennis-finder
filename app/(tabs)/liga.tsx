@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { Card } from "@/components/card";
@@ -16,12 +16,25 @@ import { CountUp } from "@/components/count-up";
 import { LoadingView } from "@/components/loading-view";
 import { ScreenShell } from "@/components/screen-shell";
 import { WebShell } from "@/components/web/web-shell";
-import { bgRankingLive, bgRankingLiveLight, BroadcastHeader, GlassPanel, LiveBackground, LiveBallStage } from "@/components/live-visuals";
+import {
+  bgLeaguesLive,
+  bgLeaguesLiveLight,
+  bgRankingLive,
+  bgRankingLiveLight,
+  bgTeamsLive,
+  bgTeamsLiveLight,
+  bgTournamentsLive,
+  bgTournamentsLiveLight,
+  BroadcastHeader,
+  GlassPanel,
+  LiveBackground,
+  LiveBallStage
+} from "@/components/live-visuals";
 import { DivisionBadge, DivisionIdentity as DivisionIdentityMark } from "@/components/division-badge";
-import { buildProvisionalRankings, DIVISION_LABELS, DIVISION_META, rankingsByDivision, TIER_META } from "@/data/rankings";
+import { buildProvisionalRankings, DIVISION_LABELS, DIVISION_META, rankingsByDivision, scopeRankingToArea, TIER_META } from "@/data/rankings";
 import { currentPlayer } from "@/data/seed";
-import { initialLeagues, publicLeagueForDivision, teamStandings, tournaments, type ClubLeague } from "@/data/competition-hub";
-import { getAllPlayers, getClubs, getPlayer, joinPublicLeague, leavePublicLeague } from "@/lib/firestore";
+import { initialLeagues, publicLeagueForDivision, publicLeagueIdsFor, teamStandings, tournaments, type ClubLeague } from "@/data/competition-hub";
+import { getClubs, getPlayer, getPlayersForArea, getValidatedRankingResults, joinPublicLeague, leavePublicLeague } from "@/lib/firestore";
 import { useAuth } from "@/lib/firebase-auth";
 import { useI18n } from "@/lib/i18n";
 import { PURCHASES_ENABLED } from "@/lib/features";
@@ -32,7 +45,16 @@ const DIVISIONS: Division[] = ["novato", "d", "c", "b", "a"];
 /** Etiquetas de una letra para el stepper de divisiones del header desktop. */
 const DIVISION_SHORT: Record<Division, string> = { novato: "N", d: "D", c: "C", b: "B", a: "A" };
 type CompetitionMode = "individual" | "teams" | "leagues" | "tournaments";
+/** El ranking se puede ver acotado a la ciudad del jugador o a nivel global. */
+type RankingScope = "regional" | "global";
 const DEMO_AVATARS = ["Ana Morales", "Carlos Rivera", "María Fernanda López", "Diego Castillo"];
+
+function getCompetitionBackground(mode: CompetitionMode) {
+  if (mode === "teams") return { source: bgTeamsLive, lightSource: bgTeamsLiveLight };
+  if (mode === "leagues") return { source: bgLeaguesLive, lightSource: bgLeaguesLiveLight };
+  if (mode === "tournaments") return { source: bgTournamentsLive, lightSource: bgTournamentsLiveLight };
+  return { source: bgRankingLive, lightSource: bgRankingLiveLight };
+}
 
 export default function LigaScreen() {
   const { isWebDesktop } = usePlatformLayout();
@@ -42,7 +64,8 @@ export default function LigaScreen() {
   const props = {
     rankings: rankingData.rankings,
     currentPlayerId: rankingData.currentPlayerId,
-    currentLevel: rankingData.currentLevel
+    currentLevel: rankingData.currentLevel,
+    area: rankingData.area
   };
   return isWebDesktop ? <LigaWeb {...props} /> : <LigaNative {...props} />;
 }
@@ -51,26 +74,30 @@ type RankingScreenProps = {
   rankings: Record<Division, RankingEntry[]>;
   currentPlayerId: string;
   currentLevel: Division;
+  /** Ciudad y país del jugador — definen su ranking y su liga regional. */
+  area: { city?: string; country?: string };
 };
 
-function LigaNative({ rankings, currentPlayerId, currentLevel }: RankingScreenProps) {
+function LigaNative({ rankings, currentPlayerId, currentLevel, area }: RankingScreenProps) {
   const [division, setDivision] = useState<Division>(currentLevel);
   const [mode, setMode] = useState<CompetitionMode>("individual");
-  const content = <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} />;
+  const background = getCompetitionBackground(mode);
+  const content = <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} area={area} />;
   return (
-    <LiveBackground source={bgRankingLive} lightSource={bgRankingLiveLight} overlay={0.4}>
+    <LiveBackground source={background.source} lightSource={background.lightSource} overlay={0.4}>
       <ScreenShell width="base">{content}</ScreenShell>
     </LiveBackground>
   );
 }
 
-function LigaWeb({ rankings, currentPlayerId, currentLevel }: RankingScreenProps) {
+function LigaWeb({ rankings, currentPlayerId, currentLevel, area }: RankingScreenProps) {
   const [division, setDivision] = useState<Division>(currentLevel);
   const [mode, setMode] = useState<CompetitionMode>("individual");
+  const background = getCompetitionBackground(mode);
   return (
-    <LiveBackground source={bgRankingLive} lightSource={bgRankingLiveLight} overlay={0.36}>
+    <LiveBackground source={background.source} lightSource={background.lightSource} overlay={0.36}>
       <WebShell>
-        <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} />
+        <LigaContent division={division} onDivisionChange={setDivision} mode={mode} onModeChange={setMode} rankings={rankings} currentPlayerId={currentPlayerId} currentLevel={currentLevel} area={area} />
       </WebShell>
     </LiveBackground>
   );
@@ -82,6 +109,10 @@ function useCompetitionRankings() {
   const [rankings, setRankings] = useState<Record<Division, RankingEntry[]>>(rankingsByDivision);
   const [currentPlayerId, setCurrentPlayerId] = useState(currentPlayer.id);
   const [currentLevel, setCurrentLevel] = useState<Division>(currentPlayer.level);
+  const [area, setArea] = useState<{ city?: string; country?: string }>({
+    city: currentPlayer.city,
+    country: currentPlayer.country
+  });
   const [loading, setLoading] = useState(isConfigured);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
@@ -91,19 +122,25 @@ function useCompetitionRankings() {
       setRankings(rankingsByDivision);
       setCurrentPlayerId(currentPlayer.id);
       setCurrentLevel(currentPlayer.level);
+      setArea({ city: currentPlayer.city, country: currentPlayer.country });
       setLoading(false);
       return;
     }
     let active = true;
     setLoading(true);
     setError(null);
-    Promise.all([getAllPlayers(), getClubs()])
-      .then(([players, clubs]) => {
+    getPlayer(user?.uid ?? "").then((me) => Promise.all([
+      getPlayersForArea(me?.city ?? currentPlayer.city),
+      getClubs(),
+      getValidatedRankingResults(me?.city ?? currentPlayer.city),
+      Promise.resolve(me)
+    ]))
+      .then(([players, clubs, results, me]) => {
         if (!active) return;
-        const me = players.find((player) => player.id === user?.uid);
-        setRankings(buildProvisionalRankings(players, clubs));
+        setRankings(buildProvisionalRankings(players, clubs, results));
         setCurrentPlayerId(user?.uid ?? "");
         setCurrentLevel(me?.level ?? "novato");
+        setArea({ city: me?.city, country: me?.country });
       })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : t("ranking.error.load"));
@@ -118,6 +155,7 @@ function useCompetitionRankings() {
     rankings,
     currentPlayerId,
     currentLevel,
+    area,
     loading,
     error,
     retry: () => setRetryKey((value) => value + 1)
@@ -150,18 +188,83 @@ function CompetitionModeNav({ mode, onChange }: { mode: CompetitionMode; onChang
     { id: "leagues", label: t("ranking.mode.leagues"), icon: "trophy" },
     { id: "tournaments", label: t("ranking.mode.tournaments"), icon: "zap" }
   ];
+  // En pantallas estrechas el icono no cabe junto a etiquetas largas
+  // ("Tournaments", "Turnuvalar"…) y el texto se partía en dos líneas dentro
+  // de la píldora. Por debajo de 420 px mostramos solo el texto, en una línea.
+  const { width } = useWindowDimensions();
+  const showIcons = width >= 420;
+  const labelSize = showIcons ? 13 : width < 360 ? 10.5 : 12;
   return (
     <View style={{ backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: 4, padding: 4 }}>
       {items.map((item) => (
         <Pressable
           key={item.id}
+          accessibilityRole="button"
+          accessibilityState={{ selected: mode === item.id }}
           onPress={() => onChange(item.id)}
-          style={{ alignItems: "center", backgroundColor: mode === item.id ? colors.courtLight : "transparent", borderRadius: radii.pill, flex: 1, flexDirection: "row", gap: spacing.xs, justifyContent: "center", minHeight: 42, paddingHorizontal: spacing.sm }}
+          style={{ alignItems: "center", backgroundColor: mode === item.id ? colors.courtLight : "transparent", borderRadius: radii.pill, flex: 1, flexDirection: "row", gap: showIcons ? spacing.xs : 0, justifyContent: "center", minHeight: 42, minWidth: 0, paddingHorizontal: showIcons ? spacing.sm : 2 }}
         >
-          <Icon name={item.icon} size={15} color={(mode === item.id ? colors.neon : colors.textTertiary) as string} />
-          <Text style={{ ...typography.caption, color: mode === item.id ? colors.neon : colors.textSecondary, fontWeight: "800" }}>{item.label}</Text>
+          {showIcons ? <Icon name={item.icon} size={15} color={(mode === item.id ? colors.neon : colors.textTertiary) as string} /> : null}
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit={Platform.OS !== "web"}
+            minimumFontScale={0.8}
+            style={{ ...typography.caption, color: mode === item.id ? colors.neon : colors.textSecondary, flexShrink: 1, fontSize: labelSize, fontWeight: "800", textAlign: "center" }}
+          >
+            {item.label}
+          </Text>
         </Pressable>
       ))}
+    </View>
+  );
+}
+
+/**
+ * Selector regional/global. Muestra el nombre real de la ciudad para que el
+ * jugador entienda contra quién compite, y el número de perfiles en cada
+ * ámbito para que un regional vacío no parezca un error.
+ */
+function RankingScopeSelector({
+  scope,
+  onChange,
+  areaLabel,
+  regionalCount,
+  globalCount
+}: {
+  scope: RankingScope;
+  onChange: (scope: RankingScope) => void;
+  areaLabel: string;
+  regionalCount: number;
+  globalCount: number;
+}) {
+  const { t } = useI18n();
+  const options: Array<{ id: RankingScope; label: string; count: number }> = [
+    { id: "regional", label: areaLabel, count: regionalCount },
+    { id: "global", label: t("ranking.scope.global"), count: globalCount }
+  ];
+  return (
+    <View style={{ gap: spacing.xs }}>
+      <View style={{ backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: 4, padding: 4 }}>
+        {options.map((option) => (
+          <Pressable
+            key={option.id}
+            accessibilityRole="button"
+            accessibilityState={{ selected: scope === option.id }}
+            onPress={() => onChange(option.id)}
+            style={{ alignItems: "center", backgroundColor: scope === option.id ? colors.courtLight : "transparent", borderRadius: radii.pill, flex: 1, justifyContent: "center", minHeight: 40, minWidth: 0, paddingHorizontal: spacing.sm }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{ ...typography.caption, color: scope === option.id ? colors.neon : colors.textSecondary, fontSize: 12, fontWeight: "800" }}
+            >
+              {option.label} · {option.count}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      {scope === "regional" && regionalCount === 0 ? (
+        <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{t("ranking.scope.emptyRegional")}</Text>
+      ) : null}
     </View>
   );
 }
@@ -202,7 +305,7 @@ function DivisionSelector({ division, onChange }: { division: Division; onChange
   );
 }
 
-function CompetitionSection({ mode, division, onDivisionChange, userLevel }: { mode: Exclude<CompetitionMode, "individual">; division: Division; onDivisionChange: (division: Division) => void; userLevel: Division }) {
+function CompetitionSection({ mode, division, onDivisionChange, userLevel, city }: { mode: Exclude<CompetitionMode, "individual">; division: Division; onDivisionChange: (division: Division) => void; userLevel: Division; city?: string }) {
   const { t } = useI18n();
   return (
     <View style={{ gap: spacing.lg }}>
@@ -214,7 +317,7 @@ function CompetitionSection({ mode, division, onDivisionChange, userLevel }: { m
       />
       {/* Las ligas públicas SÍ son reales: el jugador puede inscribirse en la de
           su rango. El resto (equipos/torneos) es preview. */}
-      {mode === "leagues" ? <PublicLeaguePanel userLevel={userLevel} /> : null}
+      {mode === "leagues" ? <PublicLeaguePanel userLevel={userLevel} city={city} /> : null}
       <Card style={{ backgroundColor: colors.infoBg, borderColor: `${colors.info}44` }}>
         <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.md }}>
           <Icon name="zap" size={20} color={colors.info as string} />
@@ -234,35 +337,61 @@ function CompetitionSection({ mode, division, onDivisionChange, userLevel }: { m
  * se persiste en el propio perfil (`publicLeagues`). En modo demo (sin Firebase)
  * el estado es local para poder ver el flujo.
  */
-function PublicLeaguePanel({ userLevel }: { userLevel: Division }) {
+function PublicLeaguePanel({ userLevel, city }: { userLevel: Division; city?: string }) {
   const { t } = useI18n();
   const { user, isConfigured } = useAuth();
-  const league = publicLeagueForDivision(userLevel);
+  const league = publicLeagueForDivision(userLevel, city);
+  // Los perfiles inscritos antes de separar las ligas por ciudad guardaron el
+  // id sin sufijo; se aceptan ambos para no perder esas inscripciones.
+  const acceptedIds = publicLeagueIdsFor(userLevel, city);
   const [joined, setJoined] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   React.useEffect(() => {
     let active = true;
     if (!isConfigured || !user) return;
     getPlayer(user.uid)
-      .then((player) => { if (active && player) setJoined(Boolean(player.publicLeagues?.includes(league.id))); })
+      .then((player) => {
+        if (active && player) {
+          setJoined(Boolean(player.publicLeagues?.some((id) => acceptedIds.includes(id))));
+        }
+      })
       .catch(() => {});
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfigured, user, league.id]);
+
+  const openLeague = () => router.push(`/league/${league.id}` as never);
 
   const toggle = async () => {
     const next = !joined;
-    setJoined(next); // optimista
-    if (isConfigured && user) {
-      setBusy(true);
-      try {
-        if (next) await joinPublicLeague(user.uid, league.id);
-        else await leavePublicLeague(user.uid, league.id);
-      } catch {
-        setJoined(!next); // revertir si falla
-      } finally {
-        setBusy(false);
-      }
+    setFeedback(null);
+    setJoined(next);
+    if (!isConfigured || !user) {
+      // Modo demo: no hay nada que persistir, pero el flujo debe llevar a la
+      // misma vista de liga para poder revisarlo sin backend.
+      if (next) openLeague();
+      return;
+    }
+    setBusy(true);
+    try {
+      const write = next ? joinPublicLeague(user.uid, league.id) : leavePublicLeague(user.uid, league.id);
+      await Promise.race([
+        write,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error(t("league.inviteError"))), 12_000))
+      ]);
+      setFeedback(next ? t("ranking.publicLeague.joined") : null);
+      // Antes, inscribirse solo cambiaba la etiqueta del botón y parecía que
+      // no había pasado nada. Ahora se abre la liga con inscritos y reglas.
+      if (next) openLeague();
+    } catch (error) {
+      setJoined(!next);
+      const message = error instanceof Error ? error.message : t("league.inviteError");
+      setFeedback(message);
+      Alert.alert(t("league.joinError"), message);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -274,7 +403,14 @@ function PublicLeaguePanel({ userLevel }: { userLevel: Division }) {
       </View>
       <Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 22, marginTop: 4 }}>{league.name}</Text>
       <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("ranking.publicLeague.body")}</Text>
-      <View style={{ marginTop: spacing.sm }}>
+      <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+        {joined ? (
+          <PrimaryButton
+            label={t("ranking.publicLeague.view")}
+            onPress={openLeague}
+            icon={<Icon name="trophy" size={16} color={colors.textOnBrand as string} />}
+          />
+        ) : null}
         <PrimaryButton
           label={busy ? t("ranking.publicLeague.joining") : joined ? t("ranking.publicLeague.leave") : t("ranking.publicLeague.join")}
           variant={joined ? "outline" : "solid"}
@@ -289,6 +425,7 @@ function PublicLeaguePanel({ userLevel }: { userLevel: Division }) {
           <Text style={{ ...typography.footnote, color: colors.neon, fontWeight: "800" }}>{t("ranking.publicLeague.joined")}</Text>
         </View>
       ) : null}
+      {feedback ? <Text selectable style={{ ...typography.footnote, color: joined ? colors.neon : colors.textSecondary, marginTop: spacing.xs }}>{feedback}</Text> : null}
       <Text style={{ ...typography.footnote, color: colors.textTertiary, marginTop: spacing.xs }}>{t("ranking.publicLeague.private")}</Text>
     </Card>
   );
@@ -407,7 +544,8 @@ function LigaContent({
   onModeChange,
   rankings,
   currentPlayerId,
-  currentLevel
+  currentLevel,
+  area
 }: {
   division: Division;
   onDivisionChange: (d: Division) => void;
@@ -416,10 +554,19 @@ function LigaContent({
   rankings: Record<Division, RankingEntry[]>;
   currentPlayerId: string;
   currentLevel: Division;
+  area: { city?: string; country?: string };
 }) {
   const { isWebDesktop } = usePlatformLayout();
   const { t } = useI18n();
-  const entries = rankings[division] ?? [];
+  // Por defecto el jugador ve SU región: es su competición real. El global
+  // queda a un toque para dar contexto mientras la base de usuarios crece.
+  const [scope, setScope] = useState<RankingScope>("regional");
+  const allEntries = rankings[division] ?? [];
+  const regionalEntries = useMemo(
+    () => scopeRankingToArea(allEntries, area.city, area.country),
+    [allEntries, area.city, area.country]
+  );
+  const entries = scope === "regional" ? regionalEntries : allEntries;
   const divisionMeta = DIVISION_META[division];
   const podium = entries.slice(0, 3);
   const rest = entries.slice(3);
@@ -440,12 +587,22 @@ function LigaContent({
   }, [you, entries]);
 
   const modeNav = <CompetitionModeNav mode={mode} onChange={onModeChange} />;
+  const areaLabel = area.city || area.country || t("ranking.scope.regional");
+  const scopeSelector = (
+    <RankingScopeSelector
+      scope={scope}
+      onChange={setScope}
+      areaLabel={areaLabel}
+      regionalCount={regionalEntries.length}
+      globalCount={allEntries.length}
+    />
+  );
 
   if (mode !== "individual") {
     return (
       <View style={{ gap: spacing.lg }}>
         {modeNav}
-        <CompetitionSection mode={mode} division={division} onDivisionChange={onDivisionChange} userLevel={currentLevel} />
+        <CompetitionSection mode={mode} division={division} onDivisionChange={onDivisionChange} userLevel={currentLevel} city={area.city} />
       </View>
     );
   }
@@ -454,6 +611,8 @@ function LigaContent({
     return (
       <View style={{ gap: spacing.lg }}>
         {modeNav}
+        {scopeSelector}
+        <PublicLeaguePanel userLevel={currentLevel} city={area.city} />
         <RankingWebDashboard
           division={division}
           onDivisionChange={onDivisionChange}
@@ -490,6 +649,12 @@ function LigaContent({
       />
 
       <DivisionSelector division={division} onChange={onDivisionChange} />
+
+      {scopeSelector}
+
+      {/* La liga pública del rango se ofrecía solo dentro de la pestaña
+          "Ligas" y pasaba desapercibida; aquí es lo primero que se ve. */}
+      <PublicLeaguePanel userLevel={currentLevel} city={area.city} />
 
       <LiveMovementStrip moves={liveMoves} />
 

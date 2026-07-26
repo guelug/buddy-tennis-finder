@@ -1,0 +1,24 @@
+apply plugin: "com.android.library"
+
+group = "com.matchpoint.localai"
+version = "1.0.0"
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+
+android {
+  namespace "com.matchpoint.localai"
+  // ML Kit Prompt beta is published with Kotlin 2.2 metadata. This module
+  // consumes only its stable Java/Futures surface, so Expo 52's Kotlin 1.9
+  // compiler does not need to interpret those Kotlin declarations.
+  kotlinOptions {
+    freeCompilerArgs += ["-Xskip-metadata-version-check"]
+  }
+}
+
+dependencies {
+  implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
+}

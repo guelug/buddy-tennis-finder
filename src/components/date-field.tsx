@@ -1,4 +1,5 @@
 import { TextInput } from "react-native";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 
 export type DateFieldProps = {
@@ -9,15 +10,16 @@ export type DateFieldProps = {
 
 /** Fallback multiplataforma; Metro usa la variante `.native` en Android/iOS. */
 export function DateField({ value, onChange }: DateFieldProps) {
+  const { t } = useI18n();
   return (
     <TextInput
-      accessibilityLabel="Fecha de la reserva"
+      accessibilityLabel={t("rivals.form.date")}
       autoCapitalize="none"
       autoCorrect={false}
       keyboardType="numbers-and-punctuation"
       maxLength={10}
       onChangeText={onChange}
-      placeholder="AAAA-MM-DD"
+      placeholder={t("date.placeholder")}
       placeholderTextColor={colors.textTertiary as string}
       value={value}
       style={{

@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["MatchPointLocalAIModule"]
+  },
+  "android": {
+    "modules": ["com.matchpoint.localai.MatchPointLocalAIModule"]
+  }
+}

@@ -19,14 +19,14 @@
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "12",
+      "buildNumber": "15",
       "googleServicesFile": "./ios-native/MatchPointTennis/Resources/GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "versionCode": 11,
+      "versionCode": 15,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
@@ -84,6 +84,7 @@
         "expo-build-properties",
         {
           "android": {
+            "minSdkVersion": 26,
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0"

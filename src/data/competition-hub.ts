@@ -58,15 +58,76 @@ export const initialLeagues: ClubLeague[] = [
 ];
 
 /**
- * Liga pública oficial de cada rango: la de formato individual. Siempre abierta
- * y gratuita — cualquier jugador puede inscribirse en la de SU rango. Las ligas
- * privadas (crear/gestionar) serán de pago más adelante.
+ * Ciudades con liga pública propia. Las ligas son POR CIUDAD: no tiene sentido
+ * que alguien de Barcelona compita en la misma tabla que alguien de Ciudad de
+ * Guatemala, porque nunca van a poder jugar el partido.
  */
-export function publicLeagueForDivision(division: Division): ClubLeague {
-  return (
-    initialLeagues.find((league) => league.division === division && league.format === "individual")
-    ?? initialLeagues.find((league) => league.division === division)!
-  );
+export const LEAGUE_CITIES: Record<string, string> = {
+  "Ciudad de Guatemala": "guatemala",
+  "San Salvador": "san-salvador",
+  Barcelona: "barcelona"
+};
+
+/** Sufijo estable de ciudad para construir el id de liga. */
+export function citySlug(city: string | undefined | null): string | null {
+  if (!city) return null;
+  return LEAGUE_CITIES[city] ?? null;
+}
+
+/**
+ * Liga pública oficial de cada rango y ciudad: la de formato individual.
+ * Siempre abierta y gratuita — cualquier jugador puede inscribirse en la de SU
+ * rango y SU ciudad. Las ligas privadas (crear/gestionar) serán de pago.
+ *
+ * Si la ciudad todavía no tiene liga propia se devuelve la liga histórica sin
+ * sufijo, que es la que ya tienen guardada los perfiles creados antes de
+ * separar por ciudad.
+ */
+export function publicLeagueForDivision(division: Division, city?: string | null): ClubLeague {
+  const base = initialLeagues.find((league) => league.division === division && league.format === "individual")
+    ?? initialLeagues.find((league) => league.division === division)!;
+  const slug = citySlug(city);
+  if (!slug) return base;
+  return { ...base, id: `${base.id}-${slug}`, name: `${base.name} · ${city}` };
+}
+
+/**
+ * Ids que se aceptan como "estar inscrito" en la liga de un rango y ciudad:
+ * el id con ciudad y el id histórico sin ciudad. Así nadie pierde su
+ * inscripción al desplegar la separación regional.
+ */
+export function publicLeagueIdsFor(division: Division, city?: string | null): string[] {
+  const base = publicLeagueForDivision(division, null);
+  const scoped = publicLeagueForDivision(division, city);
+  return scoped.id === base.id ? [base.id] : [scoped.id, base.id];
+}
+
+/**
+ * Resuelve un id de liga pública (con o sin sufijo de ciudad) al objeto liga,
+ * devolviendo el nombre ya localizado a la ciudad correspondiente.
+ */
+export function findPublicLeague(id: string | undefined): ClubLeague | null {
+  if (!id) return null;
+  const exact = initialLeagues.find((league) => league.id === id);
+  if (exact) return exact;
+  for (const [city, slug] of Object.entries(LEAGUE_CITIES)) {
+    const suffix = `-${slug}`;
+    if (!id.endsWith(suffix)) continue;
+    const base = initialLeagues.find((league) => league.id === id.slice(0, -suffix.length));
+    if (base) return { ...base, id, name: `${base.name} · ${city}` };
+  }
+  return null;
+}
+
+/** Todos los ids de liga pública válidos — se refleja en firestore.rules. */
+export function allPublicLeagueIds(): string[] {
+  const ids: string[] = [];
+  for (const league of initialLeagues) {
+    if (league.format !== "individual") continue;
+    ids.push(league.id);
+    for (const slug of Object.values(LEAGUE_CITIES)) ids.push(`${league.id}-${slug}`);
+  }
+  return ids;
 }
 
 export const tournaments: IndividualTournament[] = [

@@ -82,9 +82,11 @@ function RootLayoutContent() {
               <Stack.Screen name="coach/[id]" options={{ title: t("nav.coachProfile") }} />
               <Stack.Screen name="coach-ad" options={{ title: t("nav.coachAd"), presentation: "modal" }} />
               <Stack.Screen name="coach-interests" options={{ title: t("profile.coachInterests") }} />
+              <Stack.Screen name="league/[id]" options={{ title: t("nav.myLeague") }} />
               <Stack.Screen name="private-leagues" options={{ title: t("profile.privateLeagues") }} />
               <Stack.Screen name="private-league" options={{ title: t("nav.privateLeague") }} />
               <Stack.Screen name="invite" options={{ title: t("nav.inviteFriends") }} />
+              <Stack.Screen name="assistant" options={{ title: "MatchPoint Assistant" }} />
               <Stack.Screen name="privacy" options={{ title: t("profile.privacy") }} />
               <Stack.Screen name="terms" options={{ title: t("profile.terms") }} />
               <Stack.Screen name="delete-account" options={{ title: t("nav.deleteAccount") }} />

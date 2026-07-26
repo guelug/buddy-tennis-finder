@@ -10,6 +10,7 @@ import { CoachCard } from "@/components/coach-card";
 import { Icon, type IconName } from "@/components/icon";
 import { LiveBackground } from "@/components/live-visuals";
 import { PrimaryButton } from "@/components/primary-button";
+import { MatchBuddyAvatar, useMatchBuddy } from "@/components/match-buddy-picker";
 import { ScreenShell } from "@/components/screen-shell";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { getHomeData } from "@/lib/app-api";
@@ -38,7 +39,7 @@ const iconPublishDark = require("@/../assets/generated/home-icons/publish.png");
 const iconPublishLight = require("@/../assets/generated/home-icons/publish-light.png");
 
 export default function HomeScreen() {
-  const { isLight, toggleMode } = useThemeMode();
+  const { isLight } = useThemeMode();
   const { user } = useAuth();
   const { t } = useI18n();
   const { isWebDesktop } = usePlatformLayout();
@@ -79,7 +80,7 @@ export default function HomeScreen() {
     <LiveBackground overlay={0.58}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
       <ScreenShell width={isWebDesktop ? "wide" : "base"} bottomInset={isWebDesktop ? 64 : 8} onRefresh={loadHome}>
-        <HomeHeader player={player} intro={content.intro} isDesktop={isWebDesktop} isLight={isLight} toggleMode={toggleMode} />
+        <HomeHeader player={player} intro={content.intro} isDesktop={isWebDesktop} isLight={isLight} />
 
         {error ? (
           <Card style={{ backgroundColor: colors.warningBg, borderColor: `${colors.warning}55` }}>
@@ -113,20 +114,34 @@ export default function HomeScreen() {
           {content.stories.map((story, index) => <StoryCard key={story.title} {...story} index={index} image={index ? communityImage : tournamentImage} desktop={isWebDesktop} />)}
         </View>
 
-        {coachAds.length ? (
-          <View style={{ gap: spacing.md }}>
-            <SectionTitle title={t("home.coaches.title")} subtitle={t("home.coaches.subtitle")} trailing={t("home.promoted")} />
+        <View style={{ gap: spacing.md }}>
+            <SectionTitle title={t("home.coaches.title")} subtitle={t("home.coaches.subtitle")} trailing={coachAds.length ? t("home.promoted") : undefined} />
+            {coachAds.length ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
               {coachAds.slice(0, isWebDesktop ? 3 : 2).map((ad) => <CoachCard key={ad.id} ad={ad} compact />)}
             </View>
+            ) : (
+              <Card style={{ alignItems: "center", gap: spacing.sm }}>
+                <Icon name="users" size={30} color={colors.neon as string} />
+                <Text style={{ ...typography.subheadline, color: colors.textPrimary, textAlign: "center" }}>{t("coaches.empty.title")}</Text>
+                <Text style={{ ...typography.footnote, color: colors.textSecondary, textAlign: "center" }}>{t("coaches.empty.body")}</Text>
+              </Card>
+            )}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
               <PrimaryButton label={t("home.viewAll")} fullWidth={false} onPress={() => router.push("/coaches" as never)} />
               {PURCHASES_ENABLED ? <PrimaryButton label={t("home.promoteAsCoach")} variant="outline" fullWidth={false} onPress={() => router.push("/coach-ad" as never)} /> : null}
             </View>
           </View>
-        ) : null}
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
+          <QuickAction
+            imageDark={iconPublishDark}
+            imageLight={iconPublishLight}
+            label="MatchPoint Assistant"
+            detail="Pregunta por tus estadísticas, partidos y torneos"
+            desktop={isWebDesktop}
+            onPress={() => router.push("/assistant" as never)}
+          />
           <QuickAction
             imageDark={iconSearchDark}
             imageLight={iconSearchLight}
@@ -151,6 +166,22 @@ export default function HomeScreen() {
             desktop={isWebDesktop}
             onPress={() => router.push("/liga")}
           />
+          <QuickAction
+            imageDark={iconPublishDark}
+            imageLight={iconPublishLight}
+            label={t("profile.inviteShort")}
+            detail={t("profile.inviteHint")}
+            desktop={isWebDesktop}
+            onPress={() => router.push("/invite" as never)}
+          />
+          <QuickAction
+            imageDark={iconSearchDark}
+            imageLight={iconSearchLight}
+            label={t("nav.coaches")}
+            detail={t("home.coaches.subtitle")}
+            desktop={isWebDesktop}
+            onPress={() => router.push("/coaches" as never)}
+          />
         </View>
 
         <SectionTitle title={t("home.selection.title")} subtitle={t("home.selection.subtitle")} trailing={t("home.sponsored")} />
@@ -160,7 +191,7 @@ export default function HomeScreen() {
 
         <Card pad={isWebDesktop ? "xl" : "lg"} style={isWebDesktop ? { backgroundColor: isLight ? "rgba(255,255,255,.94)" : "rgba(10,19,13,.86)", borderColor: isLight ? colors.border : `${colors.neon}33` } : undefined}>
           <Text style={{ ...typography.headline, color: colors.textPrimary }}>{t("home.community.title")}</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}><CommunityStat icon="users" value={Math.max(1, player ? 1 : 0)} label={t("home.stats.members")} desktop={isWebDesktop} /><CommunityStat icon="calendar-clock" value={proposals.length} label={t("tabs.matches")} desktop={isWebDesktop} /><CommunityStat icon="trophy" value={0} label={t("home.stats.tournaments")} desktop={isWebDesktop} /><CommunityStat icon="building" value={clubs.length} label={t("home.stats.clubs")} desktop={isWebDesktop} /></View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}><CommunityStat icon="users" value={0} label={t("home.stats.members")} desktop={isWebDesktop} /><CommunityStat icon="calendar-clock" value={proposals.filter((item) => item.status === "accepted").length} label={t("tabs.matches")} desktop={isWebDesktop} /><CommunityStat icon="trophy" value={0} label={t("home.stats.tournaments")} desktop={isWebDesktop} /><CommunityStat icon="building" value={clubs.length} label={t("home.stats.clubs")} desktop={isWebDesktop} /></View>
         </Card>
       </ScreenShell>
       </SafeAreaView>
@@ -168,12 +199,29 @@ export default function HomeScreen() {
   );
 }
 
-function HomeHeader({ player, intro, isDesktop, isLight, toggleMode }: { player: Player | null; intro: string; isDesktop: boolean; isLight: boolean; toggleMode: () => void }) {
+function HomeHeader({ player, intro, isDesktop, isLight }: { player: Player | null; intro: string; isDesktop: boolean; isLight: boolean }) {
   const { t } = useI18n();
+  const { buddy } = useMatchBuddy();
   const greeting = t(greetingKeyForCurrentTime());
   if (!isDesktop) {
-    const modeButton = <Pressable onPress={toggleMode} style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: colors.borderStrong, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}><Icon name={isLight ? "zap" : "globe"} size={16} color={colors.neon as string} /><Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "800" }}>{isLight ? t("settings.theme.dark") : t("settings.theme.light")}</Text></Pressable>;
-    return <View style={{ gap: spacing.md, paddingTop: spacing.sm }}><View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}><BrandLockup size="md" light={isLight} />{modeButton}</View><Animated.View entering={FadeInUp.springify().damping(20)} style={{ gap: spacing.xs }}><Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 27 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text><Text style={{ ...typography.body, color: colors.textSecondary }}>{intro}</Text></Animated.View></View>;
+    return (
+      <View style={{ gap: spacing.md, paddingTop: spacing.sm }}>
+        <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
+          <BrandLockup size="md" light={isLight} />
+          <Pressable accessibilityLabel={`Hablar con ${buddy.name}`} onPress={() => router.push("/assistant" as never)} style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={{ ...typography.caption, color: colors.neon, fontWeight: "900" }}>MATCH BUDDY</Text>
+              <Text style={{ ...typography.footnote, color: colors.textPrimary }}>{buddy.name}</Text>
+            </View>
+            <MatchBuddyAvatar size={52} />
+          </Pressable>
+        </View>
+        <Animated.View entering={FadeInUp.springify().damping(20)} style={{ gap: spacing.xs }}>
+          <Text style={{ ...typography.title, color: colors.textPrimary, fontSize: 27 }}>{greeting}, <Text style={{ color: colors.neon }}>{player?.name?.split(" ")[0] ?? t("home.playerFallback")}</Text></Text>
+          <Text style={{ ...typography.body, color: colors.textSecondary }}>{intro}</Text>
+        </Animated.View>
+      </View>
+    );
   }
   // Desktop: el TopNav ya muestra el BrandLockup y el toggle de tema — aquí solo el saludo.
   return (

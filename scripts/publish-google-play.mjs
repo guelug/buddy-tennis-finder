@@ -79,6 +79,10 @@ try {
     const uploadResponse = await androidPublisher.edits.bundles.upload({
       packageName,
       editId,
+      // Los AAB actuales superan ampliamente los 50 MB. La sesión reanudable
+      // evita perder toda la transferencia si Google cierra una conexión
+      // larga justo después de recibir el último bloque.
+      uploadType: 'resumable',
       media: {
         mimeType: 'application/octet-stream',
         body: createReadStream(bundlePath),

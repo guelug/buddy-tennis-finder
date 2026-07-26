@@ -5,16 +5,25 @@ import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icon";
 import { StarRating } from "@/components/star-rating";
 import { averageStars } from "@/lib/match-room";
+import { useI18n } from "@/lib/i18n";
 import { broadcast, colors, radii, shadows, spacing, typography } from "@/theme";
 import { MatchReview } from "@/types";
 
-function timeAgo(iso: string) {
+function timeAgoKey(iso: string, locale: string): { key: string; params?: Record<string, number> } {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "hoy";
-  if (days === 1) return "ayer";
-  if (days < 7) return `hace ${days} días`;
-  if (days < 30) return `hace ${Math.floor(days / 7)} sem`;
-  return `hace ${Math.floor(days / 30)} mes`;
+  if (days <= 0) return { key: "reviews.today" };
+  if (days === 1) return { key: "reviews.yesterday" };
+  if (days < 7) return { key: "reviews.daysAgo", params: { count: days } };
+  if (days < 30) return { key: "reviews.weeksAgo", params: { count: Math.floor(days / 7) } };
+  return { key: "reviews.monthsAgo", params: { count: Math.floor(days / 30) } };
+}
+
+function formatReviewLocaleDate(iso: string, locale: string) {
+  try {
+    return new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return new Date(iso).toISOString().slice(0, 16).replace("T", " ");
+  }
 }
 
 /**
@@ -22,6 +31,7 @@ function timeAgo(iso: string) {
  * Encabezado con promedio de estrellas + lista de comentarios.
  */
 export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
+  const { t, locale } = useI18n();
   const avg = averageStars(reviews);
 
   return (
@@ -48,11 +58,13 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
           <StarRating value={avg ?? 0} size={11} gap={1} color="#C6F135" />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Notas de rivales</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("profile.reviews.title")}</Text>
           <Text style={{ ...typography.footnote, color: colors.textSecondary }}>
             {reviews.length === 0
-              ? "Aún sin reseñas de partidos."
-              : `${reviews.length} ${reviews.length === 1 ? "reseña" : "reseñas"} de partidos validados`}
+              ? t("reviews.empty")
+              : reviews.length === 1
+                ? t("reviews.countOne")
+                : t("reviews.countMany", { count: reviews.length })}
           </Text>
         </View>
       </View>
@@ -85,11 +97,11 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
           {review.skillRatings ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
               {([
-                ["Servicio", review.skillRatings.serve],
-                ["Derecha", review.skillRatings.forehand],
-                ["Revés", review.skillRatings.backhand],
-                ["Volea", review.skillRatings.volley],
-                ["Consistencia", review.skillRatings.consistency]
+                [t("skills.serve"), review.skillRatings.serve],
+                [t("skills.forehand"), review.skillRatings.forehand],
+                [t("skills.backhand"), review.skillRatings.backhand],
+                [t("skills.volley"), review.skillRatings.volley],
+                [t("skills.consistency"), review.skillRatings.consistency]
               ] as Array<[string, number]>).map(([label, value]) => (
                 <View key={label} style={{ backgroundColor: colors.courtLight, borderRadius: radii.pill, paddingHorizontal: 7, paddingVertical: 3 }}>
                   <Text style={{ ...typography.footnote, color: colors.neon, fontSize: 10, fontWeight: "800" }}>
@@ -102,7 +114,10 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
           <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
             <Icon name="clock" size={10} color={colors.textTertiary as string} />
             <Text style={{ ...typography.footnote, color: colors.textTertiary, fontSize: 11 }}>
-              {timeAgo(review.createdAt)}
+              {(() => {
+                const slot = timeAgoKey(review.createdAt, locale);
+                return slot.params ? t(slot.key, slot.params) : t(slot.key);
+              })()}
             </Text>
           </View>
         </Animated.View>

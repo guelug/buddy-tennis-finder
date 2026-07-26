@@ -61,6 +61,9 @@ for (const product of products) {
     packageName,
     productId: product.sku,
     listings: [
+      // La ficha de Play usa es-419 como idioma predeterminado. Google exige
+      // que todo producto tenga una publicación en ese idioma exacto.
+      { languageCode: "es-419", title: product.title, description: product.description },
       { languageCode: "es-ES", title: product.title, description: product.description }
     ],
     purchaseOptions: [{

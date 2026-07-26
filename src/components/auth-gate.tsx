@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeInUp, useAnimatedStyle, useSharedValue, withRepea
 import { useGlobalSearchParams, usePathname, useRouter, useRootNavigationState } from "expo-router";
 import { useAuth } from "@/lib/firebase-auth";
 import { subscribeToPlayer } from "@/lib/firestore";
+import { useI18n } from "@/lib/i18n";
 import { PrimaryButton } from "@/components/primary-button";
 import { colors, radii, spacing, typography } from "@/theme";
 import { useThemeMode } from "@/theme/theme-mode";
@@ -21,6 +22,7 @@ import { Player } from "@/types";
  * si no, el navigator nunca monta y ninguna redirección puede ocurrir.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const { user, loading, isConfigured } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -47,7 +49,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     setResolvedPlayerUid(null);
     setProfileError(null);
     const timeout = setTimeout(() => {
-      setProfileError("La conexión está tardando demasiado. Revisa internet y vuelve a intentarlo.");
+      setProfileError(t("authGate.timeout"));
       setPlayerLoading(false);
       setResolvedPlayerUid(user.uid);
     }, 12000);
@@ -61,7 +63,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       clearTimeout(timeout);
       setPlayer(null);
       setResolvedPlayerUid(user.uid);
-      setProfileError(error.message || "No pudimos comprobar tu perfil.");
+      setProfileError(error.message || t("authGate.profileFallback"));
       setPlayerLoading(false);
     });
     return () => { clearTimeout(timeout); unsubscribe(); };
@@ -138,15 +140,16 @@ function webPathname(fallback: string) {
 
 function ProfileLoadError({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { isLight } = useThemeMode();
+  const { t } = useI18n();
   return (
     <View style={{ alignItems: "center", backgroundColor: colors.background, flex: 1, justifyContent: "center", padding: spacing.xxl }}>
       <View style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: colors.borderStrong, borderRadius: radii.xl, borderWidth: 1, boxShadow: isLight ? "0 14px 36px rgba(27,55,36,.12)" : "0 18px 44px rgba(0,0,0,.42)", gap: spacing.md, maxWidth: 420, padding: spacing.xl, width: "100%" }}>
         <View style={{ alignItems: "center", backgroundColor: colors.warningBg, borderRadius: radii.xl, height: 64, justifyContent: "center", width: 64 }}>
           <Text style={{ color: colors.warning, fontSize: 30 }}>!</Text>
         </View>
-        <Text style={{ ...typography.headline, color: colors.textPrimary, textAlign: "center" }}>No pudimos abrir tu perfil</Text>
+        <Text style={{ ...typography.headline, color: colors.textPrimary, textAlign: "center" }}>{t("authGate.errorTitle")}</Text>
         <Text selectable style={{ ...typography.body, color: colors.textSecondary, textAlign: "center" }}>{message}</Text>
-        <PrimaryButton label="Reintentar conexión" onPress={onRetry} />
+        <PrimaryButton label={t("authGate.retry")} onPress={onRetry} />
       </View>
     </View>
   );
@@ -154,12 +157,13 @@ function ProfileLoadError({ message, onRetry }: { message: string; onRetry: () =
 
 function WelcomeLoader({ step, firstProfile }: { step: number; firstProfile: boolean }) {
   const { isLight } = useThemeMode();
+  const { t } = useI18n();
   const rotation = useSharedValue(0);
   useEffect(() => { rotation.value = withRepeat(withTiming(360, { duration: 2400 }), -1, false); }, [rotation]);
   const spin = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
   const messages = firstProfile
-    ? ["Creando tu jugador", "Preparando la pista", "Ajustando la red"]
-    : ["Abriendo el club", "Preparando la pista", "Buscando tu partido"];
+    ? [t("authGate.first.0"), t("authGate.first.1"), t("authGate.first.2")]
+    : [t("authGate.returning.0"), t("authGate.returning.1"), t("authGate.returning.2")];
   const progress = firstProfile ? [32, 68, 92][step] : [38, 72, 94][step];
   return (
     <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -169,7 +173,7 @@ function WelcomeLoader({ step, firstProfile }: { step: number; firstProfile: boo
         <Text style={[styles.ball, { color: colors.court, textShadowColor: colors.court }]}>●</Text>
       </View>
       <Animated.Text entering={FadeInUp.duration(400)} key={messages[step]} style={[styles.title, { color: colors.textPrimary }]}>{messages[step]}</Animated.Text>
-      <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{firstProfile ? "Tu primera entrada merece una buena pista." : "Un momento, estamos dejando todo listo."}</Text>
+      <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{firstProfile ? t("authGate.firstBody") : t("authGate.returningBody")}</Text>
       <View style={[styles.progressTrack, { backgroundColor: colors.surfaceElevated }]}><Animated.View entering={FadeIn.duration(300)} style={[styles.progressFill, { backgroundColor: colors.court, boxShadow: isLight ? undefined : "0 0 12px rgba(198,241,53,.65)", width: `${progress}%` }]} /></View>
       <Text style={[styles.progressLabel, { color: colors.court }]}>{progress}%</Text>
     </View>

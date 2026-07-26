@@ -11,7 +11,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { ScreenShell } from "@/components/screen-shell";
 import { averageReviewSkills, SkillRadar, skillsFromRating } from "@/components/skill-radar";
-import { getAllPlayers, getClubs } from "@/lib/firestore";
+import { getClubs, getPlayer } from "@/lib/firestore";
 import { getReviewsForPlayer } from "@/lib/match-room";
 import { players as seedPlayers } from "@/data/seed";
 import { isFirebaseConfigured } from "@/../firebase.config";
@@ -20,6 +20,18 @@ import { openInWaze } from "@/lib/waze";
 import { useI18n } from "@/lib/i18n";
 import { colors, radii, shadows, spacing, typography } from "@/theme";
 import { Club, MatchReview, Player } from "@/types";
+
+/**
+ * Perfiles que no viven en Firestore: los de muestra del modo demo y los
+ * `demo-*` que rellenan la comunidad mientras hay pocos usuarios reales.
+ */
+function findLocalPlayer(id: string): Player | null {
+  const seedId = id.startsWith("demo-") ? id.slice("demo-".length) : id;
+  const match = seedPlayers.find((item) => item.id === seedId);
+  if (!match) return null;
+  if (id.startsWith("demo-")) return { ...match, id, isDemo: true, profileComplete: true, responseRate: 0 };
+  return isFirebaseConfigured ? null : match;
+}
 
 export default function PublicPlayerProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,13 +43,16 @@ export default function PublicPlayerProfile() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([getAllPlayers(), getClubs(), getReviewsForPlayer(id)])
-      .then(([players, nextClubs, nextReviews]) => {
-        const demoPlayer = isFirebaseConfigured ? null : seedPlayers.find((item) => item.id === id);
-        setPlayer(players.find((item) => item.id === id) ?? demoPlayer ?? null);
+    // Antes se descargaba la colección entera de jugadores para quedarse con
+    // uno: N lecturas de Firestore por cada visita a un perfil. Ahora se lee
+    // solo el documento pedido.
+    Promise.all([getPlayer(id), getClubs(), getReviewsForPlayer(id)])
+      .then(([remotePlayer, nextClubs, nextReviews]) => {
+        setPlayer(remotePlayer ?? findLocalPlayer(id));
         setClubs(nextClubs);
         setReviews(nextReviews);
       })
+      .catch(() => setPlayer(findLocalPlayer(id)))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -96,30 +111,30 @@ export default function PublicPlayerProfile() {
         <Animated.View entering={FadeIn.delay(90).springify()}>
           <GlassPanel>
             <Text style={{ ...typography.headline, color: colors.textPrimary }}>{t("profile.skills.title")}</Text>
-            <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{skillSummary.count ? `Media de ${skillSummary.count} valoraciones de rivales` : "Estimación provisional hasta recibir valoraciones"}</Text>
+            <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{skillSummary.count ? t("profile.skills.hintReviews", { count: skillSummary.count }) : t("player.skills.estimate")}</Text>
             <SkillRadar skills={skillSummary.skills} size={260} provisional={skillSummary.count === 0} />
           </GlassPanel>
         </Animated.View>
 
         <GlassPanel>
-          <Text style={{ ...typography.headline, color: colors.textPrimary }}>Clubes habituales</Text>
+          <Text style={{ ...typography.headline, color: colors.textPrimary }}>{t("player.clubs")}</Text>
           {playerClubs.map((club) => (
             <Pressable key={club.id} onPress={() => openInWaze(club.latitude, club.longitude, club.name)} style={{ alignItems: "center", borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row", gap: spacing.md, paddingVertical: spacing.md }}>
               <Icon name="building" size={18} color={colors.neon as string} />
-              <View style={{ flex: 1 }}><Text style={{ ...typography.bodyEmphasized, color: colors.textPrimary }}>{club.name}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{club.city} · {club.courts} canchas</Text></View>
+              <View style={{ flex: 1 }}><Text style={{ ...typography.bodyEmphasized, color: colors.textPrimary }}>{club.name}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{club.city} · {t("profile.clubs.courts", { count: club.courts })}</Text></View>
               <WazeLogo size={18} color={colors.court} />
             </Pressable>
           ))}
         </GlassPanel>
 
         <GlassPanel>
-          <Text style={{ ...typography.headline, color: colors.textPrimary }}>Disponibilidad</Text>
+          <Text style={{ ...typography.headline, color: colors.textPrimary }}>{t("profile.availability.title")}</Text>
           {player.availability.length ? player.availability.map((slot) => (
             <View key={slot.day} style={{ alignItems: "center", borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingVertical: spacing.sm }}><Text style={{ ...typography.body, color: colors.textPrimary }}>{slot.day}</Text><Text style={{ ...typography.caption, color: colors.neon }}>{slot.ranges.join(", ")}</Text></View>
-          )) : <Text style={{ ...typography.body, color: colors.textSecondary }}>Sin horarios publicados.</Text>}
+          )) : <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("player.noAvailability")}</Text>}
         </GlassPanel>
 
-        <PrimaryButton label="Ver partidos abiertos" icon={<Icon name="calendar-plus" size={17} color={colors.textOnBall as string} />} onPress={() => router.replace("/")} />
+        <PrimaryButton label={t("player.openMatches")} icon={<Icon name="calendar-plus" size={17} color={colors.textOnBall as string} />} onPress={() => router.replace("/")} />
       </ScreenShell>
     </LiveBackground>
   );

@@ -49,6 +49,7 @@ function openMatch(ownerId: string, acceptedLevels: string[]) {
     fromPlayerId: ownerId,
     acceptedByPlayerId: null,
     clubId: "club-test",
+    city: "Madrid",
     proposedAt: new Date().toISOString(),
     startsAt,
     reservationTime: "18:00-19:00",
@@ -209,6 +210,27 @@ test("la autoevaluación del onboarding se acepta solo con ejes válidos", async
   await assertFails(updateDoc(doc(user, "players", userId), { rating: 5, updatedAt: serverTimestamp() }));
 });
 
+test("un perfil antiguo puede inscribirse únicamente en ligas públicas oficiales", async () => {
+  const userId = "legacy-public-league";
+  const user = environment.authenticatedContext(userId, { email_verified: true }).firestore();
+
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const legacy = player(userId, "Perfil antiguo", "c");
+    delete (legacy as Partial<typeof legacy>).verified;
+    delete (legacy as Partial<typeof legacy>).profileComplete;
+    await setDoc(doc(context.firestore(), "players", userId), legacy);
+  });
+
+  await assertSucceeds(updateDoc(doc(user, "players", userId), {
+    publicLeagues: ["l-c-individual"],
+    updatedAt: serverTimestamp()
+  }));
+  await assertFails(updateDoc(doc(user, "players", userId), {
+    publicLeagues: ["liga-inventada"],
+    updatedAt: serverTimestamp()
+  }));
+});
+
 test("las reservas admiten clubes con más de 6 canchas", async () => {
   const ownerId = "club-grande";
   const owner = environment.authenticatedContext(ownerId, { email_verified: true }).firestore();
@@ -217,4 +239,61 @@ test("las reservas admiten clubes con más de 6 canchas", async () => {
   await assertSucceeds(setDoc(doc(owner, "matches", "court-18"), { ...openMatch(ownerId, ["c"]), court: 18 }));
   await assertFails(setDoc(doc(owner, "matches", "court-25"), { ...openMatch(ownerId, ["c"]), court: 25 }));
   await assertFails(setDoc(doc(owner, "matches", "court-zero"), { ...openMatch(ownerId, ["c"]), court: 0 }));
+});
+
+test("solo el rival valida un resultado y crea una entrada de ranking inmutable", async () => {
+  const ownerId = "result-owner";
+  const rivalId = "result-rival";
+  const matchId = "validated-result";
+  const owner = environment.authenticatedContext(ownerId, { email_verified: true }).firestore();
+  const rival = environment.authenticatedContext(rivalId, { email_verified: true }).firestore();
+
+  await assertSucceeds(setDoc(doc(owner, "players", ownerId), player(ownerId, "Capitán", "c")));
+  await assertSucceeds(setDoc(doc(rival, "players", rivalId), player(rivalId, "Rival", "c")));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "matches", matchId), {
+      ...openMatch(ownerId, ["c"]),
+      acceptedByPlayerId: rivalId,
+      status: "accepted",
+      startsAt: new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    });
+  });
+
+  const result = {
+    winner: "A",
+    sets: [{ a: 6, b: 4 }, { a: 6, b: 3 }],
+    reportedById: ownerId,
+    reportedByName: "Capitán",
+    reportedAt: new Date().toISOString()
+  };
+  await assertSucceeds(updateDoc(doc(owner, "matches", matchId), {
+    resultStatus: "awaiting_validation",
+    result,
+    updatedAt: serverTimestamp()
+  }));
+  await assertFails(updateDoc(doc(owner, "matches", matchId), {
+    resultStatus: "validated",
+    validation: { playerId: ownerId, playerName: "Capitán", validatedAt: new Date().toISOString() },
+    updatedAt: serverTimestamp()
+  }));
+
+  await assertSucceeds(runTransaction(rival, async (transaction) => {
+    transaction.update(doc(rival, "matches", matchId), {
+      resultStatus: "validated",
+      validation: { playerId: rivalId, playerName: "Rival", validatedAt: new Date().toISOString() },
+      updatedAt: serverTimestamp()
+    });
+    transaction.set(doc(rival, "rankingResults", matchId), {
+      matchId,
+      city: "Madrid",
+      division: "c",
+      playerAId: ownerId,
+      playerBId: rivalId,
+      winnerId: ownerId,
+      playedAt: new Date().toISOString(),
+      validatedById: rivalId,
+      createdAt: serverTimestamp()
+    });
+  }));
+  await assertFails(updateDoc(doc(rival, "rankingResults", matchId), { winnerId: rivalId }));
 });

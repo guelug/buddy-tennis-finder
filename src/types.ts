@@ -17,7 +17,20 @@ export type RankingEntry = {
   losses: number;
   streak: number;
   clubName?: string;
+  /** Ciudad y país del jugador — permiten filtrar el ranking por región. */
+  city?: string;
+  country?: string;
   isDemo?: boolean;
+};
+
+export type ValidatedRankingResult = {
+  matchId: string;
+  city: string;
+  division: Division;
+  playerAId: string;
+  playerBId: string;
+  winnerId: string;
+  playedAt: string;
 };
 
 export type MatchStatus = "proposed" | "accepted" | "declined";

@@ -13,6 +13,25 @@ export function isLevelCompatible(a: SkillLevel, b: SkillLevel): boolean {
   return Math.abs(levelValue[a] - levelValue[b]) <= 1;
 }
 
+/**
+ * Dos jugadores solo son emparejables si juegan en la misma ciudad. Sin este
+ * filtro el buscador mezclaba países enteros y proponía rivales con los que
+ * era imposible jugar (Barcelona ↔ Ciudad de Guatemala).
+ *
+ * La comparación se normaliza porque la ciudad se guarda como texto libre en
+ * perfiles antiguos. Si a algún perfil le falta la ciudad, no lo excluimos:
+ * preferimos un candidato de más a esconder a un usuario real por un dato
+ * incompleto.
+ */
+function sameArea(a: Player, b: Player): boolean {
+  const normalize = (value: string | undefined) =>
+    (value ?? "").trim().toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const cityA = normalize(a.city);
+  const cityB = normalize(b.city);
+  if (!cityA || !cityB) return normalize(a.country) === normalize(b.country);
+  return cityA === cityB;
+}
+
 export function rankCandidates(
   currentPlayer: Player,
   allPlayers: Player[],
@@ -22,6 +41,7 @@ export function rankCandidates(
     // Los perfiles de muestra sirven únicamente para rankings y bloques
     // editoriales. Nunca son rivales buscables ni candidatos interactivos.
     .filter((player) => player.id !== currentPlayer.id && player.isDemo !== true)
+    .filter((player) => sameArea(currentPlayer, player))
     .map((player) => {
       const sharedSlots = findSharedSlots(currentPlayer, player);
       const sharedFormats = player.preferredFormats.filter((format) =>

@@ -10,12 +10,12 @@ export type Country = (typeof countries)[number];
  * datos para cuando abramos esos mercados. Para habilitar uno nuevo, añádelo
  * aquí y asegúrate de que tenga ciudades en `CITIES_BY_COUNTRY` y clubes.
  */
-export const selectableCountries = ["Guatemala"] as const satisfies readonly Country[];
+export const selectableCountries = ["Guatemala", "España"] as const satisfies readonly Country[];
 
 export const CITIES_BY_COUNTRY: Record<Country, string[]> = {
   Guatemala: ["Ciudad de Guatemala"],
   "El Salvador": ["San Salvador"],
-  España: ["Barcelona", "Madrid"]
+  España: ["Barcelona"]
 };
 
 export const clubs: Club[] = [
@@ -173,44 +173,53 @@ export const clubs: Club[] = [
   },
   // España · Barcelona
   {
-    id: "rc-barcelona-tenis-es",
-    name: "Real Club de Tenis Barcelona",
+    id: "rctb-1899-es",
+    name: "Reial Club de Tennis Barcelona-1899",
     city: "Barcelona",
     country: "España",
-    address: "Avinguda del Parc del Nord, 23, Barcelona",
-    latitude: 41.4067,
-    longitude: 2.1379,
-    courts: 18
+    address: "Carrer de Bosch i Gimpera, 5-13, Les Corts, Barcelona",
+    latitude: 41.3861,
+    longitude: 2.1178,
+    courts: 17
   },
   {
-    id: "club-tenis-barcelona-es",
-    name: "Club Tenis Barcelona",
+    id: "ct-barcino-es",
+    name: "Club Tennis Barcino",
     city: "Barcelona",
     country: "España",
-    address: "Carrer de Beethoven, 3, Barcelona",
-    latitude: 41.3944,
-    longitude: 2.1499,
-    courts: 8
-  },
-  // España · Madrid
-  {
-    id: "club-raqueta-madrid-es",
-    name: "Club de la Raqueta",
-    city: "Madrid",
-    country: "España",
-    address: "Calle de Francisco Silvela, 47, Madrid",
-    latitude: 40.4237,
-    longitude: -3.6693,
+    address: "Carrer del Bosc, 5-11, Sarrià-Sant Gervasi, Barcelona",
+    latitude: 41.4106,
+    longitude: 2.1240,
     courts: 12
   },
   {
-    id: "neguri-madrid-es",
-    name: "Real Club de Tenis Negruride",
-    city: "Madrid",
+    id: "ct-vall-parc-es",
+    name: "Club Tennis Vall Parc",
+    city: "Barcelona",
     country: "España",
-    address: "Calle del Cocherón de la Villa, 8, Madrid",
-    latitude: 40.4469,
-    longitude: -3.6891,
+    address: "Carretera de l'Arrabassada, 97, Barcelona",
+    latitude: 41.4180,
+    longitude: 2.1290,
+    courts: 12
+  },
+  {
+    id: "can-caralleu-es",
+    name: "Complex Esportiu Municipal Can Caralleu",
+    city: "Barcelona",
+    country: "España",
+    address: "Carrer dels Esports, 2-8, Sarrià-Sant Gervasi, Barcelona",
+    latitude: 41.4030,
+    longitude: 2.1170,
+    courts: 7
+  },
+  {
+    id: "ct-pompeia-es",
+    name: "Club Tennis Pompeia",
+    city: "Barcelona",
+    country: "España",
+    address: "Carrer del Foc, 5, Montjuïc, Barcelona",
+    latitude: 41.3600,
+    longitude: 2.1450,
     courts: 6
   }
 ];
@@ -290,8 +299,8 @@ export const players: Player[] = [
     name: "Diego Castillo",
     age: 42,
     gender: "male",
-    clubIds: ["club-raqueta-madrid-es"],
-    city: "Madrid",
+    clubIds: ["ct-barcino-es"],
+    city: "Barcelona",
     country: "España",
     latitude: 40.4237,
     longitude: -3.6693,
@@ -301,7 +310,7 @@ export const players: Player[] = [
       { day: "Sábado", ranges: ["08:00-11:00"] },
       { day: "Domingo", ranges: ["08:00-10:00"] }
     ],
-    bio: "Disponible para recibir jugadores de Madrid en la capital.",
+    bio: "Disponible para recibir jugadores en Barcelona.",
     rating: 4.5,
     responseRate: 80,
     languages: ["Español"]
@@ -311,7 +320,7 @@ export const players: Player[] = [
     name: "Sofía Arévalo",
     age: 25,
     gender: "female",
-    clubIds: ["rc-barcelona-tenis-es"],
+    clubIds: ["rctb-1899-es"],
     city: "Barcelona",
     country: "España",
     latitude: 41.4067,

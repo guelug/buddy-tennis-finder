@@ -1,5 +1,5 @@
 import { clubs, players } from "./seed";
-import { Club, Division, Player, RankTier, RankingEntry } from "../types";
+import { Club, Division, Player, RankTier, RankingEntry, ValidatedRankingResult } from "../types";
 
 export const DIVISION_LABELS: Record<Division, string> = {
   novato: "Novato",
@@ -52,6 +52,8 @@ function buildDivisionRankings(division: Division): RankingEntry[] {
       losses: Math.min(12, 2 + index),
       streak: Math.max(0, 5 - index),
       clubName: club?.name,
+      city: player.city,
+      country: player.country,
       isDemo: player.id !== "me"
     };
   });
@@ -72,29 +74,72 @@ export const allRankings = Object.values(rankingsByDivision).flat();
  * en el perfil; victorias y rachas permanecen a cero hasta que exista el
  * backend de resultados validados.
  */
-export function buildProvisionalRankings(sourcePlayers: Player[], sourceClubs: Club[]) {
+export function buildProvisionalRankings(
+  sourcePlayers: Player[],
+  sourceClubs: Club[],
+  validatedResults: ValidatedRankingResult[] = []
+) {
   const result = {} as Record<Division, RankingEntry[]>;
   for (const division of Object.keys(DIVISION_LABELS) as Division[]) {
+    const records = new Map<string, { wins: number; losses: number }>();
+    for (const match of validatedResults.filter((item) => item.division === division)) {
+      for (const playerId of [match.playerAId, match.playerBId]) {
+        const record = records.get(playerId) ?? { wins: 0, losses: 0 };
+        if (match.winnerId === playerId) record.wins += 1;
+        else record.losses += 1;
+        records.set(playerId, record);
+      }
+    }
     const sorted = sourcePlayers
-      .filter((player) => player.profileComplete && player.level === division)
-      .sort((a, b) => b.rating - a.rating || b.responseRate - a.responseRate || a.name.localeCompare(b.name));
+      .filter((player) => player.profileComplete && player.level === division && player.isDemo !== true)
+      .sort((a, b) => {
+        const aRecord = records.get(a.id) ?? { wins: 0, losses: 0 };
+        const bRecord = records.get(b.id) ?? { wins: 0, losses: 0 };
+        const aPoints = aRecord.wins * 100 + aRecord.losses * 25;
+        const bPoints = bRecord.wins * 100 + bRecord.losses * 25;
+        return bPoints - aPoints || bRecord.wins - aRecord.wins || a.name.localeCompare(b.name);
+      });
     result[division] = sorted.map((player, index) => {
       const rank = index + 1;
       const club = sourceClubs.find((item) => player.clubIds.includes(item.id));
+      const record = records.get(player.id) ?? { wins: 0, losses: 0 };
       return {
         rank,
         playerId: player.id,
         playerName: player.name,
         division,
         tier: tierForRank(rank),
-        points: Math.round(player.rating * 100 + player.responseRate * 2),
-        wins: 0,
-        losses: 0,
+        points: record.wins * 100 + record.losses * 25,
+        wins: record.wins,
+        losses: record.losses,
         streak: 0,
         clubName: club?.name,
+        city: player.city,
+        country: player.country,
         isDemo: player.isDemo === true
       };
     });
   }
   return result;
+}
+
+/**
+ * Filtra un ranking a la región del jugador y renumera las posiciones para que
+ * la tabla regional sea 1..N y no muestre huecos del ranking global.
+ */
+export function scopeRankingToArea(entries: RankingEntry[], city?: string, country?: string): RankingEntry[] {
+  const normalize = (value: string | undefined) =>
+    (value ?? "").trim().toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const targetCity = normalize(city);
+  const targetCountry = normalize(country);
+  if (!targetCity && !targetCountry) return entries;
+  return entries
+    .filter((entry) => {
+      const entryCity = normalize(entry.city);
+      // Un perfil sin ciudad se agrupa por país; si tampoco tiene país, se
+      // queda fuera del regional pero sigue apareciendo en el global.
+      if (!entryCity || !targetCity) return Boolean(targetCountry) && normalize(entry.country) === targetCountry;
+      return entryCity === targetCity;
+    })
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }

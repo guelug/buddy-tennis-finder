@@ -19,7 +19,7 @@ import {
   updateDoc,
   where
 } from "firebase/firestore";
-import { getClubs, getAllPlayers, getPlayer, normalizePlayerDocument } from "./firestore";
+import { getClubs, getPlayersForArea, getPlayer, normalizePlayerDocument } from "./firestore";
 import { isLevelCompatible, rankCandidates } from "./matching";
 
 export type HomeData = {
@@ -111,6 +111,11 @@ async function getJoinRequests(uid: string): Promise<MatchJoinRequest[]> {
   return Array.from(merged.values());
 }
 
+/** Normaliza ciudad/país para comparar texto libre de perfiles antiguos. */
+export function normalizeArea(value: string | undefined | null): string {
+  return (value ?? "").trim().toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 export async function getHomeData(
   preferences?: SearchPreferences,
   currentUserId?: string
@@ -128,26 +133,31 @@ export async function getHomeData(
 
   // propuestasPropias: las que yo creé o las que yo acepté.
   // propuestasAbiertas: las publicadas por otros y que nadie ha aceptado aún.
-  const [clubs, allPlayers, playerSnap, mineSnap, acceptedSnap, openSnap, joinRequests] = await withTimeout(Promise.all([
-    getClubs(),
-    getAllPlayers(),
+  const playerSnap = await withTimeout(
     getDoc(doc(db, "players", uid)),
+    12000,
+    "La conexión está tardando demasiado. Comprueba internet y vuelve a intentarlo."
+  );
+  const currentPlayer = playerSnap.exists() ? normalizePlayerDocument(playerSnap.data(), playerSnap.id) : null;
+  if (!currentPlayer) {
+    throw new Error("Perfil no encontrado. Completa el onboarding.");
+  }
+
+  const [clubs, allPlayers, mineSnap, acceptedSnap, openSnap, joinRequests] = await withTimeout(Promise.all([
+    getClubs(),
+    getPlayersForArea(currentPlayer.city),
     getDocs(query(collection(db, "matches"), where("fromPlayerId", "==", uid))),
     getDocs(query(collection(db, "matches"), where("acceptedByPlayerId", "==", uid))),
     getDocs(
       query(
         collection(db, "matches"),
         where("acceptedByPlayerId", "==", null),
-        where("status", "==", "proposed")
+        where("status", "==", "proposed"),
+        where("city", "==", currentPlayer.city)
       )
     ),
     getJoinRequests(uid)
   ]), 12000, "La conexión está tardando demasiado. Comprueba internet y vuelve a intentarlo.");
-
-  const currentPlayer = playerSnap.exists() ? normalizePlayerDocument(playerSnap.data(), playerSnap.id) : null;
-  if (!currentPlayer) {
-    throw new Error("Perfil no encontrado. Completa el onboarding.");
-  }
 
   const otherPlayers = allPlayers.filter((p) => p.id !== uid);
   const candidates = rankCandidates(currentPlayer, otherPlayers, preferences ?? defaultPreferences);
@@ -163,6 +173,19 @@ export async function getHomeData(
       if (proposal) proposals.push(proposal);
     }
   }
+  // La consulta de propuestas abiertas no está acotada por región, así que
+  // llegaban partidos de cualquier país. Resolvemos la ciudad a partir del
+  // club de la reserva: un partido solo es jugable si es en tu ciudad.
+  const cityOfClub = new Map(clubs.map((club) => [club.id, normalizeArea(club.city)]));
+  const myCity = normalizeArea(currentPlayer.city);
+  const isNearby = (proposal: MatchProposal) => {
+    const proposalCity = cityOfClub.get(proposal.clubId);
+    // Sin ciudad conocida (club retirado del catálogo) no ocultamos el partido:
+    // el creador y quien lo aceptó siempre deben poder verlo.
+    if (!proposalCity || !myCity) return true;
+    return proposalCity === myCity;
+  };
+
   const visibleProposals = proposals.filter((proposal) =>
     proposal.fromPlayerId === uid
     || proposal.acceptedByPlayerId === uid
@@ -170,6 +193,7 @@ export async function getHomeData(
       proposal.acceptedByPlayerId === null
       && proposal.status === "proposed"
       && new Date(proposal.startsAt).getTime() > Date.now()
+      && isNearby(proposal)
       && (proposal.acceptedLevels?.includes(currentPlayer.level) ?? isLevelCompatible(proposal.division, currentPlayer.level))
     )
   );
@@ -229,6 +253,7 @@ export async function createProposal(
     status: "proposed" as const,
     proposedAt: new Date().toISOString(),
     createdAt: serverTimestamp()
+    ,city: club.city
   };
 
   const ref = await addDoc(collection(db, "matches"), payload);

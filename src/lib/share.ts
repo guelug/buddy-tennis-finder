@@ -6,6 +6,14 @@ import type { PrivateLeague } from "@/types";
 export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.matchpoint.clubs";
 export const WEB_APP_URL = process.env.EXPO_PUBLIC_APP_URL || "https://tenisbuddy-app.web.app";
 export const APP_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || WEB_APP_URL;
+export type CommunityShareFormat = "story" | "reel" | "post" | "message";
+
+const COMMUNITY_BANNERS = {
+  story: require("@/../assets/share/matchpoint-share-story-v2.png"),
+  reel: require("@/../assets/share/matchpoint-share-reel.png"),
+  post: require("@/../assets/share/matchpoint-share-post.png"),
+  message: require("@/../assets/share/matchpoint-share-message.png")
+} as const;
 
 export function buildAppInviteMessage(playerName: string) {
   return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${WEB_APP_URL}`;
@@ -43,11 +51,11 @@ export async function shareLeagueInvite(league: PrivateLeague, playerName: strin
   });
 }
 
-export async function shareCommunityBanner(playerName: string) {
+export async function shareCommunityBanner(playerName: string, format: CommunityShareFormat = "story") {
   if (Platform.OS === "web" || !(await Sharing.isAvailableAsync())) {
     return shareAppInvite(playerName);
   }
-  const asset = Asset.fromModule(require("@/../assets/share/matchpoint-share-banner.png"));
+  const asset = Asset.fromModule(COMMUNITY_BANNERS[format]);
   await asset.downloadAsync();
   const uri = asset.localUri ?? asset.uri;
   await Sharing.shareAsync(uri, {

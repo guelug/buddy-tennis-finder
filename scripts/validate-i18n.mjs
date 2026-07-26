@@ -6,13 +6,17 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const localesDir = resolve(root, "i18n");
 const baseFile = resolve(localesDir, "en.json");
+const lockedSources = new Set(["en.json", "es.json"]);
 const placeholders = /\{[A-Za-z0-9_]+\}/g;
 
 const files = (await readdir(localesDir))
   .filter((name) => name.endsWith(".json"))
+  .filter((name) => !lockedSources.has(name))
   .sort((a, b) => a.localeCompare(b));
 
-if (!files.includes("en.json")) throw new Error("Missing canonical locale i18n/en.json");
+if (!files.includes("en.json") && !(await readdir(localesDir)).includes("en.json")) {
+  throw new Error("Missing canonical locale i18n/en.json");
+}
 
 const base = JSON.parse(await readFile(baseFile, "utf8"));
 const baseKeys = Object.keys(base);

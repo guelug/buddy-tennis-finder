@@ -30,6 +30,12 @@ mkdir -p "$(dirname "$OUTPUT_PATH")"
 
 (
   cd "$ROOT_DIR/android"
+  # Un prebuild puede cambiar la lista de módulos autolinked. CMake intenta
+  # entonces limpiar su grafo anterior antes de que codegen regenere las
+  # carpetas JNI y falla apuntando a rutas que ya no existen.
+  if [[ -d "$ROOT_DIR/android/app/.cxx" ]]; then
+    find "$ROOT_DIR/android/app/.cxx" -mindepth 1 -delete
+  fi
   # Metro conserva recursos empaquetados en android/app/build. Al cambiar la
   # extensión de un asset (por ejemplo PNG -> WebP), una build incremental
   # puede intentar fusionar ambas versiones bajo el mismo nombre Android.

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
+import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
 import { requestPurchase, useIAP } from "expo-iap";
 import {
@@ -96,7 +97,9 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   }, []);
 
   const processRecoveredPurchase = useCallback(async (purchase: NonNullable<typeof currentPurchase>) => {
-    const token = purchase.purchaseToken;
+    const token = purchase.platform === "android"
+      ? purchase.purchaseTokenAndroid
+      : purchase.transactionReceipt;
     if (!token || !user?.uid || processingTokens.current.has(token)) return;
     const intent = intents.find((item) => item.ownerId === user.uid && item.productId === purchase.id);
     if (!intent) return;
@@ -135,7 +138,10 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!intentsLoaded) return;
     const purchases = [...availablePurchases, ...(currentPurchase ? [currentPurchase] : [])];
-    const unique = new Map(purchases.filter((item) => item.purchaseToken).map((item) => [item.purchaseToken as string, item]));
+    const unique = new Map(purchases.map((item) => [
+      item.platform === "android" ? item.purchaseTokenAndroid : item.transactionReceipt,
+      item
+    ]).filter((entry): entry is [string, typeof purchases[number]] => Boolean(entry[0])));
     unique.forEach((purchase) => { void processRecoveredPurchase(purchase); });
   }, [intentsLoaded, intents, availablePurchases, currentPurchase, processRecoveredPurchase]);
 
@@ -157,7 +163,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   }, [currentPurchaseError, activeProductId, user?.uid, intents, forgetIntent, getAvailablePurchases]);
 
   const start = useCallback(async (intent: PurchaseIntent) => {
-    if (!connected) throw new Error("Google Play no está disponible en este momento.");
+    if (!connected) throw new Error(`${Platform.OS === "ios" ? "App Store" : "Google Play"} no está disponible en este momento.`);
     await savePurchaseIntent(intent);
     setIntents((current) => [...current.filter((item) => item.productId !== intent.productId), intent]);
     setActiveProductId(intent.productId);
@@ -165,10 +171,9 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     const accountHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, intent.ownerId);
     try {
       await requestPurchase({
-        request: {
-          ios: { sku: intent.productId },
-          android: { skus: [intent.productId], obfuscatedAccountIdAndroid: accountHash }
-        },
+        request: Platform.OS === "ios"
+          ? { sku: intent.productId }
+          : { skus: [intent.productId], obfuscatedAccountIdAndroid: accountHash },
         type: "inapp"
       });
     } catch (error) {

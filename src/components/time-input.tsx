@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { Platform, TextInput, type TextInputProps, type NativeSyntheticEvent, type TextInputKeyPressEventData } from "react-native";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 
 type TimeInputProps = {
@@ -23,9 +24,11 @@ export function isValidTime(value: string) {
  * - Backspace limpia el separador cuando corresponde.
  * - Valida rango real 00-23 / 00-59.
  */
-export function TimeInput({ value, onChange, placeholder = "18:00", compact, invalid }: TimeInputProps) {
+export function TimeInput({ value, onChange, placeholder, compact, invalid }: TimeInputProps) {
+  const { t } = useI18n();
   const inputRef = useRef<TextInput>(null);
   const displayValue = useMemo(() => formatTimeDisplay(value), [value]);
+  const fallbackPlaceholder = "18:00";
 
   function handleChange(text: string) {
     const raw = text.replace(/[^0-9]/g, "").slice(0, 4);
@@ -49,12 +52,12 @@ export function TimeInput({ value, onChange, placeholder = "18:00", compact, inv
       value={displayValue}
       onChangeText={handleChange}
       onKeyPress={handleKeyPress}
-      placeholder={placeholder}
+      placeholder={placeholder ?? fallbackPlaceholder}
       placeholderTextColor={colors.textTertiary}
       keyboardType={Platform.OS === "ios" ? "numbers-and-punctuation" : "numeric"}
       maxLength={5}
       selectTextOnFocus
-      accessibilityLabel="Hora"
+      accessibilityLabel={t("time.hour")}
       style={[
         timeInputBase,
         {

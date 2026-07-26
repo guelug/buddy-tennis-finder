@@ -75,9 +75,17 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // --- players: lectura pública (para matching/búsqueda), escritura solo por su dueño ---
+    // --- players: directorio deportivo, no una colección pública ---
     match /players/{uid} {
-      allow read: if request.auth != null;
+      // El dueño siempre puede abrir su perfil. Para ver a otras personas se
+      // exige una identidad verificada y las consultas deben estar acotadas;
+      // así una cuenta de email desechable no puede descargar el directorio.
+      allow get: if request.auth != null
+        && (request.auth.uid == uid || hasVerifiedIdentity());
+      allow list: if request.auth != null
+        && hasVerifiedIdentity()
+        && request.query.limit != null
+        && request.query.limit <= 100;
       // Las métricas competitivas no son editables desde el cliente. Al crear
       // un perfil arrancan en valores neutrales; un backend de resultados
       // validado será quien pueda modificarlas en una fase posterior.
@@ -90,27 +98,56 @@ service cloud.firestore {
 
       allow update: if request.auth != null
         && request.auth.uid == uid
-        && hasValidPublicProfile(request.resource.data, uid)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "name", "age", "gender", "clubIds", "city", "country",
-          "latitude", "longitude", "level", "preferredFormats",
-          "availability", "bio", "languages", "photoURL", "verified",
-          "profileComplete", "seekingTeam", "seekingTeamClubId", "updatedAt",
-          // Compatibilidad con perfiles antiguos que aún no tenían métricas.
-          "rating", "responseRate",
-          // Autoevaluación del onboarding (validada en hasValidSelfAssessment).
-          "skills",
-          // Inscripción del propio jugador a ligas públicas (una por rango).
-          "publicLeagues"
-        ])
-        && hasValidSelfAssessment(request.resource.data)
         && (
-          (!("rating" in resource.data) && request.resource.data.rating == 3)
-          || (("rating" in resource.data) && request.resource.data.rating == resource.data.rating)
-        )
-        && (
-          (!("responseRate" in resource.data) && request.resource.data.responseRate == 100)
-          || (("responseRate" in resource.data) && request.resource.data.responseRate == resource.data.responseRate)
+          // Inscribirse o salir de una liga pública no debe fallar para perfiles
+          // creados antes de añadir `verified`/`profileComplete`. Solo el dueño
+          // puede cambiar este array y nunca puede guardar más de una liga por
+          // cada uno de los cinco rangos.
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "publicLeagues", "updatedAt"
+            ])
+            && request.resource.data.publicLeagues is list
+            && request.resource.data.publicLeagues.size() <= 5
+            // Las ligas públicas son por rango Y por ciudad. Los ids sin
+            // sufijo de ciudad son los históricos: se siguen aceptando para
+            // no invalidar las inscripciones anteriores a la separación
+            // regional. Esta lista la genera `allPublicLeagueIds()`.
+            && request.resource.data.publicLeagues.toSet().hasOnly([
+              "l-novato-individual", "l-novato-individual-guatemala", "l-novato-individual-san-salvador",
+              "l-novato-individual-barcelona", "l-d-individual", "l-d-individual-guatemala",
+              "l-d-individual-san-salvador", "l-d-individual-barcelona", "l-c-individual",
+              "l-c-individual-guatemala", "l-c-individual-san-salvador", "l-c-individual-barcelona",
+              "l-b-individual", "l-b-individual-guatemala", "l-b-individual-san-salvador",
+              "l-b-individual-barcelona", "l-a-individual", "l-a-individual-guatemala",
+              "l-a-individual-san-salvador", "l-a-individual-barcelona"
+            ])
+          )
+          ||
+          (
+            hasValidPublicProfile(request.resource.data, uid)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "name", "age", "gender", "clubIds", "city", "country",
+              "latitude", "longitude", "level", "preferredFormats",
+              "availability", "bio", "languages", "photoURL", "verified",
+              "profileComplete", "seekingTeam", "seekingTeamClubId", "updatedAt",
+              // Compatibilidad con perfiles antiguos que aún no tenían métricas.
+              "rating", "responseRate",
+              // Autoevaluación del onboarding (validada en hasValidSelfAssessment).
+              "skills",
+              // Inscripción del propio jugador a ligas públicas (una por rango).
+              "publicLeagues"
+            ])
+            && hasValidSelfAssessment(request.resource.data)
+            && (
+              (!("rating" in resource.data) && request.resource.data.rating == 3)
+              || (("rating" in resource.data) && request.resource.data.rating == resource.data.rating)
+            )
+            && (
+              (!("responseRate" in resource.data) && request.resource.data.responseRate == 100)
+              || (("responseRate" in resource.data) && request.resource.data.responseRate == resource.data.responseRate)
+            )
+          )
         );
       // Solo el dueño puede darse de baja.
       allow delete: if request.auth != null && request.auth.uid == uid;
@@ -134,13 +171,18 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           "fromPlayerId", "acceptedByPlayerId", "clubId", "proposedAt",
           "startsAt", "reservationTime", "court", "status", "format",
-          "division", "acceptedLevels", "message", "createdAt"
+          "division", "acceptedLevels", "message", "city", "createdAt"
         ])
         && request.resource.data.fromPlayerId == request.auth.uid
         && request.resource.data.acceptedByPlayerId == null
         && request.resource.data.status == "proposed"
         && request.resource.data.clubId is string
         && request.resource.data.clubId.size() > 0
+        && request.resource.data.city is string
+        && request.resource.data.city.size() > 0
+        && request.resource.data.city.size() <= 80
+        && request.resource.data.city
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.city
         && request.resource.data.court is int
         && request.resource.data.court >= 1
         // El catálogo tiene clubes con más de 6 canchas; el cliente valida
@@ -175,7 +217,10 @@ service cloud.firestore {
       allow update: if request.auth != null
         && (request.resource.data.fromPlayerId == resource.data.fromPlayerId)
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["acceptedByPlayerId", "status", "updatedAt"])
+          .hasOnly([
+            "acceptedByPlayerId", "status", "resultStatus", "result",
+            "validation", "updatedAt"
+          ])
         && (
           (
             request.auth.uid == resource.data.fromPlayerId
@@ -198,11 +243,88 @@ service cloud.firestore {
             && request.resource.data.acceptedByPlayerId == null
             && request.resource.data.status in ["proposed", "declined"]
           )
+          ||
+          (
+            // Resultado: cualquiera de los dos jugadores de un partido
+            // aceptado puede reportarlo; solo el rival del reportero puede
+            // confirmarlo o disputarlo.
+            resource.data.status == "accepted"
+            && request.auth.uid in [resource.data.fromPlayerId, resource.data.acceptedByPlayerId]
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["resultStatus", "result", "validation", "updatedAt"])
+            && (
+              (
+                (
+                  !("resultStatus" in resource.data)
+                  || resource.data.resultStatus in ["awaiting_result", "disputed"]
+                )
+                && request.resource.data.resultStatus == "awaiting_validation"
+                && request.resource.data.result is map
+                && request.resource.data.result.keys().hasOnly([
+                  "winner", "sets", "reportedById", "reportedByName", "reportedAt"
+                ])
+                && request.resource.data.result.reportedById == request.auth.uid
+                && request.resource.data.result.reportedByName is string
+                && request.resource.data.result.reportedByName.size() <= 80
+                && request.resource.data.result.winner in ["A", "B"]
+                && request.resource.data.result.sets is list
+                && request.resource.data.result.sets.size() >= 1
+                && request.resource.data.result.sets.size() <= 5
+              )
+              ||
+              (
+                resource.data.resultStatus == "awaiting_validation"
+                && resource.data.result.reportedById != request.auth.uid
+                && request.resource.data.result == resource.data.result
+                && request.resource.data.resultStatus == "disputed"
+              )
+              ||
+              (
+                resource.data.resultStatus == "awaiting_validation"
+                && resource.data.result.reportedById != request.auth.uid
+                && request.resource.data.result == resource.data.result
+                && request.resource.data.resultStatus == "validated"
+                && request.resource.data.validation.playerId == request.auth.uid
+                && existsAfter(/databases/$(database)/documents/rankingResults/$(matchId))
+              )
+            )
+          )
         );
 
       // El creador puede borrar la propuesta (la UI ofrece cancelar).
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.fromPlayerId;
+    }
+
+    // Resultado competitivo inmutable. Se crea en la misma transacción en la
+    // que el rival confirma el marcador y permite calcular rankings sin un
+    // backend de pago ni confiar en puntos editables del perfil.
+    match /rankingResults/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "matchId", "city", "division", "playerAId", "playerBId",
+          "winnerId", "playedAt", "validatedById", "createdAt"
+        ])
+        && request.resource.data.matchId == matchId
+        && request.resource.data.validatedById == request.auth.uid
+        && getAfter(/databases/$(database)/documents/matches/$(matchId)).data.resultStatus == "validated"
+        && request.resource.data.playerAId
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.fromPlayerId
+        && request.resource.data.playerBId
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.acceptedByPlayerId
+        && request.resource.data.city
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.city
+        && request.resource.data.division
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.division
+        && request.resource.data.winnerId in [
+          request.resource.data.playerAId, request.resource.data.playerBId
+        ]
+        && request.auth.uid in [
+          request.resource.data.playerAId, request.resource.data.playerBId
+        ]
+        && request.auth.uid != getAfter(/databases/$(database)/documents/matches/$(matchId)).data.result.reportedById;
+      allow update, delete: if false;
     }
 
     match /matchJoinRequests/{requestId} {

@@ -2,6 +2,7 @@ node_modules
 .expo
 dist
 dist-android
+dist-*-check
 dist-demo
 web-build
 api/dist
@@ -20,9 +21,11 @@ android/app/debug.keystore
 ios/build
 ios/Pods
 ios/DerivedData
+ios/.xcode.env.local
 ios-native/build
 **/*.xcarchive
 **/DerivedData
+modules/*/android/build
 
 # Google Play service-account credentials (never commit these)
 credentials/google-play-service-account.json
