@@ -12,7 +12,7 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
-import ViewShot, { captureRef } from "react-native-view-shot";
+import ViewShot, { captureRef, type ViewShotRef } from "react-native-view-shot";
 import { Avatar } from "@/components/avatar";
 import { BallDrop } from "@/components/ball-bounce";
 import { Card } from "@/components/card";
@@ -781,7 +781,7 @@ export function MatchRoomSheet({
 }) {
   const [busy, setBusy] = React.useState<"report" | "validate" | "dispute" | "review" | null>(null);
   const [sharing, setSharing] = React.useState(false);
-  const resultCardRef = React.useRef<ViewShot>(null);
+  const resultCardRef = React.useRef<ViewShotRef>(null);
   const a = roomAffordances(room, currentPlayerId);
   const meta = STATUS_META[room.status];
 

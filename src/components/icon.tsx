@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Platform } from "react-native";
+import { Platform, type ColorValue } from "react-native";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import Svg, { Circle, Line, Path, Polygon, Polyline, Rect } from "react-native-svg";
 
@@ -35,7 +35,7 @@ export type IconName =
 type IconProps = {
   name: IconName;
   size?: number;
-  color?: string;
+  color?: ColorValue;
   /** Peso visual (solo afecta el grosor del trazo en SVG). */
   weight?: "regular" | "bold";
 };
@@ -96,7 +96,7 @@ export function Icon({ name, size = 20, color = "#0B5E3A", weight = "regular" }:
 }
 
 type StrokeProps = {
-  stroke: string;
+  stroke: ColorValue;
   strokeWidth: number;
   strokeLinecap: "round";
   strokeLinejoin: "round";

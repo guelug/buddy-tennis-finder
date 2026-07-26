@@ -8,14 +8,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "backgroundColor": "#070C08",
     "primaryColor": "#C6F135",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#070C08"
-    },
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,
@@ -46,11 +40,13 @@
       },
       "package": "com.matchpoint.clubs"
     },
-    "androidNavigationBar": {
-      "backgroundColor": "#070C08",
-      "barStyle": "light-content"
-    },
     "plugins": [
+      [
+        "expo-navigation-bar",
+        {
+          "style": "light"
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/app-check",
@@ -83,7 +79,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "15.1",
+            "deploymentTarget": "16.4",
             "useFrameworks": "static"
           },
           "android": {

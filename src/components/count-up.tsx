@@ -13,7 +13,7 @@ type CountUpProps = {
 export function CountUp({ value, decimals = 0, suffix = "", style, duration = 650 }: CountUpProps) {
   const [display, setDisplay] = useState(value);
   const prev = useRef(value);
-  const raf = useRef<number>();
+  const raf = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const from = prev.current;
