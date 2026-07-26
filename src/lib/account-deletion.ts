@@ -1,5 +1,5 @@
-import { deleteUser, getIdTokenResult } from "firebase/auth";
-import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch, type WriteBatch } from "firebase/firestore";
+import { deleteUser, getIdTokenResult } from "@react-native-firebase/auth";
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch, type WriteBatch } from "@react-native-firebase/firestore";
 import { auth, db } from "@/../firebase.config";
 
 export async function deleteCurrentAccountAndData() {

@@ -39,9 +39,15 @@
           <string>com.googleusercontent.apps.245934421177-s78lj6j696bt2vdaf66muh5unj64admn</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>app-1-245934421177-ios-81f6744f8cb71113475768</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>15</string>
+    <string>16</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>

@@ -15,7 +15,7 @@ import {
   serverTimestamp,
   type QueryConstraint,
   type Unsubscribe
-} from "firebase/firestore";
+} from "@react-native-firebase/firestore";
 import { db, isFirebaseConfigured } from "@/../firebase.config";
 import { Club, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
 

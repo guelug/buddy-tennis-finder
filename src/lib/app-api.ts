@@ -18,7 +18,7 @@ import {
   setDoc,
   updateDoc,
   where
-} from "firebase/firestore";
+} from "@react-native-firebase/firestore";
 import { getClubs, getPlayersForArea, getPlayer, normalizePlayerDocument } from "./firestore";
 import { isLevelCompatible, rankCandidates } from "./matching";
 

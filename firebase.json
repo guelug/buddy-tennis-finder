@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist",
+    "public": "landing",
     "cleanUrls": true,
     "ignore": [
       "firebase.json",
@@ -8,8 +8,25 @@
       "**/node_modules/**",
       "android/**"
     ],
+    "headers": [
+      {
+        "source": "**/*.@(css|js|png|svg|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public,max-age=604800,immutable" }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "public,max-age=300" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Content-Security-Policy", "value": "default-src \u0027self\u0027; style-src \u0027self\u0027; script-src \u0027self\u0027 \u0027unsafe-inline\u0027; img-src \u0027self\u0027 data:; connect-src \u0027none\u0027; frame-ancestors \u0027none\u0027; base-uri \u0027self\u0027; form-action \u0027self\u0027 mailto:" }
+        ]
+      }
+    ],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      { "source": "/private-league", "destination": "/index.html" }
     ]
   },
   "firestore": {

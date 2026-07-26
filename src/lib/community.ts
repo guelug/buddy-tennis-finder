@@ -12,7 +12,7 @@ import {
   where,
   type DocumentData,
   type Unsubscribe
-} from "firebase/firestore";
+} from "@react-native-firebase/firestore";
 import type {
   CoachAd,
   CoachAdPlan,

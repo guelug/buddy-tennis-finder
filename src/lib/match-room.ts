@@ -19,7 +19,7 @@ import {
   setDoc,
   updateDoc,
   where
-} from "firebase/firestore";
+} from "@react-native-firebase/firestore";
 
 /**
  * Sala del partido — store del ciclo de vida de un partido jugado:

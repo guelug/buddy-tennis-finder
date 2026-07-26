@@ -14,18 +14,15 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   type User as FirebaseUser
-} from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+} from "@react-native-firebase/auth";
+import { doc, serverTimestamp, setDoc } from "@react-native-firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
-import { runGooglePopup } from "@/lib/google-popup";
 import {
   isNativeGoogleSignInConfigured,
   requestNativeGoogleIdToken,
   signOutFromGoogleNative
 } from "@/lib/google-native-sign-in";
 import { AuthUser } from "@/types";
-
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
 /**
  * Traduce el usuario de Firebase Auth al modelo AuthUser de la app.
@@ -62,8 +59,7 @@ async function syncPrivateIdentity(user: FirebaseUser) {
 // Google Sign In: selector de cuenta nativo en Android/iOS y popup en web.
 // ----------------------------------------------------------------------------
 export function isNativeGoogleAuthConfigured(): boolean {
-  if (Platform.OS !== "web") return isNativeGoogleSignInConfigured();
-  return Boolean(GOOGLE_WEB_CLIENT_ID);
+  return Platform.OS !== "web" && isNativeGoogleSignInConfigured();
 }
 
 export async function signInWithGoogle(idToken: string, accessToken?: string) {
@@ -81,8 +77,7 @@ export async function signInWithGoogleNative() {
 }
 
 export async function signInWithGooglePopup() {
-  if (Platform.OS !== "web") throw new Error("Este flujo solo está disponible en web.");
-  return runGooglePopup(auth);
+  throw new Error("El acceso web se ha retirado. Descarga la app de MatchPoint.");
 }
 
 // ----------------------------------------------------------------------------

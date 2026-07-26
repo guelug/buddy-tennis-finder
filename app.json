@@ -2,6 +2,7 @@
   "expo": {
     "name": "MatchPoint Tennis",
     "slug": "matchpoint-clubs",
+    "platforms": ["ios", "android"],
     "scheme": "matchpoint",
     "version": "1.2.3",
     "orientation": "portrait",
@@ -19,14 +20,17 @@
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "15",
-      "googleServicesFile": "./ios-native/MatchPointTennis/Resources/GoogleService-Info.plist",
+      "buildNumber": "16",
+      "googleServicesFile": "./ios/MatchPointTennis/GoogleService-Info.plist",
+      "entitlements": {
+        "com.apple.developer.devicecheck.appattest-environment": "production"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "versionCode": 15,
+      "versionCode": 16,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
@@ -46,16 +50,10 @@
       "backgroundColor": "#070C08",
       "barStyle": "light-content"
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/favicon.png",
-      "name": "MatchPoint Tennis",
-      "shortName": "MatchPoint Tennis",
-      "themeColor": "#070C08",
-      "backgroundColor": "#070C08"
-    },
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/app-check",
       "expo-router",
       "expo-asset",
       "expo-font",
@@ -83,6 +81,10 @@
       [
         "expo-build-properties",
         {
+          "ios": {
+            "deploymentTarget": "15.1",
+            "useFrameworks": "static"
+          },
           "android": {
             "minSdkVersion": 26,
             "compileSdkVersion": 36,
