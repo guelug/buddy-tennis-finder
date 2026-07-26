@@ -69,6 +69,25 @@ service cloud.firestore {
         );
     }
 
+    function isMatchParticipant(data, uid) {
+      return uid in [data.fromPlayerId, data.acceptedByPlayerId]
+        || (
+          "participantIds" in data
+          && data.participantIds is list
+          && uid in data.participantIds
+        );
+    }
+
+    function hasValidReviewSkills(skills) {
+      return skills is map
+        && skills.keys().hasOnly(["consistency", "forehand", "backhand", "serve", "volley"])
+        && skills.consistency is number && skills.consistency >= 1 && skills.consistency <= 10
+        && skills.forehand is number && skills.forehand >= 1 && skills.forehand <= 10
+        && skills.backhand is number && skills.backhand >= 1 && skills.backhand <= 10
+        && skills.serve is number && skills.serve >= 1 && skills.serve <= 10
+        && skills.volley is number && skills.volley >= 1 && skills.volley <= 10;
+    }
+
     // --- users: privado por uid ---
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
@@ -294,6 +313,63 @@ service cloud.firestore {
       // El creador puede borrar la propuesta (la UI ofrece cancelar).
       allow delete: if request.auth != null
         && request.auth.uid == resource.data.fromPlayerId;
+    }
+
+    // Valoraciones dirigidas. El id determinista impide duplicar el voto de
+    // un autor sobre una persona dentro del mismo partido.
+    match /matchReviews/{reviewId} {
+      allow get: if request.auth != null && hasVerifiedIdentity();
+      allow list: if request.auth != null
+        && hasVerifiedIdentity()
+        && request.query.limit != null
+        && request.query.limit <= 100;
+
+      allow create: if request.auth != null
+        && hasVerifiedIdentity()
+        && reviewId == request.resource.data.matchId + "_" + request.auth.uid + "_" + request.resource.data.targetId
+        && request.resource.data.keys().hasOnly([
+          "id", "matchId", "authorId", "authorName", "targetId", "targetName",
+          "stars", "skillRatings", "comment", "createdAt", "updatedAt"
+        ])
+        && request.resource.data.id == reviewId
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.targetId != request.auth.uid
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && hasValidReviewSkills(request.resource.data.skillRatings)
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 180
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.authorName
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name
+        && request.resource.data.targetName
+          == get(/databases/$(database)/documents/players/$(request.resource.data.targetId)).data.name
+        && get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.status == "accepted"
+        && get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data.resultStatus == "validated"
+        && isMatchParticipant(
+          get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data,
+          request.auth.uid
+        )
+        && isMatchParticipant(
+          get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data,
+          request.resource.data.targetId
+        );
+
+      allow update: if request.auth != null
+        && resource.data.authorId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["stars", "skillRatings", "comment", "updatedAt"])
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && hasValidReviewSkills(request.resource.data.skillRatings)
+        && request.resource.data.comment is string
+        && request.resource.data.comment.size() <= 180
+        && request.resource.data.updatedAt is timestamp;
+
+      allow delete: if false;
     }
 
     // Resultado competitivo inmutable. Se crea en la misma transacción en la

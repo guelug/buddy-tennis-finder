@@ -81,6 +81,11 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def uploadKeystorePath = System.getenv("MATCHPOINT_UPLOAD_KEYSTORE") ?: "${projectRoot}/credentials/matchpoint-upload-key.jks"
+def uploadStorePassword = System.getenv("MATCHPOINT_UPLOAD_STORE_PASSWORD") ?: ""
+def uploadKeyAlias = System.getenv("MATCHPOINT_UPLOAD_KEY_ALIAS") ?: "matchpoint-upload"
+def uploadKeyPassword = System.getenv("MATCHPOINT_UPLOAD_KEY_PASSWORD") ?: uploadStorePassword
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
@@ -92,7 +97,7 @@ android {
         applicationId 'com.matchpoint.clubs'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 16
+        versionCode 17
         versionName "1.2.3"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
@@ -104,15 +109,19 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        upload {
+            storeFile file(uploadKeystorePath)
+            storePassword uploadStorePassword
+            keyAlias uploadKeyAlias
+            keyPassword uploadKeyPassword
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.upload
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds

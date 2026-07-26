@@ -71,7 +71,7 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
 
       {reviews.slice(0, 6).map((review, index) => (
         <Animated.View
-          key={`${review.playerId}-${review.createdAt}`}
+          key={review.id ?? `${review.authorId}-${review.targetId}-${review.createdAt}`}
           entering={FadeInDown.delay(index * 60).springify().damping(18)}
           style={{
             backgroundColor: colors.surfaceElevated,
@@ -83,9 +83,9 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
           }}
         >
           <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
-            <Avatar name={review.playerName} size={28} />
+            <Avatar name={review.authorName} size={28} />
             <Text style={{ ...typography.caption, color: colors.textPrimary, flex: 1, fontWeight: "700" }}>
-              {review.playerName}
+              {review.authorName}
             </Text>
             <StarRating value={review.stars} size={13} gap={1} />
           </View>

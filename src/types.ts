@@ -75,13 +75,17 @@ export type MatchResult = {
   reportedAt: string;
 };
 
-/** Reseña del partido: máx. una por participante, solo tras validarse. */
+/** Reseña dirigida: una por autor y destinatario en cada partido validado. */
 export type MatchReview = {
-  playerId: string;
-  playerName: string;
+  id?: string;
+  matchId?: string;
+  authorId: string;
+  authorName: string;
+  targetId: string;
+  targetName: string;
   /** 1-5 estrellas: ¿te gustó el partido? */
   stars: number;
-  /** Valoración técnica del rival, cada eje de 1 a 10. */
+  /** Valoración técnica de esta persona, cada eje de 1 a 10. */
   skillRatings?: PlayerSkills;
   comment: string;
   createdAt: string;

@@ -8,11 +8,13 @@ import {
 } from "@/types";
 import { isFirebaseConfigured } from "@/../firebase.config";
 import { auth, db } from "@/../firebase.config";
+import { latestReviewPerAuthor, reviewTargets } from "@/lib/reviews";
 import {
   collection,
   doc,
   getDoc,
   getDocs,
+  limit,
   query,
   runTransaction,
   serverTimestamp,
@@ -30,10 +32,7 @@ import {
  *  - Solo un capitán puede registrar/corregir el resultado.
  *  - Valida cualquier jugador del equipo CONTRARIO al que reportó.
  *  - Reseñas: solo participantes, solo con el partido validado, máx. 1 por
- *    persona (se puede editar la propia).
- *
- * Hoy vive en memoria (mock). La forma de la API es async para que el swap a
- * Firestore sea 1:1.
+ *    autor y destinatario (se puede editar la propia).
  */
 
 const LATENCY_MS = 220;
@@ -122,8 +121,10 @@ const rooms: MatchRoom[] = [
     validation: { playerId: "p-1", playerName: "Carlos Rivera", validatedAt: daysAgo(7, 22) },
     reviews: [
       {
-        playerId: "p-1",
-        playerName: "Carlos Rivera",
+        authorId: "p-1",
+        authorName: "Carlos Rivera",
+        targetId: "me",
+        targetName: "Ana Morales",
         stars: 5,
         skillRatings: { consistency: 9, forehand: 8, backhand: 8, serve: 9, volley: 7 },
         comment: "Partidazo. Ana defiende todo y el tercer set fue de infarto.",
@@ -159,16 +160,20 @@ const rooms: MatchRoom[] = [
     validation: { playerId: "me", playerName: "Ana Morales", validatedAt: daysAgo(20, 12) },
     reviews: [
       {
-        playerId: "me",
-        playerName: "Ana Morales",
+        authorId: "me",
+        authorName: "Ana Morales",
+        targetId: "p-2",
+        targetName: "María Fernanda López",
         stars: 4,
         skillRatings: { consistency: 8, forehand: 9, backhand: 8, serve: 9, volley: 8 },
         comment: "María saca durísimo, aprendí un montón. Revancha pendiente.",
         createdAt: daysAgo(20, 13)
       },
       {
-        playerId: "p-2",
-        playerName: "María Fernanda López",
+        authorId: "p-2",
+        authorName: "María Fernanda López",
+        targetId: "me",
+        targetName: "Ana Morales",
         stars: 4,
         skillRatings: { consistency: 9, forehand: 8, backhand: 8, serve: 8, volley: 7 },
         comment: "Muy buen ritmo de peloteo, rival de las que te hacen mejorar.",
@@ -199,16 +204,20 @@ const rooms: MatchRoom[] = [
     validation: { playerId: "p-3", playerName: "Diego Castillo", validatedAt: daysAgo(44, 15) },
     reviews: [
       {
-        playerId: "p-3",
-        playerName: "Diego Castillo",
+        authorId: "p-3",
+        authorName: "Diego Castillo",
+        targetId: "me",
+        targetName: "Ana Morales",
         stars: 4,
         skillRatings: { consistency: 8, forehand: 8, backhand: 9, serve: 8, volley: 8 },
         comment: "Puntual, buena onda y un revés cruzado que no vi venir.",
         createdAt: daysAgo(43, 8)
       },
       {
-        playerId: "me",
-        playerName: "Ana Morales",
+        authorId: "me",
+        authorName: "Ana Morales",
+        targetId: "p-3",
+        targetName: "Diego Castillo",
         stars: 5,
         skillRatings: { consistency: 8, forehand: 8, backhand: 8, serve: 7, volley: 9 },
         comment: "El tie-break más divertido que he jugado este año.",
@@ -232,14 +241,20 @@ export async function getMatchRooms(playerId?: string): Promise<MatchRoom[]> {
 
 /** Reseñas que otros dejaron en partidos donde jugó `playerId` — sus "notas". */
 export async function getReviewsForPlayer(playerId: string): Promise<MatchReview[]> {
-  if (isFirebaseConfigured) return [];
+  if (isFirebaseConfigured) {
+    const snapshot = await getDocs(query(
+      collection(db, "matchReviews"),
+      where("targetId", "==", playerId),
+      limit(100)
+    ));
+    return latestReviewPerAuthor(snapshot.docs.map((item) => normalizeReview(item.id, item.data())));
+  }
   await wait();
-  return rooms
+  return latestReviewPerAuthor(rooms
     .filter((room) => isParticipant(room, playerId))
     .flatMap((room) => room.reviews)
-    .filter((review) => review.playerId !== playerId)
-    .sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1))
-    .map((review) => ({ ...review }));
+    .filter((review) => review.targetId === playerId)
+    .map((review) => ({ ...review })));
 }
 
 // ---------------------------------------------------------------------------
@@ -361,20 +376,25 @@ export async function disputeResult(roomId: string, playerId: string): Promise<M
 export async function submitReview(
   roomId: string,
   playerId: string,
-  input: { stars: number; comment: string; skillRatings: PlayerSkills }
+  input: { targetId: string; stars: number; comment: string; skillRatings: PlayerSkills }
 ): Promise<MatchRoom> {
-  requireDemoMode();
-  await wait();
-  const room = requireRoom(roomId);
+  const room = isFirebaseConfigured ? await getFirebaseRoom(roomId) : requireRoom(roomId);
   if (room.status !== "validated") {
     throw new Error("Las reseñas se abren cuando el resultado está validado.");
   }
   if (!isParticipant(room, playerId)) {
     throw new Error("Solo quienes jugaron el partido pueden dejar reseña.");
   }
+  if (!isParticipant(room, input.targetId) || input.targetId === playerId) {
+    throw new Error("Elige a otra persona que haya jugado este partido.");
+  }
   const review: MatchReview = {
-    playerId,
-    playerName: nameOf(room, playerId),
+    id: reviewDocumentId(roomId, playerId, input.targetId),
+    matchId: roomId,
+    authorId: playerId,
+    authorName: nameOf(room, playerId),
+    targetId: input.targetId,
+    targetName: nameOf(room, input.targetId),
     stars: Math.min(5, Math.max(1, Math.round(input.stars))),
     skillRatings: {
       consistency: clampSkill(input.skillRatings.consistency),
@@ -386,19 +406,26 @@ export async function submitReview(
     comment: input.comment.trim().slice(0, 180),
     createdAt: new Date().toISOString()
   };
-  // Máx. una reseña por participante: reemplaza la propia si ya existía.
-  room.reviews = [...room.reviews.filter((r) => r.playerId !== playerId), review];
+  if (isFirebaseConfigured) {
+    const reviewRef = doc(db, "matchReviews", review.id!);
+    const existing = await getDoc(reviewRef);
+    await setDoc(reviewRef, {
+      ...review,
+      createdAt: existing.data()?.createdAt ?? serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return getFirebaseRoom(roomId);
+  }
+  await wait();
+  room.reviews = [
+    ...room.reviews.filter((item) => !(item.authorId === playerId && item.targetId === input.targetId)),
+    review
+  ];
   return cloneRoom(room);
 }
 
 function clampSkill(value: number) {
   return Math.min(10, Math.max(1, Math.round(value * 10) / 10));
-}
-
-function requireDemoMode() {
-  if (isFirebaseConfigured) {
-    throw new Error("El registro de resultados estará disponible en la siguiente fase beta.");
-  }
 }
 
 function validSets(sets: SetScore[]) {
@@ -418,9 +445,10 @@ async function getFirebaseMatchRooms(playerId?: string): Promise<MatchRoom[]> {
   const result = await Promise.all(Array.from(matches.values()).map(async (item): Promise<MatchRoom | null> => {
     const data = item.data();
     if (data.status !== "accepted" || !data.acceptedByPlayerId || new Date(data.startsAt).getTime() > Date.now()) return null;
-    const [owner, rival] = await Promise.all([
+    const [owner, rival, reviewSnapshot] = await Promise.all([
       getDoc(doc(db, "players", data.fromPlayerId)),
-      getDoc(doc(db, "players", data.acceptedByPlayerId))
+      getDoc(doc(db, "players", data.acceptedByPlayerId)),
+      getDocs(query(collection(db, "matchReviews"), where("matchId", "==", item.id), limit(20)))
     ]);
     const ownerName = String(owner.data()?.name || "Jugador");
     const rivalName = String(rival.data()?.name || "Rival");
@@ -435,7 +463,7 @@ async function getFirebaseMatchRooms(playerId?: string): Promise<MatchRoom[]> {
       status: (data.resultStatus || "awaiting_result") as MatchRoomStatus,
       result: data.result,
       validation: data.validation,
-      reviews: []
+      reviews: reviewSnapshot.docs.map((review) => normalizeReview(review.id, review.data()))
     } satisfies MatchRoom;
   }));
   return result.filter((room): room is MatchRoom => room !== null)
@@ -461,9 +489,9 @@ export type RoomAffordances = {
   canReport: boolean;
   /** Puede confirmar/disputar el resultado reportado por el rival. */
   canValidate: boolean;
-  /** Puede dejar (o editar) su reseña. */
+  /** Puede dejar (o editar) reseñas dirigidas. */
   canReview: boolean;
-  myReview: MatchReview | null;
+  myReviews: MatchReview[];
   /** Acción pendiente que le toca a este jugador (para badges/CTAs). */
   pendingAction: "report" | "validate" | "review" | null;
 };
@@ -490,20 +518,24 @@ export function roomAffordances(room: MatchRoom, playerId?: string): RoomAfforda
   const canValidate =
     room.status === "awaiting_validation" && !!side && !!reporterSide && side !== reporterSide;
 
-  const myReview = playerId
-    ? (room.reviews.find((review) => review.playerId === playerId) ?? null)
-    : null;
+  const myReviews = playerId
+    ? room.reviews.filter((review) => review.authorId === playerId)
+    : [];
   const canReview = room.status === "validated" && !!side;
+  const targets = playerId ? reviewTargets(room, playerId) : [];
+  const hasPendingReview = targets.some(
+    (target) => !myReviews.some((review) => review.targetId === target.id)
+  );
 
   const pendingAction = canReport
     ? ("report" as const)
     : canValidate
       ? ("validate" as const)
-      : canReview && !myReview
+      : canReview && hasPendingReview
         ? ("review" as const)
         : null;
 
-  return { side, isCaptain, canReport, canValidate, canReview, myReview, pendingAction };
+  return { side, isCaptain, canReport, canValidate, canReview, myReviews, pendingAction };
 }
 
 export function averageStars(reviews: MatchReview[]): number | null {
@@ -527,6 +559,29 @@ function nameOf(room: MatchRoom, playerId: string): string {
   if (indexB >= 0) return room.teamB.playerNames[indexB];
   return "Jugador";
 }
+
+function reviewDocumentId(matchId: string, authorId: string, targetId: string) {
+  return `${matchId}_${authorId}_${targetId}`;
+}
+
+function normalizeReview(id: string, data: Record<string, unknown>): MatchReview {
+  return {
+    id,
+    matchId: String(data.matchId ?? ""),
+    authorId: String(data.authorId ?? ""),
+    authorName: String(data.authorName ?? "Jugador"),
+    targetId: String(data.targetId ?? ""),
+    targetName: String(data.targetName ?? "Jugador"),
+    stars: Number(data.stars ?? 0),
+    skillRatings: data.skillRatings as PlayerSkills | undefined,
+    comment: String(data.comment ?? ""),
+    createdAt: typeof data.createdAt === "string"
+      ? data.createdAt
+      : (data.createdAt as { toDate?: () => Date } | undefined)?.toDate?.().toISOString() ?? new Date(0).toISOString()
+  };
+}
+
+export { reviewTargets };
 
 function requireRoom(roomId: string): MatchRoom {
   const room = rooms.find((item) => item.id === roomId);

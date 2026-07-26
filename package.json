@@ -24,6 +24,7 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
+    "@react-native-community/slider": "5.2.0",
     "@react-native-firebase/app": "25.1.0",
     "@react-native-firebase/app-check": "25.1.0",
     "@react-native-firebase/auth": "25.1.0",
@@ -70,6 +71,7 @@
     "@firebase/rules-unit-testing": "^5.0.1",
     "@types/node": "^26.1.1",
     "@types/react": "~19.2.4",
+    "babel-preset-expo": "57.0.4",
     "firebase": "^12.16.0",
     "firebase-admin": "^14.2.0",
     "googleapis": "^173.0.0",

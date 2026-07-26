@@ -297,3 +297,71 @@ test("solo el rival valida un resultado y crea una entrada de ranking inmutable"
   }));
   await assertFails(updateDoc(doc(rival, "rankingResults", matchId), { winnerId: rivalId }));
 });
+
+test("las reseñas son dirigidas, únicas y solo entre participantes de un resultado validado", async () => {
+  const authorId = "review-author";
+  const targetId = "review-target";
+  const outsiderId = "review-outsider";
+  const matchId = "reviewed-match";
+  const reviewId = `${matchId}_${authorId}_${targetId}`;
+  const author = environment.authenticatedContext(authorId, { email_verified: true }).firestore();
+  const target = environment.authenticatedContext(targetId, { email_verified: true }).firestore();
+  const outsider = environment.authenticatedContext(outsiderId, { email_verified: true }).firestore();
+  const skills = { consistency: 7, forehand: 8, backhand: 6, serve: 9, volley: 5 };
+
+  await assertSucceeds(setDoc(doc(author, "players", authorId), player(authorId, "Autor", "c")));
+  await assertSucceeds(setDoc(doc(target, "players", targetId), player(targetId, "Destinatario", "c")));
+  await assertSucceeds(setDoc(doc(outsider, "players", outsiderId), player(outsiderId, "Intruso", "c")));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "matches", matchId), {
+      ...openMatch(authorId, ["c"]),
+      acceptedByPlayerId: targetId,
+      status: "accepted",
+      resultStatus: "validated"
+    });
+  });
+
+  const validReview = {
+    id: reviewId,
+    matchId,
+    authorId,
+    authorName: "Autor",
+    targetId,
+    targetName: "Destinatario",
+    stars: 5,
+    skillRatings: skills,
+    comment: "Gran partido.",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+
+  await assertSucceeds(setDoc(doc(author, "matchReviews", reviewId), validReview));
+  await assertFails(setDoc(doc(target, "matchReviews", `${matchId}_${targetId}_${targetId}`), {
+    ...validReview,
+    id: `${matchId}_${targetId}_${targetId}`,
+    authorId: targetId,
+    authorName: "Destinatario",
+    targetId
+  }));
+  await assertFails(setDoc(doc(outsider, "matchReviews", `${matchId}_${outsiderId}_${targetId}`), {
+    ...validReview,
+    id: `${matchId}_${outsiderId}_${targetId}`,
+    authorId: outsiderId,
+    authorName: "Intruso"
+  }));
+  await assertFails(updateDoc(doc(target, "matchReviews", reviewId), {
+    stars: 1,
+    updatedAt: serverTimestamp()
+  }));
+  await assertSucceeds(updateDoc(doc(author, "matchReviews", reviewId), {
+    stars: 4,
+    skillRatings: { ...skills, serve: 8 },
+    comment: "Actualizada después del partido.",
+    updatedAt: serverTimestamp()
+  }));
+  await assertFails(updateDoc(doc(author, "matchReviews", reviewId), {
+    targetId: outsiderId,
+    targetName: "Intruso",
+    updatedAt: serverTimestamp()
+  }));
+});

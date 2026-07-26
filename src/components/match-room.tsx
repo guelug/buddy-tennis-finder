@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import Slider from "@react-native-community/slider";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -22,6 +23,7 @@ import {
   averageStars,
   disputeResult,
   reportResult,
+  reviewTargets,
   roomAffordances,
   scoreLine,
   submitReview,
@@ -600,25 +602,34 @@ function ResultEditor({
 // ---------------------------------------------------------------------------
 
 function ReviewComposer({
-  initialStars,
-  initialComment,
-  initialSkillRatings,
-  isEdit,
+  targets,
+  reviews,
   busy,
   onSubmit
 }: {
-  initialStars: number;
-  initialComment: string;
-  initialSkillRatings?: PlayerSkills;
-  isEdit: boolean;
+  targets: Array<{ id: string; name: string }>;
+  reviews: MatchRoom["reviews"];
   busy: boolean;
-  onSubmit: (stars: number, comment: string, skillRatings: PlayerSkills) => void;
+  onSubmit: (targetId: string, stars: number, comment: string, skillRatings: PlayerSkills) => void;
 }) {
-  const [stars, setStars] = React.useState(initialStars);
-  const [comment, setComment] = React.useState(initialComment);
+  const firstPending = targets.find((target) => !reviews.some((review) => review.targetId === target.id));
+  const [targetId, setTargetId] = React.useState(firstPending?.id ?? targets[0]?.id ?? "");
+  const selectedTarget = targets.find((target) => target.id === targetId);
+  const existing = reviews.find((review) => review.targetId === targetId);
+  const [stars, setStars] = React.useState(existing?.stars ?? 0);
+  const [comment, setComment] = React.useState(existing?.comment ?? "");
   const [skillRatings, setSkillRatings] = React.useState<PlayerSkills>(
-    initialSkillRatings ?? { consistency: 7, forehand: 7, backhand: 7, serve: 7, volley: 7 }
+    existing?.skillRatings ?? { consistency: 7, forehand: 7, backhand: 7, serve: 7, volley: 7 }
   );
+
+  const selectTarget = (nextTargetId: string) => {
+    const nextReview = reviews.find((review) => review.targetId === nextTargetId);
+    setTargetId(nextTargetId);
+    setStars(nextReview?.stars ?? 0);
+    setComment(nextReview?.comment ?? "");
+    setSkillRatings(nextReview?.skillRatings ?? { consistency: 7, forehand: 7, backhand: 7, serve: 7, volley: 7 });
+    haptic("select");
+  };
 
   return (
     <View
@@ -631,15 +642,51 @@ function ReviewComposer({
         padding: spacing.base
       }}
     >
+      <View style={{ gap: spacing.sm }}>
+        <Text style={{ ...typography.caption, color: colors.textSecondary, textAlign: "center" }}>
+          ¿A quién quieres valorar?
+        </Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "center" }}>
+          {targets.map((target) => {
+            const selected = target.id === targetId;
+            const completed = reviews.some((review) => review.targetId === target.id);
+            return (
+              <Pressable
+                key={target.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => selectTarget(target.id)}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: selected ? colors.courtLight : colors.surface,
+                  borderColor: selected ? colors.neon : colors.border,
+                  borderRadius: radii.pill,
+                  borderWidth: 1,
+                  flexDirection: "row",
+                  gap: spacing.xs,
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm
+                }}
+              >
+                <Avatar name={target.name} size={24} />
+                <Text style={{ ...typography.footnote, color: selected ? colors.neon : colors.textPrimary, fontWeight: "800" }}>
+                  {target.name}
+                </Text>
+                {completed ? <Icon name="check-badge" size={13} color={colors.success as string} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
       <View style={{ alignItems: "center", gap: spacing.sm }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>
-          {isEdit ? "Tu reseña del partido" : "¿Te gustó el partido?"}
+          {existing ? `Tu valoración de ${selectedTarget?.name ?? "esta persona"}` : `¿Cómo fue jugar con ${selectedTarget?.name ?? "esta persona"}?`}
         </Text>
         <StarRating value={stars} onChange={setStars} size={34} gap={8} />
       </View>
       <View style={{ gap: spacing.sm }}>
         <Text style={{ ...typography.caption, color: colors.textSecondary, textAlign: "center" }}>
-          Puntúa el nivel técnico de tu rival · 1 a 10
+          Puntúa a {selectedTarget?.name ?? "esta persona"} · 1 a 10
         </Text>
         {([
           ["serve", "Servicio"],
@@ -659,7 +706,7 @@ function ReviewComposer({
       <TextInput
         value={comment}
         onChangeText={setComment}
-        placeholder="Deja un comentario para tu rival (máx. 180)"
+        placeholder={`Comentario sobre ${selectedTarget?.name ?? "esta persona"} (máx. 180)`}
         placeholderTextColor={colors.textTertiary as string}
         multiline
         maxLength={180}
@@ -677,12 +724,12 @@ function ReviewComposer({
       />
       <SpotlightCta
         compact
-        label={busy ? "Publicando..." : isEdit ? "Actualizar reseña" : "Publicar reseña"}
-        disabled={busy || stars === 0}
-        onPress={() => onSubmit(stars, comment, skillRatings)}
+        label={busy ? "Publicando..." : existing ? "Actualizar valoración" : "Publicar valoración"}
+        disabled={busy || stars === 0 || !targetId}
+        onPress={() => onSubmit(targetId, stars, comment, skillRatings)}
       />
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
-        Una reseña por jugador · solo participantes del partido.
+        Una valoración por persona y partido · solo participantes.
       </Text>
     </View>
   );
@@ -690,31 +737,25 @@ function ReviewComposer({
 
 function SkillScoreInput({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
   return (
-    <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
-      <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "700", width: 78 }}>{label}</Text>
-      <View style={{ flex: 1, flexDirection: "row", gap: 3 }}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-          <Pressable
-            key={score}
-            accessibilityLabel={`${label}: ${score} de 10`}
-            onPress={() => onChange(score)}
-            style={{
-              alignItems: "center",
-              backgroundColor: score <= value ? colors.courtLight : colors.surface,
-              borderColor: score === value ? colors.neon : colors.border,
-              borderRadius: 7,
-              borderWidth: 1,
-              flex: 1,
-              minHeight: 28,
-              justifyContent: "center"
-            }}
-          >
-            <Text style={{ ...typography.footnote, color: score <= value ? colors.neon : colors.textTertiary, fontSize: 10, fontWeight: "800" }}>
-              {score}
-            </Text>
-          </Pressable>
-        ))}
+    <View style={{ gap: 2 }}>
+      <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
+        <Text style={{ ...typography.footnote, color: colors.textPrimary, fontWeight: "700" }}>{label}</Text>
+        <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderRadius: radii.pill, minWidth: 34, paddingHorizontal: 8, paddingVertical: 2 }}>
+          <Text style={{ ...typography.caption, color: colors.neon, fontVariant: ["tabular-nums"], fontWeight: "900" }}>{value}</Text>
+        </View>
       </View>
+      <Slider
+        accessibilityLabel={`${label}: ${value} de 10`}
+        minimumValue={1}
+        maximumValue={10}
+        step={1}
+        value={value}
+        onValueChange={onChange}
+        onSlidingComplete={() => haptic("select")}
+        minimumTrackTintColor={colors.neon as string}
+        maximumTrackTintColor={colors.border as string}
+        thumbTintColor={colors.neon as string}
+      />
     </View>
   );
 }
@@ -732,11 +773,11 @@ function ReviewList({ room, currentPlayerId }: { room: MatchRoom; currentPlayerI
     <View style={{ gap: spacing.sm }}>
       {room.reviews.map((review, index) => (
         <Animated.View
-          key={review.playerId}
+          key={review.id ?? `${review.authorId}-${review.targetId}`}
           entering={FadeInDown.delay(index * 70).springify().damping(18)}
           style={{
             backgroundColor: colors.surfaceElevated,
-            borderColor: review.playerId === currentPlayerId ? `${colors.court}44` : colors.border,
+            borderColor: review.authorId === currentPlayerId ? `${colors.court}44` : colors.border,
             borderRadius: radii.md,
             borderWidth: 1,
             gap: spacing.sm,
@@ -744,10 +785,11 @@ function ReviewList({ room, currentPlayerId }: { room: MatchRoom; currentPlayerI
           }}
         >
           <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
-            <Avatar name={review.playerName} size={30} />
+            <Avatar name={review.authorName} size={30} />
             <Text style={{ ...typography.caption, color: colors.textPrimary, flex: 1, fontWeight: "700" }}>
-              {review.playerName}
-              {review.playerId === currentPlayerId ? " (tú)" : ""}
+              {review.authorName}
+              {review.authorId === currentPlayerId ? " (tú)" : ""}
+              <Text style={{ color: colors.textTertiary }}> → {review.targetName}</Text>
             </Text>
             <StarRating value={review.stars} size={15} gap={2} />
           </View>
@@ -933,14 +975,11 @@ export function MatchRoomSheet({
 
           {a.canReview ? (
             <ReviewComposer
-              key={a.myReview ? "edit" : "new"}
-              initialStars={a.myReview?.stars ?? 0}
-              initialComment={a.myReview?.comment ?? ""}
-              initialSkillRatings={a.myReview?.skillRatings}
-              isEdit={!!a.myReview}
+              targets={reviewTargets(room, currentPlayerId ?? "")}
+              reviews={a.myReviews}
               busy={busy === "review"}
-              onSubmit={(stars, comment, skillRatings) =>
-                run("review", () => submitReview(room.id, currentPlayerId ?? "", { stars, comment, skillRatings }))
+              onSubmit={(targetId, stars, comment, skillRatings) =>
+                run("review", () => submitReview(room.id, currentPlayerId ?? "", { targetId, stars, comment, skillRatings }))
               }
             />
           ) : null}
