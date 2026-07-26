@@ -1,10 +1,11 @@
 {
   "expo.jsEngine": "hermes",
   "EX_DEV_CLIENT_NETWORK_INSPECTOR": "true",
-  "newArchEnabled": "true",
-  "apple.extraPods": "[]",
-  "apple.ccacheEnabled": "false",
+  "expo.inlineModules.watchedDirectories": "[]",
+  "expo.inlineModules.xcodeProjectTargets": "{\"mainTarget\":\"MatchPointTennis\",\"targets\":[]}",
+  "ios.deploymentTarget": "16.4",
+  "ios.useFrameworks": "static",
+  "ios.forceStaticLinking": "[]",
   "apple.privacyManifestAggregationEnabled": "true",
-  "ios.deploymentTarget": "15.1",
-  "ios.useFrameworks": "static"
+  "EXPO_USE_PRECOMPILED_MODULES": "true"
 }

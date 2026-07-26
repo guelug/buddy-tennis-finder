@@ -2,7 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { PropsWithChildren } from "react";
 import { Platform } from "react-native";
 import * as Crypto from "expo-crypto";
-import { requestPurchase, useIAP } from "expo-iap";
+import { ErrorCode, useIAP } from "expo-iap";
+// `ExpoPurchaseError` es el que entregan los callbacks del hook; el
+// `PurchaseError` de la raíz declara `code` como obligatorio y no encaja.
+import type { ExpoPurchaseError, Purchase } from "expo-iap";
 import {
   COACH_PRODUCTS,
   PRIVATE_LEAGUE_PRODUCT,
@@ -64,7 +67,14 @@ function UnavailablePurchaseProvider({ children }: PropsWithChildren) {
 
 function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   const { user } = useAuth();
-  const { connected, products, getProducts, getAvailablePurchases, availablePurchases, currentPurchase, currentPurchaseError } = useIAP();
+  // expo-iap 4 sustituyó `currentPurchase`/`currentPurchaseError` por
+  // callbacks; los reflejamos en estado para conservar el flujo por efectos.
+  const [currentPurchase, setCurrentPurchase] = useState<Purchase | null>(null);
+  const [currentPurchaseError, setCurrentPurchaseError] = useState<ExpoPurchaseError | null>(null);
+  const { connected, products, fetchProducts, getAvailablePurchases, availablePurchases, requestPurchase } = useIAP({
+    onPurchaseSuccess: setCurrentPurchase,
+    onPurchaseError: setCurrentPurchaseError
+  });
   const [intents, setIntents] = useState<PurchaseIntent[]>([]);
   const [intentsLoaded, setIntentsLoaded] = useState(false);
   const [outcome, setOutcome] = useState<PurchaseOutcome | null>(null);
@@ -87,21 +97,21 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!connected) return;
-    void getProducts([...PURCHASE_PRODUCT_IDS]);
-    void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
-  }, [connected, getProducts, getAvailablePurchases]);
+    void fetchProducts({ skus: [...PURCHASE_PRODUCT_IDS], type: "in-app" });
+    void getAvailablePurchases();
+  }, [connected, fetchProducts, getAvailablePurchases]);
 
   const forgetIntent = useCallback(async (ownerId: string, productId: string) => {
     await removePurchaseIntent(ownerId, productId);
     setIntents((current) => current.filter((item) => !(item.ownerId === ownerId && item.productId === productId)));
   }, []);
 
-  const processRecoveredPurchase = useCallback(async (purchase: NonNullable<typeof currentPurchase>) => {
-    const token = purchase.platform === "android"
-      ? purchase.purchaseTokenAndroid
-      : purchase.transactionReceipt;
+  const processRecoveredPurchase = useCallback(async (purchase: Purchase) => {
+    // expo-iap 4 unificó el token: en Android es el purchaseToken de Play (el
+    // mismo valor que antes) y en iOS el JWS de StoreKit 2.
+    const token = purchase.purchaseToken;
     if (!token || !user?.uid || processingTokens.current.has(token)) return;
-    const intent = intents.find((item) => item.ownerId === user.uid && item.productId === purchase.id);
+    const intent = intents.find((item) => item.ownerId === user.uid && item.productId === purchase.productId);
     if (!intent) return;
     processingTokens.current.add(token);
     setOutcome({ kind: intent.kind, productId: intent.productId, status: "recovering", adId: intent.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
@@ -119,7 +129,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
       }
       // El backend consume el producto. Refrescamos la caché de Billing para
       // que pueda volver a comprarse una nueva publicación o liga.
-      void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
+      void getAvailablePurchases();
     } catch (error) {
       setOutcome({
         kind: intent.kind,
@@ -139,7 +149,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     if (!intentsLoaded) return;
     const purchases = [...availablePurchases, ...(currentPurchase ? [currentPurchase] : [])];
     const unique = new Map(purchases.map((item) => [
-      item.platform === "android" ? item.purchaseTokenAndroid : item.transactionReceipt,
+      item.purchaseToken,
       item
     ]).filter((entry): entry is [string, typeof purchases[number]] => Boolean(entry[0])));
     unique.forEach((purchase) => { void processRecoveredPurchase(purchase); });
@@ -152,14 +162,14 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     const productId = currentPurchaseError.productId || activeProductId;
     if (!productId) return;
     const intent = intents.find((item) => item.productId === productId && item.ownerId === user.uid);
-    if (currentPurchaseError.code === "E_ALREADY_OWNED") {
+    if (currentPurchaseError.code === ErrorCode.AlreadyOwned) {
       setOutcome({ kind: productId === PRIVATE_LEAGUE_PRODUCT.id ? "league" : "coach", productId, status: "recovering", adId: intent?.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent?.createdAt, message: "Recuperando la compra anterior…", occurredAt: Date.now() });
-      void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
+      void getAvailablePurchases();
       return;
     }
     const kind = productId === PRIVATE_LEAGUE_PRODUCT.id ? "league" : "coach";
     void forgetIntent(user.uid, productId);
-    setOutcome({ kind, productId, status: "error", adId: intent?.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent?.createdAt, message: currentPurchaseError.code === "E_USER_CANCELLED" ? "Compra cancelada." : currentPurchaseError.message, occurredAt: Date.now() });
+    setOutcome({ kind, productId, status: "error", adId: intent?.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent?.createdAt, message: currentPurchaseError.code === ErrorCode.UserCancelled ? "Compra cancelada." : currentPurchaseError.message, occurredAt: Date.now() });
   }, [currentPurchaseError, activeProductId, user?.uid, intents, forgetIntent, getAvailablePurchases]);
 
   const start = useCallback(async (intent: PurchaseIntent) => {
@@ -172,21 +182,21 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     try {
       await requestPurchase({
         request: Platform.OS === "ios"
-          ? { sku: intent.productId }
-          : { skus: [intent.productId], obfuscatedAccountIdAndroid: accountHash },
-        type: "inapp"
+          ? { apple: { sku: intent.productId } }
+          : { google: { skus: [intent.productId], obfuscatedAccountId: accountHash } },
+        type: "in-app"
       });
     } catch (error) {
       const code = (error as { code?: string })?.code;
-      if (code === "E_ALREADY_OWNED") {
-        void getAvailablePurchases([...PURCHASE_PRODUCT_IDS]);
+      if (code === ErrorCode.AlreadyOwned) {
+        void getAvailablePurchases();
         return intent.createdAt;
       }
       await forgetIntent(intent.ownerId, intent.productId);
       throw error;
     }
     return intent.createdAt;
-  }, [connected, forgetIntent, getAvailablePurchases]);
+  }, [connected, forgetIntent, getAvailablePurchases, requestPurchase]);
 
   const startCoachPurchase = useCallback(async (ad: CoachAd) => {
     if (!user?.uid || ad.ownerId !== user.uid) throw new Error("La sesión no coincide con el anuncio.");

@@ -2,7 +2,5 @@
   <color name="splashscreen_background">#070C08</color>
   <color name="iconBackground">#070C08</color>
   <color name="colorPrimary">#C6F135</color>
-  <color name="colorPrimaryDark">#070C08</color>
   <color name="activityBackground">#070C08</color>
-  <color name="navigationBarColor">#070C08</color>
 </resources>

@@ -15,7 +15,7 @@
       "usesAppleSignIn": true,
       "bundleIdentifier": "com.matchpoint.clubs",
       "buildNumber": "16",
-      "googleServicesFile": "./ios/MatchPointTennis/GoogleService-Info.plist",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
       },
