@@ -51,7 +51,7 @@ struct ClosetItemDetailView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(maxWidth: .infinity)
-                            .background(item.hasCutout ? Color(.systemBackground) : Color.white)
+                            .background(Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
                     }
 
@@ -341,7 +341,7 @@ struct ClosetItemDetailView: View {
             )
             item.optimizedImage = optimized
             // Remove the white background so the garment floats on any backdrop (light/dark).
-            item.cutoutImage = BackgroundRemover.removeBackground(from: optimized)
+            item.cutoutImage = await GarmentBackgroundRemovalService.cutout(from: optimized)
             detailFeedbackCounter += 1
             try? modelContext.save()
             // The overlay reveal uses the white-background version so it stays visible on the dark

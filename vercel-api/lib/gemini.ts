@@ -1,5 +1,41 @@
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:image=generate';
-const GEMINI_TEXT_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_ROOT = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_IMAGE_MODEL = 'gemini-3.1-flash-image';
+const GEMINI_TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
+
+type GeminiPart = {
+  text?: string;
+  inlineData?: { data?: string; mimeType?: string };
+  inline_data?: { data?: string; mime_type?: string };
+};
+
+type GeminiResponse = {
+  candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+  error?: { message?: string };
+};
+
+function modelURL(model: string): string {
+  return `${GEMINI_API_ROOT}/${model}:generateContent`;
+}
+
+function imageMimeType(buffer: Buffer): string {
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return 'image/png';
+  }
+  if (buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return 'image/webp';
+  }
+  return 'image/jpeg';
+}
+
+function inlineImage(buffer: Buffer): GeminiPart {
+  return {
+    inlineData: {
+      mimeType: imageMimeType(buffer),
+      data: buffer.toString('base64'),
+    },
+  };
+}
 
 export async function generateTryOn(
   clothingImage: Buffer,
@@ -11,25 +47,42 @@ export async function generateTryOn(
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const formData = new FormData();
+  const prompt = [
+    'Create a realistic professional full-body virtual try-on image.',
+    'Image 1 is the exact garment and image 2 is the person.',
+    'Dress the person in that garment while preserving their identity, face, hair, skin tone,',
+    'body proportions, pose, lighting, and background.',
+    'Preserve the garment color, pattern, texture, silhouette, seams, logos, and details.',
+    'Only change the relevant clothing and return one photorealistic image.',
+  ].join(' ');
 
-  const clothingBlob = new Blob([clothingImage], { type: 'image/jpeg' });
-  const personBlob = new Blob([personImage], { type: 'image/jpeg' });
-
-  formData.append('image', clothingBlob, 'clothing.jpg');
-  formData.append('prompt', 'Virtual try-on: Show this clothing item on the person in the other image. Professional fashion photography style.');
-  formData.append('person_image', personBlob, 'person.jpg');
-
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+  const response = await fetch(modelURL(GEMINI_IMAGE_MODEL), {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      contents: [{
+        role: 'user',
+        parts: [
+          inlineImage(clothingImage),
+          inlineImage(personImage),
+          { text: prompt },
+        ],
+      }],
+      generationConfig: {
+        responseModalities: ['IMAGE'],
+        temperature: 0.25,
+      },
+    }),
   });
 
-  if (response.status === 400) {
+  if (response.status === 400 || response.status === 422) {
     throw new Error('INVALID_IMAGES');
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     throw new Error('INVALID_API_KEY');
   }
 
@@ -37,18 +90,21 @@ export async function generateTryOn(
     throw new Error('RATE_LIMIT_EXCEEDED');
   }
 
+  const data = await response.json().catch(() => ({})) as GeminiResponse;
   if (!response.ok) {
-    throw new Error('GEMINI_ERROR');
+    throw new Error(data.error?.message || `GEMINI_HTTP_${response.status}`);
   }
 
-  const data = await response.json() as any;
+  const encodedImage = data.candidates
+    ?.flatMap(candidate => candidate.content?.parts || [])
+    .map(part => part.inlineData?.data || part.inline_data?.data)
+    .find((value): value is string => Boolean(value));
 
-  if (!data.image || !data.image.data) {
-    throw new Error('NO_IMAGE Generated');
+  if (!encodedImage) {
+    throw new Error('NO_IMAGE_GENERATED');
   }
 
-  const imageBuffer = Buffer.from(data.image.data, 'base64');
-  return imageBuffer;
+  return Buffer.from(encodedImage, 'base64');
 }
 
 export async function generateStyleChatWithGemini(
@@ -61,9 +117,12 @@ export async function generateStyleChatWithGemini(
     throw new Error('GEMINI_API_KEY not configured');
   }
 
-  const response = await fetch(`${GEMINI_TEXT_API_URL}?key=${apiKey}`, {
+  const response = await fetch(modelURL(GEMINI_TEXT_MODEL), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
     body: JSON.stringify({
       systemInstruction: {
         parts: [{ text: systemPrompt }],
@@ -81,7 +140,7 @@ export async function generateStyleChatWithGemini(
     }),
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 || response.status === 403) {
     throw new Error('INVALID_API_KEY');
   }
 
@@ -93,7 +152,7 @@ export async function generateStyleChatWithGemini(
     throw new Error('GEMINI_TEXT_ERROR');
   }
 
-  const data = await response.json() as any;
+  const data = await response.json() as GeminiResponse;
   const text = data?.candidates?.[0]?.content?.parts
     ?.map((part: { text?: string }) => part.text)
     .filter(Boolean)

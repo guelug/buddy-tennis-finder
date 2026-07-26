@@ -5,6 +5,7 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
     case google = "google"
     case playground = "playground"
     case chatgpt = "chatgpt"
+    case fal = "fal"
 
     var id: String { rawValue }
 
@@ -14,9 +15,10 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
 
     func displayName(language: Language) -> String {
         switch self {
-        case .google: return "Google Gemini"
+        case .google: return "Gemini · Nano Banana 2"
         case .playground: return language == .spanish ? "Apple Image Playground" : "Apple Image Playground"
-        case .chatgpt: return language == .spanish ? "Tu clave de OpenAI" : "BYOK"
+        case .chatgpt: return "OpenAI · GPT Image 2"
+        case .fal: return "Fal.ai · Virtual Try-On"
         }
     }
 
@@ -26,9 +28,10 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
 
     func subtitle(language: Language) -> String {
         switch self {
-        case .google: return language == .spanish ? "Nube gestionada gratis con uso razonable" : "Free managed cloud with fair-use limits"
+        case .google: return language == .spanish ? "Nano Banana 2, gratis con uso razonable" : "Nano Banana 2, free with fair-use limits"
         case .playground: return language == .spanish ? "Apple Image Playground gratis en el dispositivo" : "Free Apple Image Playground on-device"
-        case .chatgpt: return language == .spanish ? "Usa tu propia clave de OpenAI" : "Bring your own OpenAI key"
+        case .chatgpt: return language == .spanish ? "GPT Image 2 con tu propia clave" : "GPT Image 2 with your own key"
+        case .fal: return language == .spanish ? "Probador especializado con tu clave de Fal" : "Specialized try-on with your Fal key"
         }
     }
 
@@ -37,23 +40,26 @@ enum TryOnProvider: String, CaseIterable, Identifiable, Codable {
         case .google: return "g.circle.fill"
         case .playground: return "apple.logo"
         case .chatgpt: return "brain.head.profile"
+        case .fal: return "bolt.horizontal.circle.fill"
         }
     }
 
     var isFree: Bool {
         switch self {
         case .google, .playground: return true
-        case .chatgpt: return false
+        case .chatgpt, .fal: return false
         }
     }
 
-    var requiresUserAPIKey: Bool { self == .chatgpt }
+    var requiresUserAPIKey: Bool {
+        self == .chatgpt || self == .fal
+    }
 
     var isStylized: Bool {
         switch self {
         case .google: return false
         case .playground: return true
-        case .chatgpt: return false
+        case .chatgpt, .fal: return false
         }
     }
 }
@@ -74,19 +80,14 @@ final class TryOnProviderService {
             currentProvider = provider
         }
 
-        isAuthenticated = AppSecrets.openAIAPIKey != nil
+        refreshAuthenticationState()
     }
 
     func setProvider(_ provider: TryOnProvider) {
         currentProvider = provider
         UserDefaults.standard.set(provider.rawValue, forKey: "tryon_provider")
 
-        if provider == .chatgpt {
-            isAuthenticated = AppSecrets.openAIAPIKey != nil
-        } else {
-            isAuthenticated = false
-            chatGPTUserId = nil
-        }
+        refreshAuthenticationState()
     }
 
     func generateTryOn(clothingImage: UIImage, userImage: UIImage, garmentCategory: ClothingCategory? = nil) async throws -> UIImage {
@@ -97,6 +98,8 @@ final class TryOnProviderService {
             return try await generateWithPlayground(clothing: clothingImage, user: userImage, garmentCategory: garmentCategory)
         case .chatgpt:
             return try await generateWithChatGPT(clothing: clothingImage, user: userImage)
+        case .fal:
+            return try await generateWithFal(clothing: clothingImage, user: userImage)
         }
     }
 
@@ -222,6 +225,35 @@ final class TryOnProviderService {
             apiKey: apiKey
         )
     }
+
+    // MARK: - BYOK Fal.ai
+
+    private func generateWithFal(clothing: UIImage, user: UIImage) async throws -> UIImage {
+        guard let apiKey = AppSecrets.falAPIKey,
+              !apiKey.isEmpty else {
+            isAuthenticated = false
+            throw TryOnProviderError.authenticationRequired
+        }
+
+        isAuthenticated = true
+        return try await FalTryOnService().generateTryOnImage(
+            clothingImage: clothing,
+            userImage: user,
+            apiKey: apiKey
+        )
+    }
+
+    private func refreshAuthenticationState() {
+        switch currentProvider {
+        case .chatgpt:
+            isAuthenticated = AppSecrets.openAIAPIKey != nil
+        case .fal:
+            isAuthenticated = AppSecrets.falAPIKey != nil
+        case .google, .playground:
+            isAuthenticated = false
+            chatGPTUserId = nil
+        }
+    }
 }
 
 enum TryOnProviderError: Error, LocalizedError {
@@ -232,7 +264,7 @@ enum TryOnProviderError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .authenticationRequired:
-            return "OpenAI key not available"
+            return "Provider API key not available"
         case .notYetImplemented:
             return "This provider is not available"
         case .generationFailed(let message):

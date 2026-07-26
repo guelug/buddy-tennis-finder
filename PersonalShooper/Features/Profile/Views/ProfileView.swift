@@ -35,16 +35,10 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Theme.Spacing.sectionSpacing) {
-                    HStack {
-                        Text(text("Perfil", "Profile"))
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        Spacer()
-                    }
-
-                    profileHeaderSection
+                    profileHeroSection
                     stylingProfileSection
                     photoUploadSection
+                    appearanceSection
                     settingsSection
                 }
                 .padding(Theme.Spacing.screenPadding)
@@ -98,64 +92,91 @@ struct ProfileView: View {
         )
     }
 
-    private var profileHeaderSection: some View {
+    // MARK: - Hero
+
+    private var profileHeroSection: some View {
         VStack(spacing: Theme.Spacing.md) {
             ZStack {
                 Circle()
-                    .fill(Theme.Colors.primaryGradient)
-                    .frame(width: 100, height: 100)
+                    .stroke(Theme.Colors.primaryGradient, lineWidth: 3)
+                    .frame(width: 108, height: 108)
 
-                if let user = appState.currentUser {
-                    Text(user.displayName.prefix(2).uppercased())
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                if let face = appState.currentUser?.profilePhotos.faceCloseUp {
+                    Image(uiImage: face)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 96, height: 96)
+                        .clipShape(Circle())
                 } else {
-                    Image(systemName: "person.fill")
-                        .font(.largeTitle)
-                        .foregroundStyle(.white)
+                    Circle()
+                        .fill(Theme.Colors.primaryGradient)
+                        .frame(width: 96, height: 96)
+                        .overlay {
+                            if let user = appState.currentUser {
+                                Text(user.displayName.prefix(2).uppercased())
+                                    .font(.fashionDisplay(34))
+                                    .foregroundStyle(.white)
+                            } else {
+                                Image(systemName: "person.fill")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.white)
+                            }
+                        }
                 }
             }
+            .padding(.top, Theme.Spacing.xs)
 
-            Text(appState.currentUser?.displayName ?? text("Invitado", "Guest"))
-                .font(.title2)
-                .fontWeight(.semibold)
+            VStack(spacing: 4) {
+                Text(appState.currentUser?.displayName ?? text("Invitado", "Guest"))
+                    .font(.fashionDisplay(28, weight: .semibold))
 
-            if let occupation = appState.currentUser?.personalStylingProfile.occupation,
-               !occupation.isEmpty {
-                Text(occupation)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .transition(.opacity)
+                if let occupation = appState.currentUser?.personalStylingProfile.occupation,
+                   !occupation.isEmpty {
+                    Text(occupation)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .transition(.opacity)
+                }
             }
 
             HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Image(systemName: "cabinet.fill")
-                    Text(appState.closetItemLimitDescription(language: lang))
-                        .font(.caption)
-                        .fontWeight(.medium)
+                heroPill(icon: "cabinet.fill", text: appState.closetItemLimitDescription(language: lang))
+                if let palette = appState.currentUser?.personalPalette {
+                    heroPill(icon: "paintpalette.fill", text: palette.seasonalType.displayName)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Theme.Colors.primary.opacity(0.1))
-                .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity)
         .padding(Theme.Spacing.lg)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.xl))
+        .fashionGlassCard(cornerRadius: Theme.CornerRadius.xl)
     }
+
+    private func heroPill(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+            Text(text)
+                .font(.caption)
+                .fontWeight(.medium)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Theme.Colors.primary.opacity(0.1))
+        .foregroundStyle(Theme.Colors.primary)
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Styling profile
 
     private var stylingProfileSection: some View {
         let profile = appState.currentUser?.personalStylingProfile ?? PersonalStylingProfile()
 
         return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            HStack {
+            HStack(spacing: Theme.Spacing.md) {
+                CompletionRing(progress: profile.completionRatio, tint: Theme.Colors.primary)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(lang == .spanish ? "Perfil de estilismo" : "Styling Profile")
-                        .font(.headline)
+                        .font(.fashionHeadline)
                     Text(
                         profile.isCompleteEnough
                             ? (lang == .spanish
@@ -167,17 +188,11 @@ struct ProfileView: View {
                     )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
-
-                Text("\(Int(profile.completionRatio * 100))%")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Colors.primary)
+                Spacer(minLength: 0)
             }
-
-            ProgressView(value: profile.completionRatio)
-                .tint(Theme.Colors.primary)
 
             if !profile.highlightTags(in: lang).isEmpty {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: Theme.Spacing.xs)], spacing: Theme.Spacing.xs) {
@@ -201,15 +216,16 @@ struct ProfileView: View {
             }
         }
         .padding(Theme.Spacing.md)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        .fashionGlassCard()
         .animation(.snappy(duration: 0.24), value: profile.completionRatio)
     }
+
+    // MARK: - Photos
 
     private var photoUploadSection: some View {
         return VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             Text(text("Tus fotos", "Your Photos"))
-                .font(.headline)
+                .font(.fashionTitle)
 
             LazyVGrid(columns: [
                 GridItem(.flexible()),
@@ -257,10 +273,13 @@ struct ProfileView: View {
             }
 
             if appState.currentUser?.profilePhotos.allPhotosUploaded == true {
-                Text(text("Todas las fotos están subidas. Tu paleta personal está lista.", "All photos uploaded! Your personal palette is ready."))
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                    .padding(.top, Theme.Spacing.xs)
+                Label(
+                    text("Todas las fotos están subidas. Tu paleta personal está lista.", "All photos uploaded! Your personal palette is ready."),
+                    systemImage: "checkmark.seal.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.green)
+                .padding(.top, Theme.Spacing.xs)
             } else {
                 Text(text("Sube 4 fotos para analizar tu paleta personal de color.", "Upload 4 photos to analyze your personal color palette"))
                     .font(.caption)
@@ -304,8 +323,7 @@ struct ProfileView: View {
             }
         }
         .padding(Theme.Spacing.md)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        .fashionGlassCard()
     }
 
     /// Generates the palette from the already-saved face photo, so the user doesn't have to
@@ -358,22 +376,94 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Appearance (accent themes)
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            Text(text("Apariencia", "Appearance"))
+                .font(.fashionTitle)
+
+            Text(text("Elige el color de tu atelier. Toda la app se tiñe al instante.",
+                      "Pick your atelier color. The whole app re-tints instantly."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: Theme.Spacing.md) {
+                ForEach(AccentTheme.allCases) { theme in
+                    Button {
+                        withAnimation(.smooth(duration: 0.3)) {
+                            ThemeManager.shared.accent = theme
+                        }
+                    } label: {
+                        VStack(spacing: 6) {
+                            ZStack {
+                                Circle()
+                                    .fill(theme.gradient)
+                                    .frame(width: 36, height: 36)
+                                    .shadow(color: theme.color.opacity(0.4), radius: 4, y: 2)
+
+                                if ThemeManager.shared.accent == theme {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .transition(.scale.combined(with: .opacity))
+                                }
+                            }
+                            .overlay {
+                                if ThemeManager.shared.accent == theme {
+                                    Circle()
+                                        .stroke(theme.color, lineWidth: 2)
+                                        .frame(width: 44, height: 44)
+                                }
+                            }
+
+                            Text(theme.displayName(lang))
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(ThemeManager.shared.accent == theme ? .primary : .secondary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.premiumPressable)
+                    .sensoryFeedback(.selection, trigger: ThemeManager.shared.accent)
+                }
+            }
+            .padding(.top, Theme.Spacing.xs)
+        }
+        .padding(Theme.Spacing.md)
+        .fashionGlassCard()
+    }
+
+    // MARK: - Settings
+
     private var settingsSection: some View {
         VStack(spacing: 0) {
             NavigationLink {
                 EditProfileView()
             } label: {
-                SettingsRowContent(icon: "person.fill", title: text("Editar perfil", "Edit Profile"), color: .blue)
+                SettingsRowContent(
+                    icon: "person.fill",
+                    title: text("Editar perfil", "Edit Profile"),
+                    subtitle: text("Nombre, medidas y estilo de vida", "Name, measurements and lifestyle"),
+                    color: .blue
+                )
             }
             .buttonStyle(.premiumPressable)
 
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 64)
 
             if let palette = appState.currentUser?.personalPalette {
                 NavigationLink {
                     ColorPaletteDetailView(palette: palette)
                 } label: {
-                    SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
+                    SettingsRowContent(
+                        icon: "paintpalette.fill",
+                        title: text("Mi paleta de color", "My Color Palette"),
+                        subtitle: text("Tu estación y los colores que te favorecen", "Your season and most flattering colors"),
+                        color: .orange
+                    )
                 }
                 .buttonStyle(.premiumPressable)
             } else {
@@ -381,68 +471,76 @@ struct ProfileView: View {
                     Text(text("Todavía no tienes una paleta. Sube fotos para generarla.", "No palette available. Upload photos to generate one."))
                         .navigationTitle(text("Mi paleta", "My Palette"))
                 } label: {
-                    SettingsRowContent(icon: "paintpalette.fill", title: text("Mi paleta de color", "My Color Palette"), color: .orange)
+                    SettingsRowContent(
+                        icon: "paintpalette.fill",
+                        title: text("Mi paleta de color", "My Color Palette"),
+                        subtitle: text("Tu estación y los colores que te favorecen", "Your season and most flattering colors"),
+                        color: .orange
+                    )
                 }
                 .buttonStyle(.premiumPressable)
             }
 
             if let user = appState.currentUser, user.personalPalette != nil {
-                Divider().padding(.leading, 52)
+                Divider().padding(.leading, 64)
 
                 NavigationLink {
                     StyleAnalysisView(user: user)
                 } label: {
-                    SettingsRowContent(icon: "person.crop.rectangle.badge.magnifyingglass", title: text("Mi análisis de imagen", "My Image Analysis"), color: .purple)
+                    SettingsRowContent(
+                        icon: "person.crop.rectangle.badge.magnifyingglass",
+                        title: text("Mi análisis de imagen", "My Image Analysis"),
+                        subtitle: text("Rostro, silueta y contraste personal", "Face, silhouette and personal contrast"),
+                        color: .purple
+                    )
                 }
                 .buttonStyle(.premiumPressable)
 
-                Divider().padding(.leading, 52)
+                Divider().padding(.leading, 64)
 
                 NavigationLink {
                     CapsuleWardrobeView()
                 } label: {
-                    SettingsRowContent(icon: "square.stack.3d.up.fill", title: text("Mi armario cápsula", "My Capsule Wardrobe"), color: .pink)
+                    SettingsRowContent(
+                        icon: "square.stack.3d.up.fill",
+                        title: text("Mi armario cápsula", "My Capsule Wardrobe"),
+                        subtitle: text("Básicos que combinan entre sí", "Essentials that mix and match"),
+                        color: .pink
+                    )
                 }
                 .buttonStyle(.premiumPressable)
             }
 
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 64)
 
             Button {
                 showingLanguagePicker = true
             } label: {
-                HStack(spacing: 16) {
-                    Image(systemName: "globe")
-                        .font(.body)
-                        .foregroundStyle(.green)
-                        .frame(width: 24)
-                    Text(text("Idioma", "Language"))
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                    Spacer()
-                    Text(appState.preferredLanguage.displayName)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .padding(Theme.Spacing.md)
-                .contentShape(Rectangle())
+                SettingsRowContent(
+                    icon: "globe",
+                    title: text("Idioma", "Language"),
+                    subtitle: text("La app y tu estilista hablan como tú", "The app and your stylist speak your language"),
+                    value: appState.preferredLanguage.displayName,
+                    color: .green
+                )
             }
             .buttonStyle(.premiumPressable)
 
-            Divider().padding(.leading, 52)
+            Divider().padding(.leading, 64)
 
             NavigationLink {
                 PrivacySettingsView()
             } label: {
-                SettingsRowContent(icon: "lock.shield.fill", title: text("Privacidad", "Privacy"), color: .red)
+                SettingsRowContent(
+                    icon: "lock.shield.fill",
+                    title: text("Privacidad", "Privacy"),
+                    subtitle: text("Tus fotos nunca salen de tu iPhone", "Your photos never leave your iPhone"),
+                    color: .red
+                )
             }
             .buttonStyle(.premiumPressable)
         }
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        .fashionGlassCard()
         .confirmationDialog(text("Selecciona idioma", "Select Language"), isPresented: $showingLanguagePicker) {
             ForEach(Language.allCases) { language in
                 Button(language.displayName) {
@@ -461,26 +559,46 @@ struct ProfileView: View {
 struct SettingsRowContent: View {
     let icon: String
     let title: String
+    var subtitle: String? = nil
+    var value: String? = nil
     let color: Color
 
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.body)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(color)
-                .frame(width: 24)
+                .frame(width: 34, height: 34)
+                .background(color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            Text(title)
-                .font(.body)
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
 
-            Spacer()
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if let value, !value.isEmpty {
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
 
             Image(systemName: "chevron.right")
-                .font(.caption)
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(Theme.Spacing.md)
+        .padding(.horizontal, Theme.Spacing.md)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
 }
@@ -533,7 +651,7 @@ struct PhotoThumbnail: View {
             }
             .frame(maxWidth: .infinity)
             .padding(Theme.Spacing.sm)
-            .background(Theme.Colors.cardBackground)
+            .background(Color(.systemBackground).opacity(0.6))
             .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
         }
         .buttonStyle(.premiumPressable)
@@ -552,8 +670,7 @@ struct ColorPaletteDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.Spacing.lg) {
                 Text(isSpanish ? "Tu paleta personal" : "Your Personal Palette")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.fashionDisplay(30))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: Theme.Spacing.sm) {
@@ -567,8 +684,7 @@ struct ColorPaletteDetailView: View {
                         .foregroundStyle(.secondary)
                         .padding(Theme.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.Colors.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+                        .fashionGlassCard(cornerRadius: Theme.CornerRadius.medium)
                 }
 
                 swatchSection(
@@ -614,6 +730,7 @@ struct ColorPaletteDetailView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Theme.Colors.primary.opacity(0.1))
+            .foregroundStyle(Theme.Colors.primary)
             .clipShape(Capsule())
     }
 
@@ -621,7 +738,7 @@ struct ColorPaletteDetailView: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
+                    .font(.fashionHeadline)
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -652,8 +769,7 @@ struct ColorPaletteDetailView: View {
         }
         .padding(Theme.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.large))
+        .fashionGlassCard()
     }
 }
 

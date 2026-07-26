@@ -18,7 +18,7 @@ enum GarmentBackgroundRemovalService {
                 ?? StorageBudgetManager.normalizedImage(image)
                 ?? image
 
-            guard let cutoutImage = removeBackground(from: normalizedImage) else {
+            guard let cutoutImage = removeBackground(from: normalizedImage, cropped: false) else {
                 return normalizedImage
             }
 
@@ -26,7 +26,17 @@ enum GarmentBackgroundRemovalService {
         }.value
     }
 
-    private static func removeBackground(from image: UIImage) -> UIImage? {
+    static func cutout(from image: UIImage, cropped: Bool = true) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            let normalizedImage = StorageBudgetManager.normalizedClothingImage(image) ?? image
+            guard let cutout = removeBackground(from: normalizedImage, cropped: cropped) else {
+                return nil
+            }
+            return StorageBudgetManager.normalizedClothingImage(cutout) ?? cutout
+        }.value
+    }
+
+    private static func removeBackground(from image: UIImage, cropped: Bool) -> UIImage? {
         guard let cgImage = image.cgImage else { return nil }
 
         let request = VNGenerateForegroundInstanceMaskRequest()
@@ -47,7 +57,7 @@ enum GarmentBackgroundRemovalService {
             let maskedPixelBuffer = try observation.generateMaskedImage(
                 ofInstances: instances,
                 from: handler,
-                croppedToInstancesExtent: false
+                croppedToInstancesExtent: cropped
             )
 
             let outputImage = CIImage(cvPixelBuffer: maskedPixelBuffer)

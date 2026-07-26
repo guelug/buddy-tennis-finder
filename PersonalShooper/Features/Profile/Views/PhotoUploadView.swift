@@ -213,6 +213,12 @@ struct PhotoUploadView: View {
                     .multilineTextAlignment(.center)
             }
 
+            // Shown until the photo is taken: once there's an image the checklist has done its job
+            // and the preview deserves the space.
+            if currentImage.wrappedValue == nil {
+                shotChecklist
+            }
+
             if let image = currentImage.wrappedValue {
                 Image(uiImage: image)
                     .resizable()
@@ -254,6 +260,34 @@ struct PhotoUploadView: View {
         }
         .id(currentStep.rawValue)
         .transition(.move(edge: .trailing).combined(with: .opacity))
+    }
+
+    private var shotChecklist: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Label(
+                isSpanish ? "Para que salga bien" : "For a good shot",
+                systemImage: "checklist"
+            )
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Theme.Colors.primary)
+
+            ForEach(tips(for: currentStep), id: \.self) { tip in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Colors.primary.opacity(0.7))
+                    Text(tip)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.md)
+        .background(Theme.Colors.primary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        .accessibilityElement(children: .combine)
     }
 
     private var actionButtons: some View {
@@ -512,14 +546,81 @@ struct PhotoUploadView: View {
 
     private func description(for step: UploadStep) -> String {
         switch (step, isSpanish) {
-        case (.faceCloseUp, true): return "Toma una foto clara de tu rostro de frente"
-        case (.faceProfile, true): return "Toma una foto de tu rostro de perfil"
-        case (.fullBodyFront, true): return "Toma una foto de cuerpo completo de frente"
-        case (.fullBodyBack, true): return "Toma una foto de cuerpo completo de espalda"
-        case (.faceCloseUp, false): return "Take a clear front-facing photo of your face"
-        case (.faceProfile, false): return "Take a side profile photo of your face"
-        case (.fullBodyFront, false): return "Take a full-body front photo"
-        case (.fullBodyBack, false): return "Take a full-body back photo"
+        case (.faceCloseUp, true): return "Con luz natural y sin gafas ni filtros: de aquí sale tu paleta de color."
+        case (.faceProfile, true): return "Gira la cabeza 90º. Sirve para leer la forma de tu rostro."
+        case (.fullBodyFront, true): return "Esta es la foto que usa el probador virtual: cuanto mejor sea, mejor te queda la ropa."
+        case (.fullBodyBack, true): return "De espalda, misma pose y mismo sitio que la anterior."
+        case (.faceCloseUp, false): return "Natural light, no glasses or filters — this is what your color palette comes from."
+        case (.faceProfile, false): return "Turn your head 90°. This is what reads your face shape."
+        case (.fullBodyFront, false): return "This is the photo the virtual try-on uses — the better it is, the better clothes look on you."
+        case (.fullBodyBack, false): return "Facing away, same pose and same spot as the previous one."
+        }
+    }
+
+    /// Concrete shot requirements per step.
+    ///
+    /// The full-body front photo is the input the virtual try-on composites garments onto, so its
+    /// quality caps the quality of every try-on result: a cropped, cluttered or baggy-clothing shot
+    /// gives the model no reliable silhouette to work with. Spelling the requirements out here is
+    /// far cheaper than trying to rescue a bad photo downstream.
+    private func tips(for step: UploadStep) -> [String] {
+        switch (step, isSpanish) {
+        case (.faceCloseUp, true):
+            return [
+                "Luz de día, de frente — nada de contraluz",
+                "Sin maquillaje fuerte, gafas ni filtros",
+                "Rostro centrado, hombros visibles",
+                "Fondo liso y pelo retirado de la cara"
+            ]
+        case (.faceProfile, true):
+            return [
+                "Perfil completo, mirando de lado",
+                "Misma luz y mismo fondo que la anterior",
+                "Oreja y línea de la mandíbula visibles"
+            ]
+        case (.fullBodyFront, true):
+            return [
+                "De la cabeza a los pies, sin recortar (zapatos incluidos)",
+                "Ropa ajustada: se tiene que ver tu silueta",
+                "Brazos algo separados del cuerpo y de frente a la cámara",
+                "Fondo liso y despejado, tú sola/o en la foto",
+                "Luz uniforme, sin sombras duras ni contraluz",
+                "Móvil en vertical, a la altura del pecho y a 2-3 m"
+            ]
+        case (.fullBodyBack, true):
+            return [
+                "Mismo sitio, misma luz y misma distancia que la frontal",
+                "De la cabeza a los pies, de espaldas y recta/o",
+                "Brazos algo separados del cuerpo"
+            ]
+        case (.faceCloseUp, false):
+            return [
+                "Daylight from the front — no backlighting",
+                "No heavy makeup, glasses or filters",
+                "Face centered, shoulders in frame",
+                "Plain background, hair off your face"
+            ]
+        case (.faceProfile, false):
+            return [
+                "Full side profile, looking sideways",
+                "Same light and background as the previous shot",
+                "Ear and jawline visible"
+            ]
+        case (.fullBodyFront, false):
+            return [
+                "Head to toe, nothing cropped (shoes included)",
+                "Fitted clothing so your silhouette reads clearly",
+                "Arms slightly away from your body, facing the camera",
+                "Plain, uncluttered background — just you in frame",
+                "Even light, no harsh shadows or backlighting",
+                "Phone vertical, at chest height, 2-3 m away"
+            ]
+        case (.fullBodyBack, false):
+            return [
+                "Same spot, light and distance as the front shot",
+                "Head to toe, facing away, standing straight",
+                "Arms slightly away from your body"
+            ]
         }
     }
 }

@@ -2,7 +2,18 @@ import SwiftUI
 import SwiftData
 import UIKit
 
+/// Standalone closet with its own navigation stack (legacy entry point).
 struct ClosetView: View {
+    var body: some View {
+        NavigationStack {
+            ClosetContentView()
+        }
+    }
+}
+
+/// The actual wardrobe grid + filters. Embedded by ClosetView (own stack) and by
+/// ClosetLobbyView (pushed after the armoire door-opening animation).
+struct ClosetContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppState.self) private var appState
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var items: [ClothingItem]
@@ -25,6 +36,7 @@ struct ClosetView: View {
     @State private var batchTotal = 0
     @State private var pendingClosetRouteItemID: String?
     @State private var pendingClosetRouteSearch: String?
+    @State private var didPrepareLegacyCutouts = false
 
     private var lang: Language {
         appState.preferredLanguage
@@ -90,8 +102,7 @@ struct ClosetView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: Theme.Spacing.xs) {
                         CategoryChip(title: Strings.closetAll(lang), icon: "square.grid.2x2", isSelected: selectedCategory == nil) {
@@ -236,7 +247,7 @@ struct ClosetView: View {
                         Button {
                             showingOutfitCalendar = true
                         } label: {
-                            Label(lang == .spanish ? "Plan semanal" : "Weekly plan", systemImage: "calendar.badge.sparkles")
+                            Label(lang == .spanish ? "Plan semanal" : "Weekly plan", systemImage: "calendar")
                         }
                     } label: {
                         Image(systemName: "square.stack.3d.up")
@@ -369,10 +380,12 @@ struct ClosetView: View {
             .onAppear {
                 applyPendingClosetRoute()
             }
+            .task {
+                await prepareLegacyCutoutsIfNeeded()
+            }
             .onChange(of: items.count) { _, _ in
                 applyPendingClosetRoute()
             }
-        }
     }
 
     private func closetItemCell(_ item: ClothingItem) -> some View {
@@ -528,7 +541,7 @@ struct ClosetView: View {
                         categoryHint: item.category.displayName.lowercased()
                     )
                     item.optimizedImage = optimized
-                    item.cutoutImage = BackgroundRemover.removeBackground(from: optimized)
+                    item.cutoutImage = await GarmentBackgroundRemovalService.cutout(from: optimized)
                     try? modelContext.save()
                 } catch {
                     // Skip failures (e.g. moderation) and keep going through the rest.
@@ -538,6 +551,25 @@ struct ClosetView: View {
             isBatchOptimizing = false
             closetFeedbackCounter += 1
         }
+    }
+
+    private func prepareLegacyCutoutsIfNeeded() async {
+        guard !didPrepareLegacyCutouts else { return }
+        didPrepareLegacyCutouts = true
+
+        let targets = items.filter {
+            !$0.hasCutout && ($0.optimizedImage ?? $0.image ?? $0.realReferenceImage) != nil
+        }
+        guard !targets.isEmpty else { return }
+
+        for item in targets {
+            guard !Task.isCancelled else { return }
+            guard let source = item.optimizedImage ?? item.image ?? item.realReferenceImage else { continue }
+            if let cutout = await GarmentBackgroundRemovalService.cutout(from: source) {
+                item.cutoutImage = cutout
+            }
+        }
+        try? modelContext.save()
     }
 
     private func markWorn(_ item: ClothingItem) {
@@ -617,8 +649,7 @@ private struct ClosetStatsStrip: View {
     private func stat(title: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.headline)
-                .fontWeight(.semibold)
+                .font(.fashionStat(18))
                 .contentTransition(.numericText())
             Text(title)
                 .font(.caption2)
@@ -628,8 +659,7 @@ private struct ClosetStatsStrip: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(Theme.Colors.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
+        .fashionGlassCard(cornerRadius: Theme.CornerRadius.medium)
     }
 }
 
@@ -649,9 +679,8 @@ struct CategoryChip: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(isSelected ? Theme.Colors.primary : Color.gray.opacity(0.1))
+            .fashionGlassChip(isSelected: isSelected, tint: Theme.Colors.primary)
             .foregroundStyle(isSelected ? .white : .primary)
-            .clipShape(Capsule())
         }
         .buttonStyle(.premiumPressable)
     }
@@ -670,7 +699,7 @@ struct ClosetItemCard: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
-                    .background(item.hasCutout ? Color(.systemBackground) : Color.white)
+                    .background(Color.clear)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.CornerRadius.medium))
                     .overlay(alignment: .topLeading) {
                         if item.hasOptimizedImage {

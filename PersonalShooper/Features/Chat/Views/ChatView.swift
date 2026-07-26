@@ -167,6 +167,18 @@ struct ChatView: View {
         .onDisappear {
             speechController.stop()
         }
+        // iOS ships only the low-quality "Compact" voice until the user downloads a better one, and
+        // no app-side setting can substitute for that. Shown once, the first time it matters.
+        .alert(
+            lang == .spanish ? "Haz que \(assistantName) suene natural" : "Make \(assistantName) sound natural",
+            isPresented: $speechController.showsVoiceQualityHint
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(lang == .spanish
+                 ? "Tu iPhone solo tiene instalada la voz básica para este idioma, por eso suena robótica. En Ajustes › Voz del asistente te explico cómo descargar una voz natural (es gratis y se hace una sola vez) y podrás probarlas ahí mismo."
+                 : "Your iPhone only has the basic voice installed for this language, which is why it sounds robotic. Settings › Assistant voice walks you through downloading a natural one — it's free and one-time — and lets you preview them right there.")
+        }
     }
 
     private var profileContextCard: some View {
@@ -400,6 +412,7 @@ struct ChatView: View {
             message: message,
             features: preparedFeatures,
             language: lang,
+            assistantName: assistantName,
             speechController: speechController
         )
         .padding(.horizontal)
@@ -487,6 +500,7 @@ struct MessageBubbleView: View {
     let message: Message
     let features: ChatPreparedFeatures
     let language: Language
+    let assistantName: String
     let speechController: ChatSpeechController
 
     private var shouldShowInlineImage: Bool {
@@ -518,7 +532,7 @@ struct MessageBubbleView: View {
                 HStack(spacing: 8) {
                     if !isUser {
                         Button {
-                            speechController.toggleSpeech(for: message, language: language)
+                            speechController.toggleSpeech(for: message, language: language, assistantName: assistantName)
                         } label: {
                             Image(systemName: speechController.speakingMessageID == message.id ? "stop.circle.fill" : "speaker.wave.2.fill")
                                 .font(.caption)
@@ -630,16 +644,22 @@ struct ChatBubbleShape: Shape {
 @MainActor
 final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
     var speakingMessageID: UUID?
+    /// Set once per install when playback had to fall back to the bundled Compact voice, so the UI
+    /// can tell the user where to download a natural-sounding one.
+    var showsVoiceQualityHint = false
 
     @ObservationIgnored
     private let synthesizer = AVSpeechSynthesizer()
+
+    @ObservationIgnored
+    @AppStorage("has_seen_voice_quality_hint") private var hasSeenVoiceQualityHint = false
 
     override init() {
         super.init()
         synthesizer.delegate = self
     }
 
-    func toggleSpeech(for message: Message, language: Language) {
+    func toggleSpeech(for message: Message, language: Language, assistantName: String) {
         if speakingMessageID == message.id {
             stop()
             return
@@ -651,12 +671,52 @@ final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
 
         configureAudioSession()
 
-        let utterance = AVSpeechUtterance(string: message.content)
-        utterance.voice = Self.naturalVoice(for: language)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        let utterance = AVSpeechUtterance(string: Self.spokenText(from: message.content))
+        // An explicit choice in Settings wins; otherwise pick the best persona-matching voice.
+        utterance.voice = VoicePreferences.selectedVoice
+            ?? Self.naturalVoice(for: language, assistantName: assistantName)
+        // A touch slower than default reads as considered rather than clipped, and gives the
+        // neural voices room to place their prosody.
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.96
         utterance.pitchMultiplier = 1.0
+        utterance.preUtteranceDelay = 0.1
         speakingMessageID = message.id
         synthesizer.speak(utterance)
+
+        // Don't nag someone who already went to the voice screen and picked something.
+        if !hasSeenVoiceQualityHint,
+           VoicePreferences.selectedVoice == nil,
+           Self.installedQualityIsPoor(for: language) {
+            hasSeenVoiceQualityHint = true
+            showsVoiceQualityHint = true
+        }
+    }
+
+    /// Strips the Markdown the stylist writes so the synthesizer doesn't read the syntax out loud.
+    ///
+    /// Replies routinely contain `**bold**`, `##` headings, bullet lists and even tables; fed
+    /// verbatim, the voice literally pronounces the asterisks and pipes, which is a big part of why
+    /// playback sounded wrong regardless of which voice was used.
+    static func spokenText(from markdown: String) -> String {
+        var text = markdown
+
+        // Fenced code and tables carry no spoken value.
+        text = text.replacingOccurrences(of: "```[^`]*```", with: " ", options: .regularExpression)
+        text = text.replacingOccurrences(of: "(?m)^\\s*\\|.*\\|\\s*$", with: "", options: .regularExpression)
+        // Emphasis, inline code and headings.
+        text = text.replacingOccurrences(of: "(\\*\\*|__|\\*|_|`)", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "(?m)^#{1,6}\\s*", with: "", options: .regularExpression)
+        // List markers become a short pause instead of "hyphen" / "bullet".
+        text = text.replacingOccurrences(of: "(?m)^\\s*([-*•]|\\d+\\.)\\s+", with: "", options: .regularExpression)
+        // Links: keep the label, drop the URL.
+        text = text.replacingOccurrences(of: "\\[([^\\]]*)\\]\\([^)]*\\)", with: "$1", options: .regularExpression)
+        // Collapse the blank lines left behind.
+        text = text.replacingOccurrences(of: "\n{2,}", with: ". ", options: .regularExpression)
+        text = text.replacingOccurrences(of: "\n", with: ". ", options: .regularExpression)
+        text = text.replacingOccurrences(of: "\\.\\s*\\.", with: ".", options: .regularExpression)
+        text = text.replacingOccurrences(of: " {2,}", with: " ", options: .regularExpression)
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func stop() {
@@ -667,12 +727,23 @@ final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
         deactivateAudioSession()
     }
 
-    /// Picks the most natural installed voice for the language, preferring Siri/premium/enhanced
-    /// voices over the default "compact" voice that sounds robotic. Falls back gracefully when the
-    /// user hasn't downloaded a high-quality voice.
-    static func naturalVoice(for language: Language) -> AVSpeechSynthesisVoice? {
+    /// Picks the most natural installed voice for the language **and the assistant's persona**.
+    ///
+    /// A note on Siri: iOS does not expose Siri's own voices to third-party apps — they're filtered
+    /// out of `speechVoices()` and can't be set on an utterance. The closest legitimate equivalent
+    /// is the Premium tier, which uses the same neural engine (e.g. "Ava" in en-US, "Mónica"/
+    /// "Marisol" in es-ES), so that's what we rank highest. Premium and Enhanced voices only exist
+    /// once the user downloads them in Settings › Accessibility › Spoken Content › Voices; if only
+    /// the bundled Compact voice is installed the result will still sound robotic no matter what we
+    /// do here, which is what `installedQualityIsPoor` lets the UI surface.
+    ///
+    /// Gender follows the persona: the assistant is "Rebe" (female) unless the user is themselves
+    /// named Rebe, in which case it's "Peter" (male) — see `AssistantPersona`.
+    static func naturalVoice(for language: Language, assistantName: String) -> AVSpeechSynthesisVoice? {
         let languagePrefix = language == .spanish ? "es" : "en"
         let preferredRegion = language == .spanish ? "es-ES" : "en-US"
+        let desiredGender: AVSpeechSynthesisVoiceGender =
+            assistantName == AssistantPersona.alternateName ? .male : .female
 
         let candidates = AVSpeechSynthesisVoice.speechVoices().filter {
             $0.language.hasPrefix(languagePrefix)
@@ -684,18 +755,34 @@ final class ChatSpeechController: NSObject, AVSpeechSynthesizerDelegate {
 
         func score(_ voice: AVSpeechSynthesisVoice) -> Int {
             var value = 0
-            if voice.identifier.lowercased().contains("siri") { value += 1000 }
+
+            // Persona match dominates: a premium voice of the wrong gender is worse than an
+            // enhanced one that actually sounds like the stylist the user is talking to.
+            if voice.gender == desiredGender { value += 1000 }
+
             switch voice.quality {
             case .premium: value += 300
             case .enhanced: value += 200
             default: value += 0
             }
+
             if voice.language == preferredRegion { value += 50 }
+            // Novelty/"eloquence" voices are deliberately cartoonish.
+            if voice.identifier.lowercased().contains("eloquence") { value -= 500 }
             return value
         }
 
         return candidates.max { score($0) < score($1) }
             ?? AVSpeechSynthesisVoice(language: preferredRegion)
+    }
+
+    /// True when no Enhanced/Premium voice is installed for the language, so playback will use the
+    /// bundled Compact voice and sound synthetic. The UI uses this to offer the one-time download.
+    static func installedQualityIsPoor(for language: Language) -> Bool {
+        let languagePrefix = language == .spanish ? "es" : "en"
+        return !AVSpeechSynthesisVoice.speechVoices().contains {
+            $0.language.hasPrefix(languagePrefix) && $0.quality != .default
+        }
     }
 
     private func configureAudioSession() {

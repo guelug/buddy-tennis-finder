@@ -44,7 +44,7 @@ final class StoreKitManager {
     static let shared = StoreKitManager()
     static let byokKeychainKeys = [
         "gemini_api_key", "openai_api_key", "anthropic_api_key",
-        "grok_api_key", "kimi_api_key", "openrouter_api_key"
+        "grok_api_key", "kimi_api_key", "openrouter_api_key", "fal_api_key"
     ]
 
     var currentTier: SubscriptionTier = .free

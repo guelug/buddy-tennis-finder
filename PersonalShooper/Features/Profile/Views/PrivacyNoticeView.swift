@@ -1,8 +1,15 @@
 import SwiftUI
 
+/// UserDefaults keys for "don't show again" privacy notice preferences.
+enum PrivacyNoticePreferences {
+    static let tryOnNeverShowKey = "tryon_privacy_never_show"
+}
+
 struct PrivacyNoticeView: View {
     @Environment(AppState.self) private var appState
     var onContinue: () -> Void
+    /// Optional "don't show again" action — when present, a secondary button is shown.
+    var onDontShowAgain: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     private var isSpanish: Bool {
@@ -68,6 +75,21 @@ struct PrivacyNoticeView: View {
                         Text(isSpanish ? "Entendido, continuar" : "I Understand, Continue")
                             .frame(maxWidth: .infinity)
                             .primaryButtonStyle()
+                    }
+
+                    if let onDontShowAgain {
+                        Button {
+                            onDontShowAgain()
+                            dismiss()
+                        } label: {
+                            Text(isSpanish ? "No volver a mostrar" : "Don't show again")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Theme.Colors.primary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, Theme.Spacing.xs)
+                        }
+                        .buttonStyle(.premiumPressable)
+                        .accessibilityIdentifier("privacy.dontShowAgain")
                     }
                 }
                 .padding(Theme.Spacing.screenPadding)

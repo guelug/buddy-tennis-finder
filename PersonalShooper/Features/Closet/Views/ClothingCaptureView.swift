@@ -594,6 +594,9 @@ struct ClothingCaptureView: View {
             notes: itemNotes.nilIfBlank,
             metadataSummary: detectedSummary.nilIfBlank
         )
+        if StorageBudgetManager.imageHasAlpha(image) {
+            item.cutoutImage = image
+        }
 
         modelContext.insert(item)
         do {

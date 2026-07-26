@@ -92,6 +92,27 @@ struct ContentView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var clothingItems: [ClothingItem]
     @Query(sort: \StyleProgressMission.createdAt, order: .reverse) private var progressMissions: [StyleProgressMission]
 
+    /// Change-detector for the shared closet index (the snapshot the AI's `search_closet` tool,
+    /// Siri and the widgets read from). Keying the refresh on `clothingItems.count` alone meant an
+    /// *edit* — rename, retag, favorite, "worn today" — never propagated, so the assistant kept
+    /// answering from a stale inventory until an item was added or removed.
+    private var closetFingerprint: Int {
+        var hasher = Hasher()
+        hasher.combine(clothingItems.count)
+        for item in clothingItems {
+            hasher.combine(item.id)
+            hasher.combine(item.name)
+            hasher.combine(item.timesWorn)
+            hasher.combine(item.isFavorite)
+            hasher.combine(item.categoryRaw)
+            hasher.combine(item.colorTags)
+            hasher.combine(item.styleTags)
+            hasher.combine(item.occasionTags)
+            hasher.combine(item.lastWornAt)
+        }
+        return hasher.finalize()
+    }
+
     private var preferredColorScheme: ColorScheme? {
         switch AppTheme(rawValue: storedTheme) ?? .system {
         case .light:
@@ -135,7 +156,19 @@ struct ContentView: View {
                 }
             }
 
+            // Debug/UI-test hook: `-ui-start-tab N` opens a specific tab on launch.
+            if let tabArgIndex = arguments.firstIndex(of: "-ui-start-tab"),
+               arguments.indices.contains(tabArgIndex + 1),
+               let tab = Int(arguments[tabArgIndex + 1]) {
+                selectedTab = tab
+            }
+
             syncUserState()
+            #if DEBUG
+            if arguments.contains("-ui-screenshot-content") {
+                seedScreenshotContentIfNeeded()
+            }
+            #endif
             applyPendingLaunchDestinationIfNeeded()
             Task {
                 await appState.refreshAccessStatus()
@@ -165,7 +198,7 @@ struct ContentView: View {
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
             }
         }
-        .onChange(of: clothingItems.count) { _, _ in
+        .onChange(of: closetFingerprint) { _, _ in
             Task {
                 await appState.refreshStyleCompanionState(closetItems: clothingItems)
             }
@@ -242,6 +275,167 @@ struct ContentView: View {
             modelContext.delete(newUser)
         }
     }
+
+    #if DEBUG
+    private func seedScreenshotContentIfNeeded() {
+        if let user = appState.currentUser {
+            user.displayName = "Alex"
+            user.updateStylingProfile(
+                PersonalStylingProfile(
+                    age: 32,
+                    genderIdentity: .unspecified,
+                    occupation: "Producto digital",
+                    lifestyleSummary: "Semana urbana entre oficina, reuniones y planes informales.",
+                    usualSocialPlans: ["office_days", "dinners"],
+                    preferredStyles: ["minimal", "classic"],
+                    desiredImpression: ["professional", "approachable"],
+                    fitPriorities: ["versatility", "comfort"],
+                    favoriteColors: ["Azul marino", "Verde bosque", "Camel"],
+                    avoidColors: ["Neón"],
+                    styleGoals: "Crear looks de oficina variados con menos prendas.",
+                    shoppingChallenges: "Evitar compras duplicadas y aprovechar mejor el armario."
+                )
+            )
+            user.personalPalette = PersonalPalette(
+                seasonalType: .softAutumn,
+                undertone: .warm,
+                recommendedColors: [
+                    CodableColor(red: 0.12, green: 0.24, blue: 0.42, name: "Azul marino"),
+                    CodableColor(red: 0.22, green: 0.42, blue: 0.28, name: "Verde bosque"),
+                    CodableColor(red: 0.67, green: 0.38, blue: 0.20, name: "Terracota"),
+                    CodableColor(red: 0.78, green: 0.65, blue: 0.42, name: "Camel"),
+                    CodableColor(red: 0.93, green: 0.88, blue: 0.76, name: "Crema")
+                ],
+                summary: "Tonos cálidos, suaves y fáciles de combinar."
+            )
+            user.updatedAt = Date()
+            appState.updateUser(user)
+        }
+
+        guard clothingItems.isEmpty else { return }
+
+        let samples: [(String, ClothingCategory, UIColor, String, [String], Int)] = [
+            ("Blazer azul", .outerwear, .systemBlue, "Azul marino", ["Oficina", "Elegante"], 7),
+            ("Camisa blanca", .tops, .white, "Blanco", ["Clásico", "Oficina"], 12),
+            ("Pantalón sastre", .bottoms, .darkGray, "Gris", ["Minimalista", "Oficina"], 9),
+            ("Vestido verde", .dresses, .systemGreen, "Verde", ["Cena", "Elegante"], 4),
+            ("Mocasines", .shoes, .brown, "Marrón", ["Clásico", "Oficina"], 15),
+            ("Bolso diario", .accessories, .systemOrange, "Camel", ["Diario", "Minimalista"], 6)
+        ]
+
+        for (index, sample) in samples.enumerated() {
+            let image = screenshotGarmentImage(category: sample.1, color: sample.2)
+            let item = ClothingItem(
+                name: sample.0,
+                category: sample.1,
+                image: image,
+                colorTags: [sample.3],
+                styleTags: sample.4,
+                occasionTags: sample.4
+            )
+            item.cutoutImage = image
+            item.isFavorite = index < 2
+            item.timesWorn = sample.5
+            item.hiddenUsageScore = min(100, Double(28 + sample.5 * 4))
+            item.createdAt = Calendar.current.date(byAdding: .day, value: -(index * 12), to: Date()) ?? Date()
+            item.lastWornAt = Calendar.current.date(byAdding: .day, value: -(index + 1), to: Date())
+            modelContext.insert(item)
+        }
+
+        try? modelContext.save()
+    }
+
+    private func screenshotGarmentImage(category: ClothingCategory, color: UIColor) -> UIImage {
+        let size = CGSize(width: 512, height: 512)
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = false
+        format.scale = 1
+
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let path: UIBezierPath
+            switch category {
+            case .bottoms:
+                path = UIBezierPath()
+                path.move(to: CGPoint(x: 155, y: 80))
+                path.addLine(to: CGPoint(x: 357, y: 80))
+                path.addLine(to: CGPoint(x: 348, y: 425))
+                path.addLine(to: CGPoint(x: 270, y: 425))
+                path.addLine(to: CGPoint(x: 256, y: 245))
+                path.addLine(to: CGPoint(x: 242, y: 425))
+                path.addLine(to: CGPoint(x: 164, y: 425))
+                path.close()
+            case .dresses:
+                path = UIBezierPath()
+                path.move(to: CGPoint(x: 210, y: 75))
+                path.addCurve(
+                    to: CGPoint(x: 302, y: 75),
+                    controlPoint1: CGPoint(x: 225, y: 115),
+                    controlPoint2: CGPoint(x: 287, y: 115)
+                )
+                path.addLine(to: CGPoint(x: 325, y: 210))
+                path.addLine(to: CGPoint(x: 410, y: 430))
+                path.addLine(to: CGPoint(x: 102, y: 430))
+                path.addLine(to: CGPoint(x: 187, y: 210))
+                path.close()
+            case .shoes:
+                path = UIBezierPath()
+                path.move(to: CGPoint(x: 92, y: 325))
+                path.addCurve(
+                    to: CGPoint(x: 420, y: 330),
+                    controlPoint1: CGPoint(x: 180, y: 300),
+                    controlPoint2: CGPoint(x: 330, y: 370)
+                )
+                path.addCurve(
+                    to: CGPoint(x: 92, y: 325),
+                    controlPoint1: CGPoint(x: 390, y: 420),
+                    controlPoint2: CGPoint(x: 140, y: 425)
+                )
+            case .accessories:
+                path = UIBezierPath(roundedRect: CGRect(x: 115, y: 180, width: 282, height: 245), cornerRadius: 42)
+                let handle = UIBezierPath(arcCenter: CGPoint(x: 256, y: 195), radius: 82, startAngle: .pi, endAngle: 0, clockwise: true)
+                handle.lineWidth = 34
+                color.setStroke()
+                handle.stroke()
+            default:
+                path = UIBezierPath()
+                path.move(to: CGPoint(x: 185, y: 105))
+                path.addLine(to: CGPoint(x: 80, y: 170))
+                path.addLine(to: CGPoint(x: 125, y: 270))
+                path.addLine(to: CGPoint(x: 168, y: 245))
+                path.addLine(to: CGPoint(x: 168, y: 425))
+                path.addLine(to: CGPoint(x: 344, y: 425))
+                path.addLine(to: CGPoint(x: 344, y: 245))
+                path.addLine(to: CGPoint(x: 387, y: 270))
+                path.addLine(to: CGPoint(x: 432, y: 170))
+                path.addLine(to: CGPoint(x: 327, y: 105))
+                path.addCurve(
+                    to: CGPoint(x: 185, y: 105),
+                    controlPoint1: CGPoint(x: 302, y: 155),
+                    controlPoint2: CGPoint(x: 210, y: 155)
+                )
+                path.close()
+            }
+
+            color.setFill()
+            path.fill()
+            UIColor.black.withAlphaComponent(color == .white ? 0.35 : 0.12).setStroke()
+            path.lineWidth = 8
+            path.lineJoinStyle = .round
+            path.stroke()
+
+            if category == .outerwear {
+                let seam = UIBezierPath()
+                seam.move(to: CGPoint(x: 256, y: 150))
+                seam.addLine(to: CGPoint(x: 256, y: 420))
+                seam.lineWidth = 6
+                UIColor.white.withAlphaComponent(0.45).setStroke()
+                seam.stroke()
+            }
+
+            context.cgContext.setBlendMode(.normal)
+        }
+    }
+    #endif
 
     private func applyPendingLaunchDestinationIfNeeded() {
         guard let destination = SharedStyleCompanionStore.consumePendingLaunchDestination() else {
@@ -331,18 +525,17 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
-            Color.orange.ignoresSafeArea()
-            
+            Theme.Colors.primaryGradient.ignoresSafeArea()
+
             VStack(spacing: 20) {
                 Image(systemName: "hanger")
                     .font(.system(size: 80))
                     .foregroundStyle(.white)
-                
+
                 Text(title)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    .font(.fashionDisplay(36))
                     .foregroundStyle(.white)
-                
+
                 Text(subtitle)
                     .font(.title3)
                     .foregroundStyle(.white.opacity(0.8))

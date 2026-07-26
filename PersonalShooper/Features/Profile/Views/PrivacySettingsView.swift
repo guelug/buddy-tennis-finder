@@ -22,6 +22,7 @@ struct PrivacySettingsView: View {
     @State private var storageUsed: String = "Calculating..."
     @State private var itemsInCloset: Int = 0
     @AppStorage(StyleImageService.managedProcessingConsentKey) private var allowsManagedImageProcessing = false
+    @AppStorage(PrivacyNoticePreferences.tryOnNeverShowKey) private var neverShowTryOnPrivacy = false
 
     enum ExportResult {
         case success(URL)
@@ -96,6 +97,26 @@ struct PrivacySettingsView: View {
                 .padding(.vertical, 8)
             } header: {
                 Text(text("Privacidad", "Privacy"))
+            }
+
+            Section {
+                Toggle(isOn: Binding(
+                    get: { !neverShowTryOnPrivacy },
+                    set: { neverShowTryOnPrivacy = !$0 }
+                )) {
+                    Label(
+                        text("Aviso de privacidad del probador", "Try-on privacy notice"),
+                        systemImage: "lock.shield"
+                    )
+                }
+                .accessibilityIdentifier("privacy.tryOnNotice")
+            } header: {
+                Text(text("Avisos", "Notices"))
+            } footer: {
+                Text(text(
+                    "Si lo desactivas, el aviso de privacidad del probador no volverá a aparecer al hacerte un try-on.",
+                    "If you turn this off, the try-on privacy notice won't appear again when you try clothes on."
+                ))
             }
 
             Section {

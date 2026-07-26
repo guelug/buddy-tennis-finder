@@ -95,6 +95,8 @@ enum StorageBudgetManager {
     static func estimatedSize(of item: ClothingItem) -> Int64 {
         Int64(item.imageData?.count ?? 0)
             + Int64(item.realReferenceImageData?.count ?? 0)
+            + Int64(item.optimizedImageData?.count ?? 0)
+            + Int64(item.cutoutImageData?.count ?? 0)
             + stringBytes(item.id.uuidString)
             + stringBytes(item.name)
             + stringBytes(item.categoryRaw)
@@ -311,7 +313,7 @@ enum StorageBudgetManager {
         return image.jpegData(compressionQuality: normalizedImageCompressionQuality)
     }
 
-    private static func imageHasAlpha(_ image: UIImage) -> Bool {
+    static func imageHasAlpha(_ image: UIImage) -> Bool {
         guard let alphaInfo = image.cgImage?.alphaInfo else {
             return false
         }

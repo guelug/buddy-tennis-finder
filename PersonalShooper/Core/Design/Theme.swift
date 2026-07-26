@@ -16,8 +16,9 @@ enum Theme {
     // MARK: - Colors
 
     enum Colors {
-        // Primary palette - Apple/Claude inspired
-        static let primary = Color("AccentColor")
+        // Primary palette - driven by the user's accent theme (ThemeManager)
+        @MainActor
+        static var primary: Color { ThemeManager.shared.accent.color }
         static let secondary = Color.secondary
         static let background = Color(.systemBackground)
         static let groupedBackground = Color(.systemGroupedBackground)
@@ -26,11 +27,8 @@ enum Theme {
         static let cardBackground = Color(.secondarySystemGroupedBackground)
         static let cardBorder = Color(.separator)
         static let premiumGold = Color(red: 0.78, green: 0.64, blue: 0.28)
-        static let primaryGradient = LinearGradient(
-            colors: [Color(red: 1.0, green: 0.84, blue: 0.0), Color(red: 0.78, green: 0.64, blue: 0.28)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        @MainActor
+        static var primaryGradient: LinearGradient { ThemeManager.shared.accent.gradient }
 
         // Semantic colors
         static let success = Color.green

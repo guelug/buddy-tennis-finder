@@ -1,8 +1,6 @@
 import SwiftUI
 
-/// Reusable garment thumbnail: shows the whole item (fit, never cropped) on an adaptive tile —
-/// transparent-friendly when the garment has a background-removed cutout, white otherwise — so
-/// closets, looks and capsules render consistently in both light and dark mode.
+/// Reusable garment thumbnail that shows the full transparent garment without a photo backdrop.
 struct GarmentThumbnail: View {
     let item: ClothingItem
     var size: CGFloat = 70
@@ -16,7 +14,7 @@ struct GarmentThumbnail: View {
                     .aspectRatio(contentMode: .fit)
                     .padding(4)
                     .frame(width: size, height: size)
-                    .background(item.hasCutout ? Color(.systemBackground) : Color.white)
+                    .background(Color.clear)
             } else {
                 RoundedRectangle(cornerRadius: corner)
                     .fill(Color.gray.opacity(0.15))

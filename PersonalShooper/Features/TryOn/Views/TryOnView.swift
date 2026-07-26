@@ -10,6 +10,7 @@ struct TryOnView: View {
     @State private var viewModel = TryOnViewModel()
     @State private var showingPrivacyNotice = false
     @State private var hasAcceptedPrivacy = false
+    @AppStorage(PrivacyNoticePreferences.tryOnNeverShowKey) private var neverShowTryOnPrivacy = false
     @State private var showingImagePicker = false
     @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
     @State private var pendingImagePickerSource: UIImagePickerController.SourceType?
@@ -65,15 +66,15 @@ struct TryOnView: View {
                 }
             }
             .sheet(isPresented: $showingPrivacyNotice) {
-                PrivacyNoticeView {
-                    hasAcceptedPrivacy = true
-                    showingPrivacyNotice = false
-                    if let pendingImagePickerSource {
-                        self.pendingImagePickerSource = nil
-                        imagePickerSource = pendingImagePickerSource
-                        showingImagePicker = true
+                PrivacyNoticeView(
+                    onContinue: {
+                        continueAfterPrivacyConsent()
+                    },
+                    onDontShowAgain: {
+                        neverShowTryOnPrivacy = true
+                        continueAfterPrivacyConsent()
                     }
-                }
+                )
             }
             .sheet(isPresented: $showingImagePicker) {
                 ImagePicker(sourceType: imagePickerSource) { image in
@@ -459,8 +460,19 @@ struct TryOnView: View {
         )
     }
 
+    /// Shared continuation after the privacy notice is accepted (once or forever).
+    private func continueAfterPrivacyConsent() {
+        hasAcceptedPrivacy = true
+        showingPrivacyNotice = false
+        if let pendingImagePickerSource {
+            self.pendingImagePickerSource = nil
+            imagePickerSource = pendingImagePickerSource
+            showingImagePicker = true
+        }
+    }
+
     private func startSourceSelection(_ sourceType: UIImagePickerController.SourceType) {
-        if !hasAcceptedPrivacy {
+        if !hasAcceptedPrivacy && !neverShowTryOnPrivacy {
             pendingImagePickerSource = sourceType
             showingPrivacyNotice = true
             return
@@ -528,8 +540,9 @@ private struct ClosetPickerSheet: View {
                                 if let image = item.displayImage {
                                     Image(uiImage: image)
                                         .resizable()
-                                        .aspectRatio(contentMode: .fill)
+                                        .aspectRatio(contentMode: .fit)
                                         .frame(width: 56, height: 72)
+                                        .background(Color.clear)
                                         .clipShape(RoundedRectangle(cornerRadius: 10))
                                 } else {
                                     RoundedRectangle(cornerRadius: 10)
@@ -762,8 +775,8 @@ struct ProviderPickerSheet: View {
 
     private var providerFooterText: String {
         lang == .spanish
-            ? "Google Gemini es gratuito con límites de uso razonable. Image Playground es privado en el dispositivo. La clave propia de OpenAI es opcional."
-            : "Google Gemini is free with fair-use limits. Image Playground is private on-device. Your own OpenAI key is optional."
+            ? "Nano Banana 2 es gratuito con uso razonable. Image Playground es local. GPT Image 2 y Fal son BYOK opcionales; el proveedor puede cobrar su uso."
+            : "Nano Banana 2 is free with fair use. Image Playground is local. GPT Image 2 and Fal are optional BYOK providers and may charge for usage."
     }
 
     var body: some View {
@@ -865,6 +878,7 @@ struct ProviderRow: View {
         case .google: return .blue
         case .playground: return .black
         case .chatgpt: return .purple
+        case .fal: return .pink
         }
     }
 }

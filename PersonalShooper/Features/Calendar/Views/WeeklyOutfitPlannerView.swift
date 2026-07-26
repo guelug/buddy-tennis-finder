@@ -117,7 +117,7 @@ struct WeeklyOutfitPlannerView: View {
 
     private var intro: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.md) {
-            Image(systemName: "calendar.badge.sparkles")
+            Image(systemName: "calendar")
                 .font(.title2)
                 .foregroundStyle(.white)
                 .frame(width: 48, height: 48)

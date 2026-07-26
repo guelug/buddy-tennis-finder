@@ -3,6 +3,7 @@ import Foundation
 enum AppSecrets {
     private static let openAIKeyName = "OPENAI_API_KEY"
     private static let geminiKeyName = "GEMINI_API_KEY"
+    private static let falKeyName = "FAL_KEY"
     private static let vercelAPIURLName = "VERCEL_API_URL"
     private static let storedOpenAIKey = "chatgpt_access_token"
 
@@ -39,6 +40,11 @@ enum AppSecrets {
     static var geminiAPIKey: String? {
         stringValue(for: geminiKeyName)
             ?? KeychainHelper.load(for: "gemini_api_key")
+    }
+
+    static var falAPIKey: String? {
+        stringValue(for: falKeyName)
+            ?? KeychainHelper.load(for: "fal_api_key")
     }
 
     static var vercelAPIBaseURL: URL? {

@@ -8,6 +8,7 @@ struct BYOKSettingsView: View {
     @State private var anthropicAPIKey: String = ""
     @State private var kimiAPIKey: String = ""
     @State private var openRouterAPIKey: String = ""
+    @State private var falAPIKey: String = ""
     @State private var selectedProvider: BYOKProvider = .gemini
     @State private var isTesting: Bool = false
     @State private var testResult: TestResult?
@@ -21,6 +22,7 @@ struct BYOKSettingsView: View {
         case anthropic = "anthropic"
         case kimi = "kimi"
         case openrouter = "openrouter"
+        case fal = "fal"
 
         var displayName: String {
             switch self {
@@ -30,6 +32,7 @@ struct BYOKSettingsView: View {
             case .anthropic: return "Anthropic Claude"
             case .kimi: return "Kimi"
             case .openrouter: return "OpenRouter"
+            case .fal: return "Fal.ai"
             }
         }
 
@@ -41,7 +44,12 @@ struct BYOKSettingsView: View {
             case .anthropic: return "flame.fill"
             case .kimi: return "moon.fill"
             case .openrouter: return "network"
+            case .fal: return "bolt.horizontal.circle.fill"
             }
+        }
+
+        var supportsChat: Bool {
+            self != .fal
         }
     }
 
@@ -101,6 +109,7 @@ struct BYOKSettingsView: View {
             || !anthropicAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !kimiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || !openRouterAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !falAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     enum TestResult {
@@ -138,7 +147,7 @@ struct BYOKSettingsView: View {
                         Label("Bring Your Own Key", systemImage: "key.fill")
                             .font(.headline)
 
-                        Text(text("Añade tus claves de Gemini u OpenAI para usar proveedores externos con tus propias credenciales.", "Add your Gemini or OpenAI keys to use external providers with your own credentials."))
+                        Text(text("Añade tus claves para chat, Nano Banana 2, GPT Image 2 o Fal Virtual Try-On.", "Add your keys for chat, Nano Banana 2, GPT Image 2, or Fal Virtual Try-On."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -214,11 +223,16 @@ struct BYOKSettingsView: View {
                             .textContentType(.password)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
+                    case .fal:
+                        SecureField("Fal API Key", text: $falAPIKey)
+                            .textContentType(.password)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
                     }
                 } header: {
                     Text(text("Claves API", "API Keys"))
                 } footer: {
-                    Text(text("Tus claves se guardan en el Keychain de iOS y no se envían a nuestros servidores.", "Your keys are stored securely in the iOS Keychain and never sent to our servers."))
+                    Text(text("Las claves se guardan en Keychain y se envían directamente solo al proveedor elegido. La app es gratis; el proveedor puede cobrar el uso de su API.", "Keys are stored in Keychain and sent directly only to the selected provider. The app is free; the provider may charge for API usage."))
                 }
 
                 // Test Section
@@ -295,6 +309,7 @@ struct BYOKSettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         InfoRow(icon: "sparkles", title: "Google Gemini", description: text("Chat inteligente y análisis de imágenes.", "Smart chat and image analysis."))
                         InfoRow(icon: "brain.head.profile", title: "OpenAI", description: text("Chat avanzado y generación de imágenes.", "Advanced chat and image generation."))
+                        InfoRow(icon: "bolt.horizontal.circle.fill", title: "Fal.ai", description: text("Probador virtual especializado con tu propia clave.", "Specialized virtual try-on with your own key."))
                         InfoRow(icon: "flame.fill", title: "Anthropic Claude", description: text("Chat con razonamiento profundo.", "Deep reasoning chat."))
                         InfoRow(icon: "moon.fill", title: "Kimi", description: text("Chat con contexto extendido.", "Extended context chat."))
                         InfoRow(icon: "network", title: "OpenRouter", description: text("Acceso a múltiples proveedores con una sola key.", "Access multiple providers with one key."))
@@ -328,7 +343,8 @@ struct BYOKSettingsView: View {
             (.grok, grokAPIKey),
             (.anthropic, anthropicAPIKey),
             (.kimi, kimiAPIKey),
-            (.openrouter, openRouterAPIKey)
+            (.openrouter, openRouterAPIKey),
+            (.fal, falAPIKey)
         ].filter { !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
         var messages: [String] = []
@@ -363,6 +379,22 @@ struct BYOKSettingsView: View {
             return await testKimiKey(key)
         case .openrouter:
             return await testOpenRouterKey(key)
+        case .fal:
+            return await testFalKey(key)
+        }
+    }
+
+    private func testFalKey(_ key: String) async -> TestResult {
+        do {
+            if try await FalTryOnService.validateAPIKey(key) {
+                return .success(text("Fal válida", "Fal key valid"))
+            }
+            return .failure(text("Clave Fal inválida", "Invalid Fal API key"))
+        } catch {
+            return .failure(text(
+                "Falló la conexión con Fal: \(error.localizedDescription)",
+                "Fal connection failed: \(error.localizedDescription)"
+            ))
         }
     }
 
@@ -448,12 +480,18 @@ struct BYOKSettingsView: View {
     }
 
     private func testGeminiKey(_ key: String) async -> TestResult {
-        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models?key=\(key)") else {
+        // The key goes in the `x-goog-api-key` header, never the query string: URLs end up in
+        // system logs, crash reports and proxy access logs, and an unescaped key would also break
+        // `URL(string:)` outright.
+        guard let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models") else {
             return .failure(text("URL inválida para Gemini", "Invalid Gemini URL"))
         }
 
+        var request = URLRequest(url: url)
+        request.setValue(key, forHTTPHeaderField: "x-goog-api-key")
+
         do {
-            let (_, response) = try await URLSession.shared.data(from: url)
+            let (_, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                 return .success(text("Gemini válida", "Gemini key valid"))
             } else {
@@ -492,9 +530,12 @@ struct BYOKSettingsView: View {
         saveKey(anthropicAPIKey, keychainKey: "anthropic_api_key")
         saveKey(kimiAPIKey, keychainKey: "kimi_api_key")
         saveKey(openRouterAPIKey, keychainKey: "openrouter_api_key")
+        saveKey(falAPIKey, keychainKey: "fal_api_key")
 
-        // Save preferred provider
-        UserDefaults.standard.set(selectedProvider.rawValue, forKey: "byok_preferred_provider")
+        // Fal is an image-only provider and must never replace the active chat provider.
+        if selectedProvider.supportsChat {
+            UserDefaults.standard.set(selectedProvider.rawValue, forKey: "byok_preferred_provider")
+        }
 
         appState.isBYOKEnabled = hasEnteredKeys
 
@@ -527,14 +568,22 @@ struct BYOKSettingsView: View {
         anthropicAPIKey = KeychainHelper.load(for: "anthropic_api_key") ?? ""
         kimiAPIKey = KeychainHelper.load(for: "kimi_api_key") ?? ""
         openRouterAPIKey = KeychainHelper.load(for: "openrouter_api_key") ?? ""
+        falAPIKey = KeychainHelper.load(for: "fal_api_key") ?? ""
 
         // Load preferred provider
         if let savedProvider = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
-           let provider = BYOKProvider(rawValue: savedProvider) {
+           let provider = BYOKProvider(rawValue: savedProvider),
+           provider.supportsChat {
             selectedProvider = provider
         }
 
-        hasStoredKeys = !geminiAPIKey.isEmpty || !openAIAPIKey.isEmpty || !grokAPIKey.isEmpty || !anthropicAPIKey.isEmpty || !kimiAPIKey.isEmpty || !openRouterAPIKey.isEmpty
+        hasStoredKeys = !geminiAPIKey.isEmpty
+            || !openAIAPIKey.isEmpty
+            || !grokAPIKey.isEmpty
+            || !anthropicAPIKey.isEmpty
+            || !kimiAPIKey.isEmpty
+            || !openRouterAPIKey.isEmpty
+            || !falAPIKey.isEmpty
     }
 
     private func clearAPIKeys() {
@@ -544,6 +593,7 @@ struct BYOKSettingsView: View {
         anthropicAPIKey = ""
         kimiAPIKey = ""
         openRouterAPIKey = ""
+        falAPIKey = ""
         saveAPIKeys()
     }
 

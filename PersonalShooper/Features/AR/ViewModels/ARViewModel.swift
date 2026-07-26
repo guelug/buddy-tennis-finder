@@ -53,6 +53,14 @@ final class ARViewModel {
     /// Set when the user placed a tag but the world wasn't mapped yet — keeps retrying the
     /// `getCurrentWorldMap` capture until ARKit reports `.mapped`/`.extending`.
     private var pendingWorldMapSave: Bool = false
+    /// True while a `getCurrentWorldMap` capture is in flight. Without this guard the per-frame
+    /// retry in `updateTracking` fires a full (expensive) map serialization ~60×/second, which
+    /// stalls the render loop badly enough that the session looks like it restarts.
+    private var isCapturingWorldMap: Bool = false
+    /// True once tracking has reached `.normal` at least once in this session — i.e. the world
+    /// origin is trustworthy. Saving a map before this would overwrite the good saved map with a
+    /// fresh, unaligned one and scatter every stored placement on the next launch.
+    private(set) var hasAlignedOnce: Bool = false
     private let log = Logger(subsystem: "com.personalshooper.app", category: "ARViewModel")
 
     // MARK: - Find guidance state
@@ -223,22 +231,44 @@ final class ARViewModel {
         }
     }
 
-    /// Snapshots and saves the current ARKit world map. Cheap to call repeatedly: ARKit just
-    /// returns nil if the world isn't mapped, and `ARWorldMapStore` deduplicates concurrent writes.
+    /// Snapshots and saves the current ARKit world map.
+    ///
+    /// Two guards matter here:
+    /// * `hasAlignedOnce` — never persist a map captured before tracking reached `.normal`. If the
+    ///   session started from a saved map and never relocalized, ARKit is building a *fresh* map
+    ///   with a different origin; writing it would invalidate every stored placement (the classic
+    ///   "the world starts over and my tags are gone" symptom).
+    /// * `isCapturingWorldMap` — `getCurrentWorldMap` serialises the whole map and is expensive, so
+    ///   we never allow two captures at once.
     func saveWorldMap() {
-        arSession?.getCurrentWorldMap { [weak self] worldMap, error in
-            if let error {
-                self?.log.error("getCurrentWorldMap error: \(error.localizedDescription, privacy: .public)")
-                return
+        guard hasAlignedOnce else {
+            log.info("Skipping world map save: space not aligned yet.")
+            return
+        }
+        guard !isCapturingWorldMap else { return }
+        guard let session = arSession else { return }
+
+        isCapturingWorldMap = true
+        session.getCurrentWorldMap { [weak self] worldMap, error in
+            // `ARWorldMap` isn't Sendable, so the archiving happens here on ARKit's own queue and
+            // only the Bool results cross to the main actor.
+            let captureFailureReason = error?.localizedDescription
+            let didCapture = worldMap != nil
+            if let worldMap {
+                ARWorldMapStore.save(worldMap)
             }
-            guard let worldMap else {
-                // World not mapped yet — will be retried when mapping status becomes ready.
-                return
-            }
-            ARWorldMapStore.save(worldMap)
-            // Capture succeeded; clear the pending flag on the main actor.
+
             Task { @MainActor in
-                self?.pendingWorldMapSave = false
+                guard let self else { return }
+                self.isCapturingWorldMap = false
+                if let captureFailureReason {
+                    self.log.error("getCurrentWorldMap error: \(captureFailureReason, privacy: .public)")
+                    return
+                }
+                // If the world wasn't mapped yet, keep the pending flag so we retry on a later frame.
+                if didCapture {
+                    self.pendingWorldMapSave = false
+                }
             }
         }
     }
@@ -293,8 +323,11 @@ final class ARViewModel {
         isRelocalizing = false
         isSpaceReady = false
         pendingWorldMapSave = false
+        isCapturingWorldMap = false
+        hasAlignedOnce = false
         // No saved map now, so this returns a fresh-mapping configuration.
         let configuration = createARConfiguration()
+        beginSession(expectsSavedMap: false)
         arSession?.run(configuration, options: [.resetTracking, .removeExistingAnchors])
     }
 
@@ -308,26 +341,30 @@ final class ARViewModel {
         }
 
         // Restore the saved space so previously-placed tags line up after relocalization. Actual
-        // readiness is driven per-frame by `updateTracking(readiness:mappingStatus:)`; here we just
-        // seed the initial hint and the relocalization expectation.
+        // readiness is driven per-frame by `updateTracking(readiness:mappingStatus:)`; the flags and
+        // hint are seeded separately by `beginSession()` so this stays free of observable writes
+        // (it's called from `makeUIView`, i.e. inside a SwiftUI update).
         if let savedMap = ARWorldMapStore.load() {
             configuration.initialWorldMap = savedMap
-            expectsRelocalization = true
-            isRelocalizing = true
-            isSpaceReady = false
-            spaceStatusHint = language == .spanish
-                ? "Apunta la cámara hacia la zona que escaneaste para reconocer el espacio…"
-                : "Point the camera at the area you scanned to recognize the space…"
-        } else {
-            expectsRelocalization = false
-            isRelocalizing = false
-            isSpaceReady = false
-            spaceStatusHint = language == .spanish
-                ? "Mueve el dispositivo despacio por tu armario para mapear el espacio antes de guardar ubicaciones."
-                : "Slowly move the device around your closet to map the space before saving locations."
         }
 
         return configuration
+    }
+
+    /// Seeds the relocalization expectation and the first guidance hint. Call right after handing a
+    /// configuration to `ARSession.run`.
+    func beginSession(expectsSavedMap: Bool) {
+        expectsRelocalization = expectsSavedMap
+        isRelocalizing = expectsSavedMap
+        isSpaceReady = false
+        hasAlignedOnce = false
+        spaceStatusHint = expectsSavedMap
+            ? (language == .spanish
+                ? "Apunta la cámara hacia la zona que escaneaste para reconocer el espacio…"
+                : "Point the camera at the area you scanned to recognize the space…")
+            : (language == .spanish
+                ? "Mueve el dispositivo despacio por tu armario para mapear el espacio antes de guardar ubicaciones."
+                : "Slowly move the device around your closet to map the space before saving locations.")
     }
 
     /// True when the current session was started with a saved world map and therefore must
@@ -344,24 +381,29 @@ final class ARViewModel {
     /// them at the wrong spots. Waiting for `.normal` is what makes saved locations line up reliably.
     func updateTracking(readiness: CameraReadiness, mappingStatus: ARFrame.WorldMappingStatus) {
         let spanish = language == .spanish
+
+        // Computed first, then assigned only on change. This runs at 60 fps and every mutation of
+        // an `@Observable` property invalidates the SwiftUI body (and therefore re-runs
+        // `updateUIView`, which walks the whole scene graph). Writing unconditionally turned a
+        // per-frame no-op into a per-frame full UI pass.
+        var nextReady = isSpaceReady
+        var nextRelocalizing = isRelocalizing
+        var nextHint: String?
+
         switch readiness {
         case .normal:
-            isSpaceReady = true
-            isRelocalizing = false
-            spaceStatusHint = nil
-            // Space is aligned — flush any world-map capture queued by a recent placement.
-            if pendingWorldMapSave {
-                saveWorldMap()
-            }
+            nextReady = true
+            nextRelocalizing = false
+            nextHint = nil
         case .relocalizing:
-            isRelocalizing = true
-            isSpaceReady = false
-            spaceStatusHint = spanish
+            nextRelocalizing = true
+            nextReady = false
+            nextHint = spanish
                 ? "Apunta la cámara hacia la zona que escaneaste para reconocer el espacio…"
                 : "Point the camera at the area you scanned to recognize the space…"
         case .initializing:
-            isSpaceReady = false
-            spaceStatusHint = expectsRelocalization
+            nextReady = false
+            nextHint = expectsRelocalization
                 ? (spanish
                     ? "Apunta la cámara hacia la zona que escaneaste para reconocer el espacio…"
                     : "Point the camera at the area you scanned to recognize the space…")
@@ -369,13 +411,51 @@ final class ARViewModel {
                     ? "Mueve el dispositivo despacio por tu armario para mapear el espacio…"
                     : "Slowly move the device around your closet to map the space…")
         case .limited:
-            isSpaceReady = false
-            spaceStatusHint = spanish
-                ? "Mueve el dispositivo despacio para estabilizar el seguimiento…"
-                : "Move the device slowly to stabilize tracking…"
+            // Transient `.limited` (excessive motion, a moment of low texture) happens constantly —
+            // including on the very frame the user taps to mark a garment. Once the space has been
+            // aligned we keep the tags on screen and only nudge the user, instead of tearing every
+            // anchor out of the scene and rebuilding it (which read as "the world restarted").
+            nextReady = hasAlignedOnce
+            nextRelocalizing = false
+            nextHint = hasAlignedOnce
+                ? nil
+                : (spanish
+                    ? "Mueve el dispositivo despacio para estabilizar el seguimiento…"
+                    : "Move the device slowly to stabilize tracking…")
         case .unavailable:
-            isSpaceReady = false
-            spaceStatusHint = spanish ? "Inicializando AR…" : "Initializing AR…"
+            nextReady = false
+            nextHint = spanish ? "Inicializando AR…" : "Initializing AR…"
         }
+
+        if isSpaceReady != nextReady { isSpaceReady = nextReady }
+        if isRelocalizing != nextRelocalizing { isRelocalizing = nextRelocalizing }
+        if spaceStatusHint != nextHint { spaceStatusHint = nextHint }
+
+        if readiness == .normal {
+            if !hasAlignedOnce {
+                hasAlignedOnce = true
+                log.info("AR space aligned; world map saves are now allowed.")
+            }
+            // Space is aligned — flush any world-map capture queued by a recent placement.
+            if pendingWorldMapSave {
+                saveWorldMap()
+            }
+        }
+    }
+
+    /// ARKit interrupted the session (app backgrounded, camera taken over, device locked). Reported
+    /// so the UI can explain why tracking paused instead of silently showing a frozen scene.
+    func sessionWasInterrupted() {
+        isSpaceReady = false
+        spaceStatusHint = language == .spanish
+            ? "Sesión de AR pausada. Vuelve a apuntar a tu armario para retomarla…"
+            : "AR session paused. Point back at your closet to resume…"
+    }
+
+    /// Surfaces an ARKit session failure instead of leaving a black/frozen camera view.
+    func handleSessionFailure(_ message: String) {
+        isSpaceReady = false
+        errorMessage = message
+        log.error("AR session failed: \(message, privacy: .public)")
     }
 }

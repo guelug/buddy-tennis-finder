@@ -248,6 +248,8 @@ final class ClothingItem {
         self.categoryRaw = category.rawValue
         self.imageData = StorageBudgetManager.normalizedClothingImageData(image)
         self.realReferenceImageData = nil
+        self.optimizedImageData = nil
+        self.cutoutImageData = nil
         self.colorTags = colorTags
         self.styleTags = styleTags
         self.materialTags = materialTags

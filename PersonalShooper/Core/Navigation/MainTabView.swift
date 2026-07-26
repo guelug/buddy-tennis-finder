@@ -22,7 +22,7 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
-            ClosetView()
+            ClosetLobbyView()
                 .tabItem {
                     Label(Strings.tabCloset(lang), systemImage: "hanger")
                 }
@@ -40,7 +40,7 @@ struct MainTabView: View {
                 }
                 .tag(5)
         }
-        .accentColor(.orange)
+        .tint(Theme.Colors.primary)
         .sensoryFeedback(.selection, trigger: selectedTab)
         .accessibilityIdentifier("main.tabs")
     }

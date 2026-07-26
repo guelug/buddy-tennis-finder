@@ -90,11 +90,11 @@ struct TryOnProviderSelectorView: View {
                         .font(.headline)
                 } footer: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(lang == .spanish ? "**Google Gemini**: mejor calidad y realismo, gratis con límites de uso razonable." : "**Google Gemini**: Best quality and realism, free with fair-use limits.")
+                        Text(lang == .spanish ? "**Nano Banana 2**: buena calidad, gratis con límites de uso razonable." : "**Nano Banana 2**: good quality, free with fair-use limits.")
 
                         Text(lang == .spanish ? "**Apple Image Playground**: generación gratuita y privada en el dispositivo. Es estilizada, no realista, ideal para inspiración rápida." : "**Apple Image Playground**: Free, private on-device generation. It is stylized, not realistic, great for quick inspiration.")
 
-                        Text(lang == .spanish ? "**Clave propia**: opción voluntaria para usar tu cuenta de OpenAI; no desbloquea funciones adicionales." : "**Your key**: an optional way to use your OpenAI account; it does not unlock extra features.")
+                        Text(lang == .spanish ? "**Claves propias**: GPT Image 2 o Fal Virtual Try-On. La app no cobra; el proveedor puede cobrar el uso." : "**Your keys**: GPT Image 2 or Fal Virtual Try-On. The app does not charge; the provider may charge for usage.")
                     }
                     .font(.caption)
                     .padding(.top, Theme.Spacing.sm)
@@ -117,6 +117,7 @@ struct TryOnProviderSelectorView: View {
         case .google: return .blue
         case .playground: return .orange
         case .chatgpt: return .green
+        case .fal: return .pink
         }
     }
 }
@@ -143,6 +144,7 @@ struct ProviderBadge: View {
         case .google: return .blue
         case .playground: return .orange
         case .chatgpt: return .green
+        case .fal: return .pink
         }
     }
 }

@@ -16,6 +16,9 @@ final class ChatViewModel {
     private var hasPrepared = false
     private let classificationService = ClothingClassificationService()
     private let workspaceService = ChatWorkspaceService()
+    /// Cached chat backend — holds the live model session, so it must outlive a single turn.
+    private var cachedService: AIChatServiceProtocol?
+    private var cachedServiceKey: String?
 
     func prepare(appState: AppState, modelContext: ModelContext) {
         setContext(from: appState)
@@ -28,7 +31,7 @@ final class ChatViewModel {
         }
 
         hasPrepared = true
-        prewarmAssistant()
+        prewarmAssistant(appState: appState)
 
         let descriptor = FetchDescriptor<Conversation>(
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
@@ -75,6 +78,10 @@ final class ChatViewModel {
         modelContext.insert(conversation)
         self.conversation = conversation
         self.messages = []
+        // A new conversation on screen must also be a new model session, otherwise the assistant
+        // keeps answering with the previous thread's transcript in mind.
+        cachedService = nil
+        cachedServiceKey = nil
         appendAssistantMessage(welcomeMessage(for: appState), saveToModel: true, modelContext: modelContext)
         do {
             try modelContext.save()
@@ -353,7 +360,12 @@ final class ChatViewModel {
 
         do {
             for try await delta in service.streamMessage(prompt, image: image, context: context) {
-                streamedText += delta
+                if delta.hasPrefix(AIStream.replaceMarker) {
+                    // The model revised what it had already emitted — swap the whole reply.
+                    streamedText = String(delta.dropFirst(AIStream.replaceMarker.count))
+                } else {
+                    streamedText += delta
+                }
 
                 if let streamingMessage {
                     streamingMessage.content = prefix + streamedText
@@ -428,9 +440,9 @@ final class ChatViewModel {
     }
 
     /// Warms up the on-device model so the first chat reply is fast.
-    private func prewarmAssistant() {
-        let service = AIChatServiceFactory.createService()
-        guard let streamingService = service as? FoundationModelsServiceProtocol else { return }
+    private func prewarmAssistant(appState: AppState) {
+        // Warm the service we'll actually use, so the prewarm isn't wasted on a throwaway instance.
+        guard let streamingService = activeAIService(for: appState) as? FoundationModelsServiceProtocol else { return }
         Task { await streamingService.prewarm() }
     }
 
@@ -604,34 +616,55 @@ final class ChatViewModel {
         return (values, added)
     }
 
+    /// Returns the chat service, **reusing the same instance across turns**.
+    ///
+    /// This matters far beyond allocation cost: `FoundationModelsStylistService` owns the
+    /// `LanguageModelSession`, and the session *is* the conversation transcript. Building a new
+    /// service per message (the previous behaviour) meant every turn started from a blank session,
+    /// so the assistant could never remember anything the user had just said — and the full profile
+    /// plus closet payload had to be re-sent each time. The cache is keyed on the resolved provider
+    /// so switching provider in Settings still rebuilds cleanly.
     private func activeAIService(for appState: AppState) -> AIChatServiceProtocol {
-        // Apple Foundation Models is the default experience.
-        guard appState.aiProviderMode != .appleFoundation else {
-            return AIChatServiceFactory.createService()
+        let key = resolvedServiceKey(for: appState)
+
+        if key == cachedServiceKey, let cachedService {
+            return cachedService
         }
 
-        // BYOK mode: use the user's own API key.
-        if appState.aiProviderMode == .byok, appState.isBYOKEnabled {
-            if let preferredProvider = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
-               let provider = BYOKChatService.BYOKProvider(rawValue: preferredProvider) {
-                // Verify the key exists for this provider
-                if hasAPIKey(for: provider) {
-                    return BYOKChatService(provider: provider)
-                }
+        let service = makeAIService(for: appState, key: key)
+        cachedService = service
+        cachedServiceKey = key
+        return service
+    }
+
+    /// Stable identifier for the provider the current settings resolve to.
+    private func resolvedServiceKey(for appState: AppState) -> String {
+        switch appState.aiProviderMode {
+        case .byok where appState.isBYOKEnabled:
+            if let preferred = UserDefaults.standard.string(forKey: "byok_preferred_provider"),
+               let provider = BYOKChatService.BYOKProvider(rawValue: preferred),
+               hasAPIKey(for: provider) {
+                return "byok.\(provider.rawValue)"
             }
-            // Fallback to any configured provider
             if let provider = firstAvailableBYOKProvider() {
-                return BYOKChatService(provider: provider)
+                return "byok.\(provider.rawValue)"
             }
+            return "apple"
+        case .managedCloud where appState.useConnectedChatGPTForChat && appState.isChatGPTConnected:
+            return "managedCloud"
+        default:
+            return "apple"
         }
+    }
 
-        // Managed cloud / Vercel fallback.
-        if appState.aiProviderMode == .managedCloud,
-           appState.useConnectedChatGPTForChat,
-           appState.isChatGPTConnected {
+    private func makeAIService(for appState: AppState, key: String) -> AIChatServiceProtocol {
+        if key == "managedCloud" {
             return ConnectedChatGPTService()
         }
-
+        if key.hasPrefix("byok."),
+           let provider = BYOKChatService.BYOKProvider(rawValue: String(key.dropFirst("byok.".count))) {
+            return BYOKChatService(provider: provider)
+        }
         return AIChatServiceFactory.createService()
     }
 

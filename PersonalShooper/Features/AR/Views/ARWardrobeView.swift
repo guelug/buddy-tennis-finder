@@ -414,13 +414,19 @@ struct ARViewContainer: UIViewRepresentable {
         arView.session.delegate = context.coordinator
 
         let configuration = viewModel.createARConfiguration()
+        let expectsSavedMap = configuration.initialWorldMap != nil
         arView.session.run(configuration)
+        // Seeding the observable flags happens after `run` so no state is written while SwiftUI is
+        // building the view tree.
+        Task { @MainActor in viewModel.beginSession(expectsSavedMap: expectsSavedMap) }
 
-        // Add coaching overlay
+        // Add coaching overlay. When we're restoring a saved space the useful goal is `.tracking`
+        // (relocalize), not `.horizontalPlane` — asking for a plane makes the overlay demand a
+        // fresh scan and fights the relocalization we actually want.
         let coachingOverlay = ARCoachingOverlayView()
         coachingOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         coachingOverlay.session = arView.session
-        coachingOverlay.goal = .horizontalPlane
+        coachingOverlay.goal = expectsSavedMap ? .tracking : .horizontalPlane
         arView.addSubview(coachingOverlay)
 
         viewModel.arSession = arView.session
@@ -436,9 +442,14 @@ struct ARViewContainer: UIViewRepresentable {
         // Update placed tags
         updatePlacedTags(in: uiView, spaceReady: viewModel.isSpaceReady)
 
-        // Highlight selected placement
-        if let selected = viewModel.selectedPlacement, viewModel.isSpaceReady {
-            highlightTag(for: selected, in: uiView)
+        // Highlight the selected placement once per selection change. `updateUIView` runs on every
+        // SwiftUI invalidation, so animating unconditionally restarted the pulse continuously.
+        let selectedID = viewModel.selectedPlacement?.id
+        if context.coordinator.lastHighlightedPlacementID != selectedID {
+            context.coordinator.lastHighlightedPlacementID = selectedID
+            if let selected = viewModel.selectedPlacement, viewModel.isSpaceReady {
+                highlightTag(for: selected, in: uiView)
+            }
         }
     }
 
@@ -447,7 +458,9 @@ struct ARViewContainer: UIViewRepresentable {
         // positions are in an old / unaligned coordinate space. Drawing them now would scatter
         // tags at random spots and confuse the user, so we keep them hidden until ready.
         let currentIDs = Set(viewModel.placements.map(\.id.uuidString))
-        for entity in arView.scene.anchors {
+        // Snapshot before mutating: `removeFromParent()` mutates the very collection we're walking.
+        let existingAnchors = Array(arView.scene.anchors)
+        for entity in existingAnchors {
             let name = entity.name
             if name.hasPrefix("tag_") {
                 let id = String(name.dropFirst(4))
@@ -459,11 +472,12 @@ struct ARViewContainer: UIViewRepresentable {
 
         guard spaceReady else { return }
 
+        let presentNames = Set(existingAnchors.map(\.name))
+
         // Add new tags
         for placement in viewModel.placements {
             let entityName = "tag_\(placement.id.uuidString)"
-            let exists = arView.scene.anchors.contains { $0.name == entityName }
-            if exists { continue }
+            if presentNames.contains(entityName) { continue }
 
             let anchor = AnchorEntity(world: placement.simdPosition)
             anchor.name = entityName
@@ -533,13 +547,23 @@ struct ARViewContainer: UIViewRepresentable {
 
     class Coordinator: NSObject, ARSessionDelegate, @unchecked Sendable {
         var viewModel: ARViewModel?
+        /// Last placement we ran the pulse animation for, so `updateUIView` doesn't restart it.
+        @MainActor var lastHighlightedPlacementID: UUID?
 
         init(viewModel: ARViewModel) {
             self.viewModel = viewModel
         }
 
+        /// Throttles the main-actor hop below. ARKit delivers ~60 frames/s and each hop invalidated
+        /// SwiftUI; 4× downsampling is still far smoother than the UI can show.
+        private let trackingUpdateStride = 4
+        private nonisolated(unsafe) var frameCounter = 0
+
         /// Per-frame: refresh relocalization status, and while finding the arrow heading/distance.
         nonisolated func session(_ session: ARSession, didUpdate frame: ARFrame) {
+            frameCounter &+= 1
+            guard frameCounter % trackingUpdateStride == 0 else { return }
+
             let transform = frame.camera.transform // simd_float4x4 is Sendable; copy before hopping.
             let mappingStatus = frame.worldMappingStatus
             let readiness: CameraReadiness
@@ -560,6 +584,24 @@ struct ARViewContainer: UIViewRepresentable {
                 guard self.viewModel?.currentMode == .find else { return }
                 self.viewModel?.updateFindGuidance(cameraTransform: transform)
             }
+        }
+
+        /// The single most important delegate callback for persistence: without it ARKit throws the
+        /// world away after any interruption (backgrounding, an incoming call, the camera being
+        /// taken over) and starts a brand-new coordinate space — which is exactly the "everything
+        /// disappears and the world starts over" behaviour. Returning `true` makes ARKit try to
+        /// relocalize into the existing map instead.
+        nonisolated func sessionShouldAttemptRelocalization(_ session: ARSession) -> Bool {
+            true
+        }
+
+        nonisolated func sessionWasInterrupted(_ session: ARSession) {
+            Task { @MainActor in self.viewModel?.sessionWasInterrupted() }
+        }
+
+        nonisolated func session(_ session: ARSession, didFailWithError error: Error) {
+            let message = error.localizedDescription
+            Task { @MainActor in self.viewModel?.handleSessionFailure(message) }
         }
 
         @MainActor

@@ -54,6 +54,14 @@ protocol AIChatServiceProtocol {
     func sendMessage(_ message: String, context: ChatContext) async throws -> String
 }
 
+/// Streaming contract: each yielded value is text to **append** to what was shown so far, unless it
+/// starts with `AIStream.replaceMarker`, in which case the remainder replaces the whole reply. The
+/// escape hatch exists because Foundation Models emits cumulative snapshots and may revise text it
+/// already produced; appending blindly in that case duplicates or garbles the answer.
+enum AIStream {
+    static let replaceMarker = "\u{0}"
+}
+
 // MARK: - Streaming Service Protocol
 @MainActor
 protocol FoundationModelsServiceProtocol: AIChatServiceProtocol {
@@ -115,6 +123,15 @@ enum AIChatServiceFactory {
 final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     private let model: SystemLanguageModel
     private var session: LanguageModelSession?
+    /// Identity of the context the cached `session` was built for (language + assistant name). When
+    /// it changes the instructions are stale, so the session is rebuilt.
+    private var sessionSignature: String?
+    /// True once the full user/closet context has been sent on the current session. Foundation
+    /// Models keeps the transcript, so re-sending the whole profile + 40-item closet JSON on every
+    /// turn just burns the (small) on-device context window and pushes the earlier conversation out.
+    private var hasSentFullContext = false
+    /// Hash of the closet payload last sent, so mid-conversation closet changes are re-sent.
+    private var lastClosetFingerprint: Int?
 
     var isStreaming: Bool { false }
 
@@ -130,10 +147,16 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         guard isAvailable else { return }
         // Warm the model without caching a session, so the real session is built once we know the
         // user's name (which decides whether the assistant is "Rebe" or "Peter").
-        LanguageModelSession(
-            model: model,
-            instructions: systemInstructions(for: .english, assistantName: AssistantPersona.defaultName)
-        ).prewarm()
+        // Build the throwaway session OFF the main actor — LanguageModelSession init loads the
+        // model and can block the UI for over a second (felt as tab-switch lag).
+        let instructions = systemInstructions(for: .english, assistantName: AssistantPersona.defaultName)
+        await Self.prewarmSession(instructions: instructions)
+    }
+
+    nonisolated
+    private static func prewarmSession(instructions: String) async {
+        let session = LanguageModelSession(model: .default, instructions: instructions)
+        session.prewarm()
     }
 
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {
@@ -145,24 +168,13 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
             throw AIError.modelNotAvailable
         }
 
-        let session = activeSession(for: context)
         let response: LanguageModelSession.Response<String>
-
-#if canImport(_FoundationModels_UIKit)
-        if #available(iOS 27.0, *), let image {
-            response = try await session.respond(
-                options: generationOptions,
-                contextOptions: contextOptions(for: message)
-            ) {
-                userPrompt(for: message, context: context)
-                Attachment(image).label("User supplied style image")
-            }
-        } else {
-            response = try await textResponse(from: session, message: message, context: context)
+        do {
+            response = try await respond(to: message, image: image, context: context)
+        } catch let error where isContextWindowOverflow(error) {
+            resetSession()
+            response = try await respond(to: message, image: image, context: context)
         }
-#else
-        response = try await textResponse(from: session, message: message, context: context)
-#endif
 
         let content = response.content.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
@@ -170,6 +182,30 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         }
 
         return content
+    }
+
+    /// One non-streaming turn against the cached session (with the image attachment when the OS
+    /// supports it). Split out so the context-overflow retry can re-run it verbatim.
+    private func respond(
+        to message: String,
+        image: UIImage?,
+        context: ChatContext
+    ) async throws -> LanguageModelSession.Response<String> {
+        let session = activeSession(for: context)
+
+#if canImport(_FoundationModels_UIKit)
+        if #available(iOS 27.0, *), let image {
+            return try await session.respond(
+                options: generationOptions,
+                contextOptions: contextOptions(for: message)
+            ) {
+                userPrompt(for: message, context: context)
+                Attachment(image).label("User supplied style image")
+            }
+        }
+#endif
+
+        return try await textResponse(from: session, message: message, context: context)
     }
 
     func streamMessage(_ message: String, context: ChatContext) -> AsyncThrowingStream<String, Error> {
@@ -185,23 +221,14 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
                 }
 
                 do {
-                    var lastContent = ""
-                    let stream = self.responseStream(
-                        from: self.activeSession(for: context),
-                        message: message,
-                        image: image,
-                        context: context
-                    )
-
-                    for try await snapshot in stream {
-                        let current = snapshot.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard current.count > lastContent.count else { continue }
-
-                        let delta = String(current.dropFirst(lastContent.count))
-                        lastContent = current
-                        continuation.yield(delta)
+                    do {
+                        try await self.drainStream(message: message, image: image, context: context, into: continuation)
+                    } catch let error where self.isContextWindowOverflow(error) {
+                        // Long styling conversations overflow the on-device window; start a fresh
+                        // session (full context is re-sent) and replay this turn once.
+                        self.resetSession()
+                        try await self.drainStream(message: message, image: image, context: context, into: continuation)
                     }
-
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -210,14 +237,56 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         }
     }
 
+    /// Consumes one response stream, yielding only the newly-appended text.
+    ///
+    /// Foundation Models emits cumulative snapshots and may *revise* what it already emitted, so the
+    /// delta is computed from the common prefix rather than by assuming the snapshot only ever grows
+    /// (the old `dropFirst(lastContent.count)` silently corrupted the reply whenever it didn't).
+    private func drainStream(
+        message: String,
+        image: UIImage?,
+        context: ChatContext,
+        into continuation: AsyncThrowingStream<String, Error>.Continuation
+    ) async throws {
+        var emitted = ""
+        let stream = responseStream(
+            from: activeSession(for: context),
+            message: message,
+            image: image,
+            context: context
+        )
+
+        for try await snapshot in stream {
+            let current = snapshot.content
+            guard current != emitted else { continue }
+
+            if current.hasPrefix(emitted) {
+                continuation.yield(String(current.dropFirst(emitted.count)))
+            } else {
+                // The model rewrote part of the answer — resend the whole snapshot so the UI can
+                // replace what it showed.
+                continuation.yield(AIStream.replaceMarker + current)
+            }
+            emitted = current
+        }
+    }
+
     private var generationOptions: GenerationOptions {
         GenerationOptions(temperature: 0.35, maximumResponseTokens: 520)
     }
 
     private func activeSession(for context: ChatContext) -> LanguageModelSession {
-        if let session {
+        let signature = sessionSignature(for: context)
+        if let session, sessionSignature == signature {
             return session
         }
+
+        // Either there's no session yet or the instructions went stale (language switch, the user
+        // told us their name). Either way we start clean and must re-send the full context.
+        session = nil
+        hasSentFullContext = false
+        lastClosetFingerprint = nil
+        sessionSignature = signature
 
 #if compiler(>=6.4)
         if #available(iOS 27.0, *) {
@@ -257,6 +326,30 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
         )
         self.session = session
         return session
+    }
+
+    private func sessionSignature(for context: ChatContext) -> String {
+        "\(context.language.rawValue)|\(AssistantPersona.name(forUserNamed: context.preferredName))"
+    }
+
+    /// Drops the cached session so the next turn starts from fresh instructions and full context.
+    /// Used when the transcript overflows the on-device context window.
+    private func resetSession() {
+        session = nil
+        sessionSignature = nil
+        hasSentFullContext = false
+        lastClosetFingerprint = nil
+    }
+
+    /// The on-device context window is small; a long styling conversation will eventually overflow
+    /// it. When that happens we start a fresh session (which re-sends the full profile + closet) and
+    /// retry the turn once, instead of surfacing an error the user can't act on.
+    private func isContextWindowOverflow(_ error: Error) -> Bool {
+        if let generationError = error as? LanguageModelSession.GenerationError,
+           case .exceededContextWindowSize = generationError {
+            return true
+        }
+        return false
     }
 
     private func textResponse(
@@ -363,6 +456,14 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
     }
 #endif
 
+    /// Whether `iOS27SystemTools()` actually produces tools on this build/OS.
+    private var toolsAvailable: Bool {
+#if compiler(>=6.4)
+        if #available(iOS 27.0, *) { return true }
+#endif
+        return false
+    }
+
     private func systemInstructions(for language: Language, assistantName: String) -> String {
         var lines = [
             "You are \(assistantName), the personal stylist inside Personal Shopper, a premium iOS fashion app.",
@@ -383,61 +484,64 @@ final class FoundationModelsStylistService: FoundationModelsServiceProtocol {
             "When formatting helps (comparisons, capsule plans, packing lists), use Markdown tables and checklists; otherwise keep prose tight.",
             "Prioritize privacy: do not ask for sensitive personal data unrelated to style, and do not claim external access.",
             "If a closet item is relevant, name it directly and explain why it works.",
-            "You have a 'search_closet' tool to find garments by category, occasion, color, style, or free-text query. Use it whenever you need specific closet items instead of guessing.",
+            "Treat the closet_context payload as the complete list of garments the user owns: never invent owned items, and if nothing suitable is there, say so and suggest what to add.",
             "Keep responses concise enough for mobile chat."
         ])
+
+        // Only advertise the tools that were actually registered on this OS. Describing
+        // `search_closet` unconditionally made the model on older systems promise a lookup it had
+        // no way to perform.
+        if toolsAvailable {
+            lines.append("You have a 'search_closet' tool to find garments by category, occasion, color, style, or free-text query, and a 'wardrobe_stats' tool for closet-wide statistics. Use them whenever you need specific closet items instead of guessing.")
+        }
+
         return lines.joined(separator: "\n")
     }
 
+    /// Builds the turn prompt.
+    ///
+    /// The full profile + closet payload is sent **once per session**: Foundation Models keeps the
+    /// transcript, so repeating it every turn (a) wasted most of the small on-device context window,
+    /// (b) evicted the earlier conversation, and (c) previously duplicated every fact — the palette,
+    /// profile, daily recommendation and calendar were emitted here *and* again by
+    /// `StylistContextFormatter.userFacts`. Follow-up turns send only what actually changed.
     private func userPrompt(for message: String, context: ChatContext) -> String {
         var sections: [String] = []
 
-        if let preferredName = context.preferredName, !preferredName.isEmpty {
-            sections.append("Preferred name: \(preferredName)")
-        }
-
-        if let gender = context.userGender {
-            sections.append("The user is \(gender.stylingDescriptor).")
-        }
-
-        if let palette = context.userPalette {
-            var paletteLine = "Personal color palette: \(palette.seasonalType.displayName), \(palette.undertone.displayName) undertone."
-            let best = palette.recommendedColors.prefix(6).map(colorName).joined(separator: ", ")
-            if !best.isEmpty { paletteLine += " Best colors: \(best)." }
-            if let neutrals = palette.neutralColors, !neutrals.isEmpty {
-                paletteLine += " Neutrals: \(neutrals.prefix(4).map(colorName).joined(separator: ", "))."
+        if !hasSentFullContext {
+            sections.append(contentsOf: StylistContextFormatter.userFacts(for: context))
+            sections.append(StylistContextFormatter.closetContextLine(for: context.closetItems))
+            if let profile = context.personalStylingProfile {
+                sections.append(styleProfileContext(profile, language: context.language))
+            } else if !context.userStylePreferences.isEmpty {
+                sections.append("Saved style preferences: \(context.userStylePreferences.joined(separator: ", ")).")
             }
-            if let statements = palette.statementColors, !statements.isEmpty {
-                paletteLine += " Statement colors: \(statements.prefix(3).map(colorName).joined(separator: ", "))."
-            }
-            if let avoid = palette.colorsToAvoid, !avoid.isEmpty {
-                paletteLine += " Colors to avoid: \(avoid.prefix(3).map(colorName).joined(separator: ", "))."
-            }
-            sections.append(paletteLine)
+            sections.append("Answer as the stylist. Use the saved context above only when it helps, and remember it for the rest of this conversation.")
+            hasSentFullContext = true
+            lastClosetFingerprint = closetFingerprint(for: context)
+        } else if closetFingerprint(for: context) != lastClosetFingerprint {
+            // The closet changed mid-conversation (a garment was added/worn/removed) — refresh just
+            // the inventory rather than the whole context.
+            sections.append("Updated closet inventory (replaces any earlier closet list):")
+            sections.append(StylistContextFormatter.closetContextLine(for: context.closetItems))
+            lastClosetFingerprint = closetFingerprint(for: context)
         }
-
-        if let profile = context.personalStylingProfile {
-            sections.append(styleProfileContext(profile, language: context.language))
-        } else if !context.userStylePreferences.isEmpty {
-            sections.append("Saved style preferences: \(context.userStylePreferences.joined(separator: ", ")).")
-        }
-
-        if let recommendation = context.dailyRecommendation {
-            sections.append("Today's style recommendation: \(recommendation.contextLine). Outfit formula: \(recommendation.outfitFormula).")
-        }
-
-        if !context.todayEvents.isEmpty {
-            let events = context.todayEvents.prefix(4).map { "\($0.title) at \($0.timeWindowText)" }.joined(separator: "; ")
-            sections.append("Today's calendar events: \(events).")
-        }
-
-        sections.append(contentsOf: StylistContextFormatter.userFacts(for: context))
-        sections.append(StylistContextFormatter.closetContextLine(for: context.closetItems))
 
         sections.append("User message: \(message)")
-        sections.append("Answer as the stylist. Use saved context only when it helps.")
 
         return sections.joined(separator: "\n\n")
+    }
+
+    /// Cheap change-detector for the closet payload: count + item ids + wear counts.
+    private func closetFingerprint(for context: ChatContext) -> Int {
+        var hasher = Hasher()
+        hasher.combine(context.closetItems.count)
+        for item in context.closetItems {
+            hasher.combine(item.id)
+            hasher.combine(item.timesWorn)
+            hasher.combine(item.isFavorite)
+        }
+        return hasher.finalize()
     }
 
     private func styleProfileContext(_ profile: PersonalStylingProfile, language: Language) -> String {
@@ -524,7 +628,6 @@ final class EnhancedAppleIntelligenceService: AIChatServiceProtocol {
     - If unsure about something, suggest consulting a human stylist
     """
 
-    private let responseCache = NSCache<NSString, NSString>()
     private let sentimentAnalyzer = NLTagger(tagSchemes: [.sentimentScore])
 
     func sendMessage(_ message: String, context: ChatContext) async throws -> String {

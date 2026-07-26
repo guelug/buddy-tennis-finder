@@ -20,6 +20,11 @@ struct SettingsView: View {
         appState.preferredLanguage
     }
 
+    /// Name of the chosen voice, or "Automatic" when the app picks it.
+    private var selectedVoiceName: String {
+        VoicePreferences.selectedVoice?.name ?? text("Automática", "Automatic")
+    }
+
     private var aiModeIcon: String {
         switch appState.aiProviderMode {
         case .appleFoundation: return "apple.logo"
@@ -76,6 +81,20 @@ struct SettingsView: View {
                         Text(text("Idioma", "Language"))
                         Spacer()
                         Text(lang.displayName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                NavigationLink {
+                    VoiceSettingsView()
+                } label: {
+                    HStack {
+                        Image(systemName: "waveform")
+                            .foregroundStyle(.pink)
+                            .frame(width: 24)
+                        Text(text("Voz del asistente", "Assistant voice"))
+                        Spacer()
+                        Text(selectedVoiceName)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -576,9 +595,18 @@ struct TryOnProviderInfoView: View {
                     ProviderInfoCard(
                         icon: "brain.head.profile",
                         color: .green,
-                        name: "OpenAI",
-                        description: isSpanish ? "Opción voluntaria para usar tu propia clave, sin desbloquear funciones adicionales." : "Optional provider using your own key, without unlocking additional features.",
-                        features: isSpanish ? ["Siempre disponible", "Compartible con el chat", "Clave guardada en Keychain"] : ["Always available", "Can be shared with chat", "Key stored in Keychain"],
+                        name: "OpenAI · GPT Image 2",
+                        description: isSpanish ? "Opción voluntaria para usar GPT Image 2 con tu propia clave." : "Optional provider using GPT Image 2 with your own key.",
+                        features: isSpanish ? ["Clave guardada en Keychain", "Envío directo a OpenAI", "Sin pago dentro de la app"] : ["Key stored in Keychain", "Sent directly to OpenAI", "No in-app payment"],
+                        badge: "BYOK"
+                    )
+
+                    ProviderInfoCard(
+                        icon: "bolt.horizontal.circle.fill",
+                        color: .pink,
+                        name: "Fal.ai · Virtual Try-On",
+                        description: isSpanish ? "Probador especializado opcional con tu propia clave de Fal.ai." : "Optional specialized try-on using your own Fal.ai key.",
+                        features: isSpanish ? ["Cola con reintentos", "Clave guardada en Keychain", "El proveedor puede cobrar el uso"] : ["Reliable queued requests", "Key stored in Keychain", "Provider usage may cost"],
                         badge: "BYOK"
                     )
                 }

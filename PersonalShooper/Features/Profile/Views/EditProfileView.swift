@@ -125,6 +125,9 @@ struct EditProfileView: View {
 
     private var profileHeroCard: some View {
         let changePhotoTitle = text("Cambiar foto", "Change photo")
+        // Read on the main actor here: `PhotosPicker`'s label builder is `Sendable`, so touching the
+        // MainActor-isolated `Theme.Colors.primary` from inside it is a strict-concurrency error.
+        let accent = Theme.Colors.primary
 
         return ProfileSectionCard(
             title: text("Perfil personal", "Personal Profile"),
@@ -168,7 +171,7 @@ struct EditProfileView: View {
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                         Text(changePhotoTitle)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.Colors.primary)
+                            .foregroundStyle(accent)
                     }
                 }
 
