@@ -15,6 +15,8 @@ import { colors, contentWidth, mobileTabBar, radii, shadows, spacing, statusBarT
 
 const inactiveColor = "#5E7266";
 
+// Home no va aquí: la pelota central del tab bar (CenterBallButton) es su
+// acceso, y la barra reparte estos elementos a izquierda y derecha de ella.
 const NAV_ITEMS: Array<{ href: string; name: string; labelKey: string; icon: IconName }> = [
   { href: "/", name: "index", labelKey: "tabs.rivals", icon: "tennis" },
   { href: "/matches", name: "matches", labelKey: "tabs.matches", icon: "calendar-clock" },
@@ -46,6 +48,8 @@ export default function TabsLayout() {
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       {isWeb && isDesktop ? <TopNav /> : null}
       <Tabs
+        // La app arranca en Home (la pelota), no en Rivales.
+        initialRouteName="home"
         screenOptions={{
           headerShown: !isDesktop,
           headerShadowVisible: false,

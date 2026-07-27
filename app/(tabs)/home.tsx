@@ -17,6 +17,7 @@ import { getHomeData } from "@/lib/app-api";
 import { subscribeToActiveCoachAds, subscribeToCoachInterests } from "@/lib/community";
 import { useAuth } from "@/lib/firebase-auth";
 import { PURCHASES_ENABLED } from "@/lib/features";
+import { shareAppInvite } from "@/lib/share";
 import { openInWaze } from "@/lib/waze";
 import { getHomeCountryContent } from "@/data/home-content";
 import { useI18n } from "@/lib/i18n";
@@ -108,6 +109,8 @@ export default function HomeScreen() {
             <DesktopPulse player={player} proposals={proposals} clubs={clubs} />
           </View>
         ) : <NextMatchCard proposal={nextMatch} club={nextClub} player={player} />}
+
+        <InviteFriendsCard playerName={player?.name} desktop={isWebDesktop} />
 
         <SectionTitle title={t("home.tennisIn.title").replace("{country}", content.countryLabel)} subtitle={t("home.tennisIn.subtitle")} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
@@ -392,6 +395,31 @@ function NextMatchCard({ proposal, club, player, desktop = false }: { proposal?:
         </View>
       </ImageBackground>
     </Animated.View>
+  );
+}
+
+/**
+ * Empuje temporal de crecimiento: la comunidad todavía es pequeña, así que la
+ * home invita a traer gente. El enlace apunta a la tienda del dispositivo que
+ * comparte (App Store en iOS, Google Play en Android).
+ */
+function InviteFriendsCard({ playerName, desktop }: { playerName?: string; desktop: boolean }) {
+  const { t } = useI18n();
+  const name = playerName?.trim() || t("invite.fallbackName");
+
+  return (
+    <Card pad={desktop ? "xl" : "lg"} style={{ borderColor: `${colors.neon}44`, gap: spacing.sm }}>
+      <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
+        <Icon name="users" size={22} color={colors.neon as string} />
+        <Text style={{ ...typography.headline, color: colors.textPrimary, flex: 1 }}>{t("invite.title")}</Text>
+      </View>
+      <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("invite.body")}</Text>
+      <PrimaryButton
+        label={t("invite.message")}
+        icon={<Icon name="send" size={17} color={colors.textOnBrand as string} />}
+        onPress={() => void shareAppInvite(name)}
+      />
+    </Card>
   );
 }
 

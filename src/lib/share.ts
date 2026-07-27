@@ -15,8 +15,19 @@ const COMMUNITY_BANNERS = {
   message: require("@/../assets/share/matchpoint-share-message.png")
 } as const;
 
+/**
+ * Enlace de descarga según la tienda del dispositivo que invita: App Store en
+ * iOS y Google Play en Android. En web (y si no hay ficha de App Store
+ * configurada) se cae a la web, que ya redirige a la tienda que toque.
+ */
+export function storeUrlForPlatform() {
+  if (Platform.OS === "android") return PLAY_STORE_URL;
+  if (Platform.OS === "ios") return APP_STORE_URL;
+  return WEB_APP_URL;
+}
+
 export function buildAppInviteMessage(playerName: string) {
-  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${WEB_APP_URL}`;
+  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${storeUrlForPlatform()}`;
 }
 
 export function buildLeagueInviteUrl(league: PrivateLeague) {
@@ -27,7 +38,7 @@ export async function shareAppInvite(playerName: string) {
   await Share.share({
     title: "Juega conmigo en MatchPoint Tennis",
     message: buildAppInviteMessage(playerName),
-    url: WEB_APP_URL
+    url: storeUrlForPlatform()
   });
 }
 

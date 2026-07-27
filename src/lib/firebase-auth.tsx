@@ -11,6 +11,7 @@ import {
   onIdTokenChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile,
   type User as FirebaseUser
@@ -93,7 +94,25 @@ export async function signUpWithEmail(email: string, password: string, displayNa
   if (displayName?.trim()) {
     await updateProfile(result.user, { displayName: displayName.trim() });
   }
+  // Sin este correo la cuenta se queda con `emailVerified: false` para
+  // siempre y las reglas de Firestore le niegan el listado de jugadores
+  // (`hasVerifiedIdentity`), así que la app entera se quedaba inservible
+  // para quien se registrase con email. No bloqueamos el alta si falla.
+  try {
+    await sendEmailVerification(result.user);
+  } catch (error) {
+    console.warn("[matchpoint] no se pudo enviar el correo de verificación", error);
+  }
   return result;
+}
+
+/** Reenvía el correo de verificación a la sesión actual. */
+export async function resendVerificationEmail() {
+  const current = auth.currentUser;
+  if (!current) throw new Error("No hay sesión activa.");
+  if (current.emailVerified) return false;
+  await sendEmailVerification(current);
+  return true;
 }
 
 export async function signInWithEmail(email: string, password: string) {

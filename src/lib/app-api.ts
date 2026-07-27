@@ -143,7 +143,7 @@ export async function getHomeData(
     throw new Error("Perfil no encontrado. Completa el onboarding.");
   }
 
-  const [clubs, allPlayers, mineSnap, acceptedSnap, openSnap, joinRequests] = await withTimeout(Promise.all([
+  const [clubs, allPlayers, mineSnap, acceptedSnap, openSnap, joinRequests] = await withVerifiedIdentityHint(withTimeout(Promise.all([
     getClubs(),
     getPlayersForArea(currentPlayer.city),
     getDocs(query(collection(db, "matches"), where("fromPlayerId", "==", uid))),
@@ -157,7 +157,7 @@ export async function getHomeData(
       )
     ),
     getJoinRequests(uid)
-  ]), 12000, "La conexión está tardando demasiado. Comprueba internet y vuelve a intentarlo.");
+  ]), 12000, "La conexión está tardando demasiado. Comprueba internet y vuelve a intentarlo."));
 
   const otherPlayers = allPlayers.filter((p) => p.id !== uid);
   const candidates = rankCandidates(currentPlayer, otherPlayers, preferences ?? defaultPreferences);
@@ -469,6 +469,27 @@ function isValidReservationTime(value: string) {
   const start = Number(startHour) * 60 + Number(startMinute);
   const end = Number(endHour) * 60 + Number(endMinute);
   return end > start;
+}
+
+/**
+ * Las reglas de Firestore solo dejan listar jugadores a identidades
+ * verificadas (`hasVerifiedIdentity`). Quien se registró con email y todavía
+ * no confirmó el correo recibía un `permission-denied` en crudo, imposible de
+ * interpretar. Traducimos ese caso concreto a algo accionable.
+ */
+async function withVerifiedIdentityHint<T>(promise: Promise<T>): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    const current = auth.currentUser;
+    if (code === "firestore/permission-denied" && current && !current.emailVerified) {
+      throw new Error(
+        "Confirma tu correo para ver a otros jugadores. Te enviamos un enlace al registrarte; revisa tu bandeja (y el spam) o pide uno nuevo desde tu perfil."
+      );
+    }
+    throw error;
+  }
 }
 
 function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {

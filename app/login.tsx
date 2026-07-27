@@ -454,7 +454,7 @@ export default function LoginScreen() {
 
         {!isConfigured ? (
           <Pressable
-            onPress={() => router.replace("/")}
+            onPress={() => router.replace("/home")}
             style={({ pressed }) => ({
               alignItems: "center",
               backgroundColor: pressed ? "rgba(198,241,53,0.20)" : colors.courtLight,

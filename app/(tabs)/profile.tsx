@@ -20,7 +20,7 @@ import { MatchBuddyPicker } from "@/components/match-buddy-picker";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { WebShell } from "@/components/web/web-shell";
 import { levelLabel } from "@/lib/matching";
-import { signOut, useAuth } from "@/lib/firebase-auth";
+import { resendVerificationEmail, signOut, useAuth } from "@/lib/firebase-auth";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 import { PURCHASES_ENABLED } from "@/lib/features";
 import { subscribeToPlayer, getClubs, requestAndroidBetaAccess } from "@/lib/firestore";
@@ -449,6 +449,21 @@ function ProfileNative() {
         <SettingsSection />
 
         <GroupedList title={data.t("profile.account")}>
+          {data.isConfigured && data.user && !data.user.emailVerified ? (
+            <GroupedRow
+              label={data.t("profile.verifyEmail")}
+              value={data.t("profile.verifyEmailHint")}
+              icon="check-badge"
+              onPress={async () => {
+                try {
+                  await resendVerificationEmail();
+                  Alert.alert(data.t("profile.verifyEmail"), data.t("profile.verifyEmailSent"));
+                } catch (error) {
+                  Alert.alert(data.t("profile.verifyEmail"), error instanceof Error ? error.message : String(error));
+                }
+              }}
+            />
+          ) : null}
           <GroupedRow label={data.t("profile.invite")} value={data.t("profile.inviteHint")} icon="send" onPress={() => router.push("/invite" as never)} />
           {PURCHASES_ENABLED ? <GroupedRow label={data.t("profile.privateLeagues")} icon="trophy" onPress={() => router.push("/private-leagues" as never)} /> : null}
           <GroupedRow label={data.t("profile.coachInterests")} value={data.t("profile.coachInterestsHint")} icon="users" onPress={() => router.push("/coach-interests" as never)} />

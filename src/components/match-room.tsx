@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
-import Slider from "@react-native-community/slider";
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -744,18 +743,34 @@ function SkillScoreInput({ label, value, onChange }: { label: string; value: num
           <Text style={{ ...typography.caption, color: colors.neon, fontVariant: ["tabular-nums"], fontWeight: "900" }}>{value}</Text>
         </View>
       </View>
-      <Slider
-        accessibilityLabel={`${label}: ${value} de 10`}
-        minimumValue={1}
-        maximumValue={10}
-        step={1}
-        value={value}
-        onValueChange={onChange}
-        onSlidingComplete={() => haptic("select")}
-        minimumTrackTintColor={colors.neon as string}
-        maximumTrackTintColor={colors.border as string}
-        thumbTintColor={colors.neon as string}
-      />
+      <View style={{ flexDirection: "row", gap: 3 }}>
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+          <Pressable
+            key={score}
+            accessibilityRole="button"
+            accessibilityState={{ selected: score === value }}
+            accessibilityLabel={`${label}: ${score} de 10`}
+            onPress={() => {
+              onChange(score);
+              haptic("select");
+            }}
+            style={{
+              alignItems: "center",
+              backgroundColor: score <= value ? colors.courtLight : colors.surface,
+              borderColor: score === value ? colors.neon : colors.border,
+              borderRadius: 7,
+              borderWidth: 1,
+              flex: 1,
+              justifyContent: "center",
+              minHeight: 32
+            }}
+          >
+            <Text style={{ ...typography.footnote, color: score <= value ? colors.neon : colors.textTertiary, fontSize: 10, fontWeight: "800" }}>
+              {score}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
