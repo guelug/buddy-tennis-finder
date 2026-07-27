@@ -5,6 +5,7 @@ import Animated, { FadeInUp } from "react-native-reanimated";
 import { Icon } from "@/components/icon";
 import { LiveBackground } from "@/components/live-visuals";
 import { LoadingView } from "@/components/loading-view";
+import { PrimaryButton } from "@/components/primary-button";
 import { MatchBuddyAvatar, useMatchBuddy } from "@/components/match-buddy-picker";
 import { useAuth } from "@/lib/firebase-auth";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
@@ -34,6 +35,8 @@ export default function AssistantScreen() {
   const { t, lang } = useI18n();
   const scrollRef = useRef<ScrollView>(null);
   const [context, setContext] = useState<AssistantContext | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const [provider, setProvider] = useState(() => t("assistant.provider.basic"));
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -52,17 +55,22 @@ export default function AssistantScreen() {
 
   useEffect(() => {
     let active = true;
+    setLoadError(null);
     void Promise.all([getAssistantContext(user?.uid), getLocalAIAvailability()])
       .then(([value, availability]) => {
         if (!active) return;
         setContext(value);
         setProvider(describeProvider(availability.available ? availability.provider : "fallback", t));
       })
-      .catch(() => {
-        if (active) setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: t("assistant.error") }]);
+      .catch((error: unknown) => {
+        // Sin contexto la pantalla no llega a renderizarse, así que el mensaje
+        // dentro del chat no se veía nunca y quedaba un spinner eterno (por
+        // ejemplo con el correo sin confirmar). Lo mostramos como estado.
+        if (!active) return;
+        setLoadError(error instanceof Error ? error.message : t("assistant.error"));
       });
     return () => { active = false; };
-  }, [user?.uid, t]);
+  }, [user?.uid, t, retryToken]);
 
   const send = async (preset?: string) => {
     const question = (preset ?? input).trim();
@@ -82,6 +90,22 @@ export default function AssistantScreen() {
     }
   };
 
+  if (loadError) {
+    return (
+      <LiveBackground overlay={0.58}>
+        <View style={{ alignItems: "center", flex: 1, gap: spacing.md, justifyContent: "center", padding: spacing.xl }}>
+          <Icon name="close" size={28} color={colors.warning as string} />
+          <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: "center" }}>{loadError}</Text>
+          <PrimaryButton
+            label={t("common.retry")}
+            variant="outline"
+            fullWidth={false}
+            onPress={() => setRetryToken((value) => value + 1)}
+          />
+        </View>
+      </LiveBackground>
+    );
+  }
   if (!context) return <LoadingView />;
   return (
     <LiveBackground overlay={0.58}>

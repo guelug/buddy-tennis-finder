@@ -2,7 +2,10 @@
   "expo": {
     "name": "MatchPoint Tennis",
     "slug": "matchpoint-clubs",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "scheme": "matchpoint",
     "version": "1.2.3",
     "orientation": "portrait",
@@ -15,7 +18,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "Y6VZTXTFW8",
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
@@ -26,7 +29,7 @@
       }
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 18,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
