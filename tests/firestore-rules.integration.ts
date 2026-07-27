@@ -365,3 +365,47 @@ test("las reseñas son dirigidas, únicas y solo entre participantes de un resul
     updatedAt: serverTimestamp()
   }));
 });
+
+test("dos cuentas del mismo teléfono no pueden valorarse entre ellas", async () => {
+  const authorId = "same-device-author";
+  const targetId = "same-device-target";
+  const matchId = "same-device-match";
+  const reviewId = `${matchId}_${authorId}_${targetId}`;
+  const author = environment.authenticatedContext(authorId, { email_verified: true }).firestore();
+  const target = environment.authenticatedContext(targetId, { email_verified: true }).firestore();
+
+  await assertSucceeds(setDoc(doc(author, "players", authorId), player(authorId, "Autor", "c")));
+  await assertSucceeds(setDoc(doc(target, "players", targetId), player(targetId, "Destinatario", "c")));
+  // Misma huella: es el patrón de alguien que se crea una segunda cuenta en su
+  // propio móvil para inflarse los votos.
+  await assertSucceeds(setDoc(doc(author, "users", authorId), { deviceHash: "hash-compartido" }));
+  await assertSucceeds(setDoc(doc(target, "users", targetId), { deviceHash: "hash-compartido" }));
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "matches", matchId), {
+      ...openMatch(authorId, ["c"]),
+      acceptedByPlayerId: targetId,
+      status: "accepted",
+      resultStatus: "validated"
+    });
+  });
+
+  const review = {
+    id: reviewId,
+    matchId,
+    authorId,
+    authorName: "Autor",
+    targetId,
+    targetName: "Destinatario",
+    stars: 5,
+    skillRatings: { consistency: 7, forehand: 8, backhand: 6, serve: 9, volley: 5 },
+    comment: "Me voto a mí mismo.",
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+
+  await assertFails(setDoc(doc(author, "matchReviews", reviewId), review));
+
+  // Desde otro teléfono la misma valoración sí entra.
+  await assertSucceeds(setDoc(doc(target, "users", targetId), { deviceHash: "hash-distinto" }));
+  await assertSucceeds(setDoc(doc(author, "matchReviews", reviewId), review));
+});

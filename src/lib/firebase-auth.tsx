@@ -19,6 +19,7 @@ import {
 import { doc, serverTimestamp, setDoc } from "@react-native-firebase/firestore";
 import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
 import { setCrashReportingUser } from "@/lib/crash-reporting";
+import { getDeviceHash } from "@/lib/device-identity";
 import {
   isNativeGoogleSignInConfigured,
   requestNativeGoogleIdToken,
@@ -48,11 +49,16 @@ function mapFirebaseUser(user: FirebaseUser | null): AuthUser | null {
 
 async function syncPrivateIdentity(user: FirebaseUser) {
   const email = user.email?.trim().toLowerCase() ?? null;
+  // La huella del dispositivo permite que las reglas rechacen una valoración
+  // entre dos cuentas del mismo móvil. Es opcional: si no se puede calcular,
+  // no bloqueamos el acceso.
+  const deviceHash = await getDeviceHash();
   await setDoc(doc(db, "users", user.uid), {
     email,
     displayName: user.displayName?.trim() ?? null,
     providers: user.providerData.map((provider) => provider.providerId),
     emailVerified: user.emailVerified,
+    ...(deviceHash ? { deviceHash } : {}),
     updatedAt: serverTimestamp()
   }, { merge: true });
 }

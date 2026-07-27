@@ -78,6 +78,18 @@ service cloud.firestore {
         );
     }
 
+    // Antifraude: dos cuentas creadas en el mismo teléfono no pueden valorarse
+    // entre ellas. La huella vive en `users/{uid}`, que es privado; las reglas
+    // la leen con get() sin exponerla a ningún cliente. Si falta en alguno de
+    // los dos lados no bloqueamos (cuentas antiguas, web o permiso denegado).
+    function isDifferentDevice(authorId, targetId) {
+      let author = get(/databases/$(database)/documents/users/$(authorId)).data;
+      let target = get(/databases/$(database)/documents/users/$(targetId)).data;
+      return !("deviceHash" in author)
+        || !("deviceHash" in target)
+        || author.deviceHash != target.deviceHash;
+    }
+
     function hasValidReviewSkills(skills) {
       return skills is map
         && skills.keys().hasOnly(["consistency", "forehand", "backhand", "serve", "volley"])
@@ -355,7 +367,8 @@ service cloud.firestore {
         && isMatchParticipant(
           get(/databases/$(database)/documents/matches/$(request.resource.data.matchId)).data,
           request.resource.data.targetId
-        );
+        )
+        && isDifferentDevice(request.auth.uid, request.resource.data.targetId);
 
       allow update: if request.auth != null
         && resource.data.authorId == request.auth.uid
