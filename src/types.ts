@@ -23,6 +23,22 @@ export type RankingEntry = {
   isDemo?: boolean;
 };
 
+/** Fila del ranking de dobles: la unidad clasificada es la pareja. */
+export type DoublesRankingEntry = {
+  rank: number;
+  /** Ids de los dos jugadores, siempre ordenados: identifica a la pareja. */
+  pairId: string;
+  playerIds: string[];
+  playerNames: string[];
+  division: Division;
+  points: number;
+  wins: number;
+  losses: number;
+  /** Partidos jugados juntos: premia a quien repite compañero. */
+  played: number;
+  city?: string;
+};
+
 export type ValidatedRankingResult = {
   matchId: string;
   city: string;
@@ -30,6 +46,30 @@ export type ValidatedRankingResult = {
   playerAId: string;
   playerBId: string;
   winnerId: string;
+  playedAt: string;
+};
+
+/**
+ * Resultado validado de un partido de dobles. Va en su propia colección
+ * (`doublesRankingResults`) porque una victoria en dobles no dice lo mismo que
+ * una en individuales y no debe mezclarse en la misma clasificación.
+ *
+ * Ojo: esto separa SOLO el histórico de victorias. Las valoraciones (estrellas
+ * y las notas de 1 a 10 por golpe) siguen en una única bolsa `matchReviews` y
+ * alimentan el perfil y el radar de la persona venga de donde venga el
+ * partido — no existe un "nivel técnico de dobles" aparte.
+ *
+ * La clasificación se construye por PAREJA, no por jugador: dos personas que
+ * repiten compañero acumulan histórico juntas, que es justo lo que queremos
+ * premiar.
+ */
+export type DoublesRankingResult = {
+  matchId: string;
+  city: string;
+  division: Division;
+  teamAIds: string[];
+  teamBIds: string[];
+  winnerTeam: TeamSide;
   playedAt: string;
 };
 

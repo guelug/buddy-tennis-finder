@@ -309,8 +309,9 @@ export async function validateResult(roomId: string, playerId: string): Promise<
     if (!roomAffordances(room, playerId).canValidate || !room.result) {
       throw new Error("Solo el rival puede validar este resultado.");
     }
+    const isDoubles = room.format === "doubles";
     const matchRef = doc(db, "matches", roomId);
-    const rankingRef = doc(db, "rankingResults", roomId);
+    const rankingRef = doc(db, isDoubles ? "doublesRankingResults" : "rankingResults", roomId);
     await runTransaction(db, async (transaction) => {
       const fresh = await transaction.get(matchRef);
       const data = fresh.data();
@@ -326,7 +327,19 @@ export async function validateResult(roomId: string, playerId: string): Promise<
         },
         updatedAt: serverTimestamp()
       });
-      transaction.set(rankingRef, {
+      // En dobles el histórico va a la clasificación de parejas; el ranking
+      // individual solo recoge los individuales.
+      transaction.set(rankingRef, isDoubles ? {
+        matchId: roomId,
+        city: String(data.city || ""),
+        division: data.division,
+        teamAIds: data.teamAIds,
+        teamBIds: data.teamBIds,
+        winnerTeam: data.result.winner,
+        playedAt: data.startsAt,
+        validatedById: playerId,
+        createdAt: serverTimestamp()
+      } : {
         matchId: roomId,
         city: String(data.city || ""),
         division: data.division,
@@ -437,29 +450,41 @@ function validSets(sets: SetScore[]) {
 
 async function getFirebaseMatchRooms(playerId?: string): Promise<MatchRoom[]> {
   if (!playerId) return [];
-  const [owned, joined] = await Promise.all([
+  const [owned, joined, playedDoubles] = await Promise.all([
     getDocs(query(collection(db, "matches"), where("fromPlayerId", "==", playerId))),
-    getDocs(query(collection(db, "matches"), where("acceptedByPlayerId", "==", playerId)))
+    getDocs(query(collection(db, "matches"), where("acceptedByPlayerId", "==", playerId))),
+    // En dobles el compañero y los rivales no aparecen en from/accepted.
+    getDocs(query(collection(db, "matches"), where("participantIds", "array-contains", playerId)))
   ]);
-  const matches = new Map([...owned.docs, ...joined.docs].map((item) => [item.id, item]));
+  const matches = new Map([...owned.docs, ...joined.docs, ...playedDoubles.docs].map((item) => [item.id, item]));
   const result = await Promise.all(Array.from(matches.values()).map(async (item): Promise<MatchRoom | null> => {
     const data = item.data();
-    if (data.status !== "accepted" || !data.acceptedByPlayerId || new Date(data.startsAt).getTime() > Date.now()) return null;
-    const [owner, rival, reviewSnapshot] = await Promise.all([
-      getDoc(doc(db, "players", data.fromPlayerId)),
-      getDoc(doc(db, "players", data.acceptedByPlayerId)),
+    if (data.status !== "accepted" || new Date(data.startsAt).getTime() > Date.now()) return null;
+
+    const isDoubles = data.format === "doubles" && Array.isArray(data.teamAIds) && Array.isArray(data.teamBIds);
+    if (!isDoubles && !data.acceptedByPlayerId) return null;
+
+    const teamAIds: string[] = isDoubles ? data.teamAIds : [data.fromPlayerId];
+    const teamBIds: string[] = isDoubles ? data.teamBIds : [data.acceptedByPlayerId];
+    const everyone = [...teamAIds, ...teamBIds];
+
+    const [profiles, reviewSnapshot] = await Promise.all([
+      Promise.all(everyone.map((id) => getDoc(doc(db, "players", id)))),
       getDocs(query(collection(db, "matchReviews"), where("matchId", "==", item.id), limit(20)))
     ]);
-    const ownerName = String(owner.data()?.name || "Jugador");
-    const rivalName = String(rival.data()?.name || "Rival");
+    const nameById = new Map(everyone.map((id, index) => [id, String(profiles[index].data()?.name || "Jugador")]));
+    const namesOf = (ids: string[]) => ids.map((id) => nameById.get(id) ?? "Jugador");
+
     return {
       id: item.id,
       format: data.format,
       division: data.division,
       clubId: data.clubId,
       playedAt: data.startsAt,
-      teamA: { side: "A", playerIds: [data.fromPlayerId], playerNames: [ownerName], captainId: data.fromPlayerId },
-      teamB: { side: "B", playerIds: [data.acceptedByPlayerId], playerNames: [rivalName], captainId: data.acceptedByPlayerId },
+      // El capitán es quien creó el parte por su lado; en dobles el rival que
+      // encabeza teamB. Solo decide quién registra el marcador.
+      teamA: { side: "A", playerIds: teamAIds, playerNames: namesOf(teamAIds), captainId: data.fromPlayerId },
+      teamB: { side: "B", playerIds: teamBIds, playerNames: namesOf(teamBIds), captainId: teamBIds[0] },
       status: (data.resultStatus || "awaiting_result") as MatchRoomStatus,
       result: data.result,
       validation: data.validation,

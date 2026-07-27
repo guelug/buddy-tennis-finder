@@ -78,6 +78,92 @@ service cloud.firestore {
         );
     }
 
+    // Campos comunes a cualquier partido, sea propuesta abierta o parte de
+    // dobles. La reserva (club, pista, horario) y la ciudad son inmutables
+    // después, así que aquí es donde hay que validarlas.
+    function hasValidMatchBase() {
+      return request.resource.data.fromPlayerId == request.auth.uid
+        && request.resource.data.clubId is string
+        && request.resource.data.clubId.size() > 0
+        && request.resource.data.city is string
+        && request.resource.data.city.size() > 0
+        && request.resource.data.city.size() <= 80
+        && request.resource.data.city
+          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.city
+        && request.resource.data.court is int
+        && request.resource.data.court >= 1
+        // El catálogo tiene clubes con más de 6 canchas; el cliente valida
+        // contra el total real del club y aquí solo ponemos un tope sanitario.
+        && request.resource.data.court <= 24
+        && request.resource.data.reservationTime is string
+        && request.resource.data.startsAt is string
+        && request.resource.data.proposedAt is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.division in ["novato", "d", "c", "b", "a"]
+        && request.resource.data.acceptedLevels is list
+        && request.resource.data.acceptedLevels.size() > 0
+        && request.resource.data.acceptedLevels.size() <= 5
+        && request.resource.data.acceptedLevels.toSet().hasOnly(["novato", "d", "c", "b", "a"])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 280;
+    }
+
+    function validSinglesProposal() {
+      return request.resource.data.keys().hasOnly([
+          "fromPlayerId", "acceptedByPlayerId", "clubId", "proposedAt",
+          "startsAt", "reservationTime", "court", "status", "format",
+          "division", "acceptedLevels", "message", "city", "createdAt"
+        ])
+        && request.resource.data.format == "singles"
+        && request.resource.data.acceptedByPlayerId == null
+        && request.resource.data.status == "proposed";
+    }
+
+    /**
+     * Parte de dobles: el creador declara los 4 jugadores, así que el partido
+     * nace "accepted" y no pasa por solicitudes. `acceptedByPlayerId` se queda
+     * a null a propósito — quién juega se lee de `participantIds`.
+     */
+    function validDoublesRecord() {
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          "fromPlayerId", "acceptedByPlayerId", "clubId", "proposedAt",
+          "startsAt", "reservationTime", "court", "status", "format",
+          "division", "acceptedLevels", "message", "city", "createdAt",
+          "teamAIds", "teamBIds", "participantIds"
+        ])
+        && data.format == "doubles"
+        && data.acceptedByPlayerId == null
+        && data.status == "accepted"
+        && data.teamAIds is list && data.teamAIds.size() == 2
+        && data.teamBIds is list && data.teamBIds.size() == 2
+        && data.participantIds is list && data.participantIds.size() == 4
+        // Nadie puede repetir: ni jugar contra sí mismo ni rellenar hueco.
+        && data.participantIds.toSet().size() == 4
+        && data.participantIds.toSet() == data.teamAIds.concat(data.teamBIds).toSet()
+        // Quien lo registra tiene que estar dentro, y en su propio equipo.
+        && request.auth.uid in data.teamAIds
+        // Los otros tres deben ser perfiles reales: si no, se podría inflar el
+        // ranking de parejas con jugadores inventados.
+        && exists(/databases/$(database)/documents/players/$(data.participantIds[0]))
+        && exists(/databases/$(database)/documents/players/$(data.participantIds[1]))
+        && exists(/databases/$(database)/documents/players/$(data.participantIds[2]))
+        && exists(/databases/$(database)/documents/players/$(data.participantIds[3]));
+    }
+
+    /**
+     * Quien confirma o disputa un resultado debe ser del equipo contrario al
+     * que lo reportó. En dobles no basta con "que no sea el reportero": si no,
+     * su propio compañero podría rubricar el marcador que acaban de meter.
+     * En individuales no hay equipos declarados y equivale a la regla de
+     * siempre (que sea la otra persona).
+     */
+    function isOpposingSide(data, reporterId, uid) {
+      return !("teamAIds" in data)
+        ? reporterId != uid
+        : ((reporterId in data.teamAIds) != (uid in data.teamAIds));
+    }
+
     // Antifraude: dos cuentas creadas en el mismo teléfono no pueden valorarse
     // entre ellas. La huella vive en `users/{uid}`, que es privado; las reglas
     // la leen con get() sin exponerla a ningún cliente. Si falta en alguno de
@@ -198,39 +284,12 @@ service cloud.firestore {
       //   solicitud pendiente que el propio creador acepta.
     match /matches/{matchId} {
       // En `create` no existe `resource` todavía, validamos sobre request.resource.data.
+      // Dos formas de nacer: la propuesta abierta de individuales (se busca
+      // rival) y el parte de dobles, donde el creador declara la alineación
+      // completa y el partido nace ya cerrado.
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly([
-          "fromPlayerId", "acceptedByPlayerId", "clubId", "proposedAt",
-          "startsAt", "reservationTime", "court", "status", "format",
-          "division", "acceptedLevels", "message", "city", "createdAt"
-        ])
-        && request.resource.data.fromPlayerId == request.auth.uid
-        && request.resource.data.acceptedByPlayerId == null
-        && request.resource.data.status == "proposed"
-        && request.resource.data.clubId is string
-        && request.resource.data.clubId.size() > 0
-        && request.resource.data.city is string
-        && request.resource.data.city.size() > 0
-        && request.resource.data.city.size() <= 80
-        && request.resource.data.city
-          == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.city
-        && request.resource.data.court is int
-        && request.resource.data.court >= 1
-        // El catálogo tiene clubes con más de 6 canchas; el cliente valida
-        // contra el total real del club y aquí solo ponemos un tope sanitario.
-        && request.resource.data.court <= 24
-        && request.resource.data.reservationTime is string
-        && request.resource.data.startsAt is string
-        && request.resource.data.proposedAt is string
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.format == "singles"
-        && request.resource.data.division in ["novato", "d", "c", "b", "a"]
-        && request.resource.data.acceptedLevels is list
-        && request.resource.data.acceptedLevels.size() > 0
-        && request.resource.data.acceptedLevels.size() <= 5
-        && request.resource.data.acceptedLevels.toSet().hasOnly(["novato", "d", "c", "b", "a"])
-        && request.resource.data.message is string
-        && request.resource.data.message.size() <= 280;
+        && hasValidMatchBase()
+        && (validSinglesProposal() || validDoublesRecord());
 
       // Lectura: propuestas abiertas (nadie las ha aceptado) o las propias.
       allow read: if request.auth != null
@@ -238,6 +297,8 @@ service cloud.firestore {
           (resource.data.acceptedByPlayerId == null && resource.data.status == "proposed")
           || resource.data.fromPlayerId == request.auth.uid
           || resource.data.acceptedByPlayerId == request.auth.uid
+          // En dobles los otros tres no figuran en from/accepted.
+          || isMatchParticipant(resource.data, request.auth.uid)
         );
 
       // Transiciones permitidas y mínimas:
@@ -276,11 +337,12 @@ service cloud.firestore {
           )
           ||
           (
-            // Resultado: cualquiera de los dos jugadores de un partido
-            // aceptado puede reportarlo; solo el rival del reportero puede
-            // confirmarlo o disputarlo.
+            // Resultado: cualquier jugador de un partido aceptado puede
+            // reportarlo; solo alguien del equipo contrario al reportero puede
+            // confirmarlo o disputarlo. En dobles los participantes salen de
+            // `participantIds`, no de from/accepted.
             resource.data.status == "accepted"
-            && request.auth.uid in [resource.data.fromPlayerId, resource.data.acceptedByPlayerId]
+            && isMatchParticipant(resource.data, request.auth.uid)
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(["resultStatus", "result", "validation", "updatedAt"])
             && (
@@ -305,18 +367,24 @@ service cloud.firestore {
               ||
               (
                 resource.data.resultStatus == "awaiting_validation"
-                && resource.data.result.reportedById != request.auth.uid
+                && isOpposingSide(resource.data, resource.data.result.reportedById, request.auth.uid)
                 && request.resource.data.result == resource.data.result
                 && request.resource.data.resultStatus == "disputed"
               )
               ||
               (
                 resource.data.resultStatus == "awaiting_validation"
-                && resource.data.result.reportedById != request.auth.uid
+                && isOpposingSide(resource.data, resource.data.result.reportedById, request.auth.uid)
                 && request.resource.data.result == resource.data.result
                 && request.resource.data.resultStatus == "validated"
                 && request.resource.data.validation.playerId == request.auth.uid
-                && existsAfter(/databases/$(database)/documents/rankingResults/$(matchId))
+                // El histórico se escribe en la misma operación: individuales
+                // al ranking de jugadores, dobles al de parejas.
+                && (
+                  resource.data.format == "doubles"
+                    ? existsAfter(/databases/$(database)/documents/doublesRankingResults/$(matchId))
+                    : existsAfter(/databases/$(database)/documents/rankingResults/$(matchId))
+                )
               )
             )
           )
@@ -388,6 +456,36 @@ service cloud.firestore {
     // Resultado competitivo inmutable. Se crea en la misma transacción en la
     // que el rival confirma el marcador y permite calcular rankings sin un
     // backend de pago ni confiar en puntos editables del perfil.
+    // Histórico de dobles, separado del individual: la unidad que clasifica es
+    // la pareja. Inmutable igual que su equivalente de individuales.
+    match /doublesRankingResults/{matchId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "matchId", "city", "division", "teamAIds", "teamBIds",
+          "winnerTeam", "playedAt", "validatedById", "createdAt"
+        ])
+        && request.resource.data.matchId == matchId
+        && request.resource.data.validatedById == request.auth.uid
+        && getAfter(/databases/$(database)/documents/matches/$(matchId)).data.resultStatus == "validated"
+        && getAfter(/databases/$(database)/documents/matches/$(matchId)).data.format == "doubles"
+        && request.resource.data.teamAIds
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.teamAIds
+        && request.resource.data.teamBIds
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.teamBIds
+        && request.resource.data.city
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.city
+        && request.resource.data.division
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.division
+        && request.resource.data.winnerTeam
+          == getAfter(/databases/$(database)/documents/matches/$(matchId)).data.result.winner
+        && request.resource.data.winnerTeam in ["A", "B"]
+        // Lo escribe quien valida, que es del equipo contrario al reportero.
+        && request.auth.uid in request.resource.data.teamAIds.concat(request.resource.data.teamBIds)
+        && request.auth.uid != getAfter(/databases/$(database)/documents/matches/$(matchId)).data.result.reportedById;
+      allow update, delete: if false;
+    }
+
     match /rankingResults/{matchId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null

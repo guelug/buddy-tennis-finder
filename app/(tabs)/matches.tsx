@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Text, View } from "react-native";
 import Animated, { FadeIn, SlideInRight } from "react-native-reanimated";
+import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
@@ -125,7 +126,15 @@ function MatchesNative() {
         </Animated.View>
 
         {state.filter === "results" ? (
-          <RoomsList state={state} columns={1} />
+          <>
+            <PrimaryButton
+              label={t("doubles.title")}
+              variant="outline"
+              icon={<Icon name="users" size={17} color={colors.neon as string} />}
+              onPress={() => router.push("/record-doubles" as never)}
+            />
+            <RoomsList state={state} columns={1} />
+          </>
         ) : state.filtered.length === 0 ? (
           <EmptyState filter={state.filter} />
         ) : (

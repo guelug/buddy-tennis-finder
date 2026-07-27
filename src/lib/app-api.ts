@@ -260,6 +260,79 @@ export async function createProposal(
   return { ...payload, id: ref.id } as MatchProposal;
 }
 
+export type DoublesRecordInput = {
+  clubId: string;
+  court: number;
+  startsAt: string;
+  reservationTime: string;
+  /** Compañero de quien registra el parte. */
+  partnerId: string;
+  /** Los dos rivales. */
+  rivalIds: string[];
+  message?: string;
+};
+
+/**
+ * Registra un partido de dobles con la alineación completa. A diferencia de
+ * los individuales no pasa por solicitudes: quien lo crea declara los cuatro
+ * jugadores y el partido nace cerrado, listo para reportar resultado y para
+ * que cada uno valore a compañero y rivales.
+ */
+export async function recordDoublesMatch(input: DoublesRecordInput): Promise<string> {
+  if (!isFirebaseConfigured) throw new Error("Los dobles no están disponibles en modo demo.");
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("No hay sesión activa.");
+
+  const teamAIds = [uid, input.partnerId];
+  const teamBIds = [...input.rivalIds];
+  const participantIds = [...teamAIds, ...teamBIds];
+  if (participantIds.length !== 4) throw new Error("Un dobles necesita cuatro jugadores.");
+  if (new Set(participantIds).size !== 4) throw new Error("No puedes repetir jugador en el partido.");
+
+  const [player, club, ...others] = await Promise.all([
+    getPlayer(uid),
+    getClubs().then((clubs) => clubs.find((item) => item.id === input.clubId)),
+    ...participantIds.filter((id) => id !== uid).map((id) => getPlayer(id))
+  ]);
+  if (!player || player.isDemo) throw new Error("Completa tu perfil antes de registrar un partido.");
+  if (!club) throw new Error("Selecciona un club válido.");
+  if (others.some((item) => !item || item.isDemo)) {
+    throw new Error("Todos los jugadores deben tener un perfil real en MatchPoint.");
+  }
+  if (!Number.isInteger(input.court) || input.court < 1 || input.court > club.courts) {
+    throw new Error(`La cancha debe estar entre 1 y ${club.courts}.`);
+  }
+  if (!Number.isFinite(new Date(input.startsAt).getTime())) {
+    throw new Error("La fecha del partido no es válida.");
+  }
+  if (!isValidReservationTime(input.reservationTime)) {
+    throw new Error("El horario de la reserva no es válido.");
+  }
+
+  const payload = {
+    fromPlayerId: uid,
+    acceptedByPlayerId: null,
+    clubId: input.clubId,
+    city: club.city,
+    court: input.court,
+    startsAt: input.startsAt,
+    reservationTime: input.reservationTime,
+    proposedAt: new Date().toISOString(),
+    status: "accepted" as const,
+    format: "doubles" as const,
+    division: player.level,
+    acceptedLevels: [player.level],
+    message: (input.message ?? "").trim().slice(0, 280),
+    teamAIds,
+    teamBIds,
+    participantIds,
+    createdAt: serverTimestamp()
+  };
+
+  const ref = await addDoc(collection(db, "matches"), payload);
+  return ref.id;
+}
+
 export async function requestMatchJoin(matchId: string): Promise<MatchJoinRequest> {
   if (!isFirebaseConfigured) throw new Error("Las solicitudes no están disponibles en modo demo.");
   const uid = auth.currentUser?.uid;

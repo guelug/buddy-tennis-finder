@@ -17,7 +17,7 @@ import {
   type Unsubscribe
 } from "@react-native-firebase/firestore";
 import { db, isFirebaseConfigured } from "@/../firebase.config";
-import { Club, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
+import { Club, DoublesRankingResult, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
 
 // ----------------------------------------------------------------------------
 // Clubs (catálogo público). En el futuro vendrán de Firestore;
@@ -328,6 +328,17 @@ export async function getValidatedRankingResults(city: string): Promise<Validate
     limit(500)
   ));
   return snapshot.docs.map((item) => ({ ...(item.data() as ValidatedRankingResult), matchId: item.id }));
+}
+
+/** Resultados de dobles validados de una ciudad, para el ranking de parejas. */
+export async function getDoublesRankingResults(city: string): Promise<DoublesRankingResult[]> {
+  if (!isFirebaseConfigured) return [];
+  const snapshot = await getDocs(query(
+    collection(db, "doublesRankingResults"),
+    where("city", "==", city),
+    limit(500)
+  ));
+  return snapshot.docs.map((item) => ({ ...(item.data() as DoublesRankingResult), matchId: item.id }));
 }
 
 /** Versión reactiva de getAllPlayers para futuras pantallas de ranking. */

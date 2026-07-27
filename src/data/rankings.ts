@@ -1,5 +1,5 @@
 import { clubs, players } from "./seed";
-import { Club, Division, Player, RankTier, RankingEntry, ValidatedRankingResult } from "../types";
+import { Club, Division, DoublesRankingEntry, DoublesRankingResult, Player, RankTier, RankingEntry, ValidatedRankingResult } from "../types";
 
 export const DIVISION_LABELS: Record<Division, string> = {
   novato: "Novato",
@@ -142,4 +142,101 @@ export function scopeRankingToArea(entries: RankingEntry[], city?: string, count
       return entryCity === targetCity;
     })
     .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+// ---------------------------------------------------------------------------
+// Dobles: la unidad clasificada es la pareja, no el jugador
+// ---------------------------------------------------------------------------
+
+/** Clave estable de una pareja: los dos ids ordenados. */
+export function pairKey(playerIds: string[]): string {
+  return [...playerIds].sort().join("|");
+}
+
+/**
+ * Ranking de parejas a partir de resultados de dobles validados.
+ *
+ * Premiamos deliberadamente la continuidad: una pareja solo suma como tal
+ * mientras repita, así que cambiar de compañero cada semana no acumula
+ * histórico. Los puntos siguen la misma escala que el individual (victoria 100,
+ * derrota 25) más un pequeño bonus por partidos jugados juntos, que es lo que
+ * hace subir a quienes mantienen la pareja.
+ */
+export function buildDoublesRankings(
+  results: DoublesRankingResult[],
+  playerNames: Map<string, string>
+): Record<Division, DoublesRankingEntry[]> {
+  const output = {} as Record<Division, DoublesRankingEntry[]>;
+  for (const division of Object.keys(DIVISION_LABELS) as Division[]) {
+    const records = new Map<string, {
+      playerIds: string[];
+      wins: number;
+      losses: number;
+      city?: string;
+    }>();
+
+    for (const match of results.filter((item) => item.division === division)) {
+      for (const [ids, won] of [
+        [match.teamAIds, match.winnerTeam === "A"],
+        [match.teamBIds, match.winnerTeam === "B"]
+      ] as Array<[string[], boolean]>) {
+        // Una pareja incompleta (dato corrupto) no entra en la clasificación.
+        if (!Array.isArray(ids) || ids.length !== 2) continue;
+        const key = pairKey(ids);
+        const record = records.get(key) ?? { playerIds: [...ids].sort(), wins: 0, losses: 0, city: match.city };
+        if (won) record.wins += 1;
+        else record.losses += 1;
+        records.set(key, record);
+      }
+    }
+
+    const entries = Array.from(records.entries())
+      .map(([key, record]) => {
+        const played = record.wins + record.losses;
+        return {
+          pairId: key,
+          playerIds: record.playerIds,
+          playerNames: record.playerIds.map((id) => playerNames.get(id) ?? "Jugador"),
+          division,
+          points: record.wins * 100 + record.losses * 25 + played * 10,
+          wins: record.wins,
+          losses: record.losses,
+          played,
+          city: record.city
+        };
+      })
+      .sort((a, b) =>
+        b.points - a.points
+        || b.wins - a.wins
+        || b.played - a.played
+        || a.playerNames.join().localeCompare(b.playerNames.join())
+      )
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+
+    output[division] = entries;
+  }
+  return output;
+}
+
+/**
+ * Compañero con el que más veces ha jugado alguien, para proponerlo por
+ * defecto al crear un dobles. Devuelve `null` si aún no tiene histórico.
+ */
+export function suggestedPartnerId(playerId: string, results: DoublesRankingResult[]): string | null {
+  const counts = new Map<string, number>();
+  for (const match of results) {
+    for (const ids of [match.teamAIds, match.teamBIds]) {
+      if (!Array.isArray(ids) || !ids.includes(playerId)) continue;
+      for (const id of ids) {
+        if (id === playerId) continue;
+        counts.set(id, (counts.get(id) ?? 0) + 1);
+      }
+    }
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [id, count] of counts) {
+    if (count > bestCount) { best = id; bestCount = count; }
+  }
+  return best;
 }
