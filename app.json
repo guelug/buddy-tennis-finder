@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MatchPoint Tennis",
+    "name": "MP Tennis",
     "slug": "matchpoint-clubs",
     "platforms": [
       "ios",
@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "Y6VZTXTFW8",
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
@@ -29,7 +29,7 @@
       }
     },
     "android": {
-      "versionCode": 18,
+      "versionCode": 19,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [

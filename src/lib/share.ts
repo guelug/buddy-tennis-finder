@@ -26,8 +26,12 @@ export function storeUrlForPlatform() {
   return WEB_APP_URL;
 }
 
+export function buildAppInviteCopy(playerName: string) {
+  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.`;
+}
+
 export function buildAppInviteMessage(playerName: string) {
-  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.\n\n${storeUrlForPlatform()}`;
+  return `${buildAppInviteCopy(playerName)}\n\n${storeUrlForPlatform()}`;
 }
 
 export function buildLeagueInviteUrl(league: PrivateLeague) {
@@ -35,11 +39,13 @@ export function buildLeagueInviteUrl(league: PrivateLeague) {
 }
 
 export async function shareAppInvite(playerName: string) {
-  await Share.share({
-    title: "Juega conmigo en MatchPoint Tennis",
-    message: buildAppInviteMessage(playerName),
-    url: storeUrlForPlatform()
-  });
+  const title = "Juega conmigo en MatchPoint Tennis";
+  const url = storeUrlForPlatform();
+  await Share.share(
+    Platform.OS === "ios"
+      ? { title, message: buildAppInviteCopy(playerName), url }
+      : { title, message: `${buildAppInviteCopy(playerName)}\n\n${url}` }
+  );
 }
 
 export async function shareMatchResultImage(uri: string, caption: string) {
@@ -55,11 +61,13 @@ export async function shareMatchResultImage(uri: string, caption: string) {
 
 export async function shareLeagueInvite(league: PrivateLeague, playerName: string) {
   const url = buildLeagueInviteUrl(league);
-  await Share.share({
-    title: `Únete a ${league.name}`,
-    message: `${playerName} te invita a jugar en su liga privada “${league.name}” de MatchPoint Tennis 🎾\n\nCódigo: ${league.inviteCode}\n${url}`,
-    url
-  });
+  const title = `Únete a ${league.name}`;
+  const message = `${playerName} te invita a jugar en su liga privada “${league.name}” de MatchPoint Tennis 🎾\n\nCódigo: ${league.inviteCode}`;
+  await Share.share(
+    Platform.OS === "ios"
+      ? { title, message, url }
+      : { title, message: `${message}\n${url}` }
+  );
 }
 
 export async function shareCommunityBanner(playerName: string, format: CommunityShareFormat = "story") {

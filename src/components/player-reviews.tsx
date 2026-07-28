@@ -27,8 +27,7 @@ function formatReviewLocaleDate(iso: string, locale: string) {
 }
 
 /**
- * Notas del jugador — reseñas que otros rivales dejaron tras partidos validados.
- * Encabezado con promedio de estrellas + lista de comentarios.
+ * Valoraciones numéricas recibidas tras partidos validados.
  */
 export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
   const { t, locale } = useI18n();
@@ -89,11 +88,6 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
             </Text>
             <StarRating value={review.stars} size={13} gap={1} />
           </View>
-          {review.comment ? (
-            <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>
-              “{review.comment}”
-            </Text>
-          ) : null}
           {review.skillRatings ? (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
               {([

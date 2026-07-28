@@ -17,7 +17,7 @@ import {
   type Unsubscribe
 } from "@react-native-firebase/firestore";
 import { db, isFirebaseConfigured } from "@/../firebase.config";
-import { Club, DoublesRankingResult, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
+import { AccountRole, Club, DoublesRankingResult, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
 
 // ----------------------------------------------------------------------------
 // Clubs (catálogo público). En el futuro vendrán de Firestore;
@@ -115,6 +115,9 @@ export function normalizePlayerDocument(data: unknown, fallbackId?: string): Pla
   const gender: Gender = raw.gender === "female" || raw.gender === "male" || raw.gender === "other"
     ? raw.gender
     : "other";
+  const accountRole: AccountRole = raw.accountRole === "coach" || raw.accountRole === "both"
+    ? raw.accountRole
+    : "player";
   const finiteNumber = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   return {
@@ -123,6 +126,7 @@ export function normalizePlayerDocument(data: unknown, fallbackId?: string): Pla
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim().slice(0, 80) : "Jugador MatchPoint",
     age: Math.min(100, Math.max(13, Math.round(finiteNumber(raw.age, 18)))),
     gender,
+    accountRole,
     clubIds,
     level,
     preferredFormats: formats.length > 0 ? formats : ["singles"],

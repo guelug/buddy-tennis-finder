@@ -8,12 +8,17 @@ import {
   type RulesTestEnvironment
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  limit,
+  query,
   runTransaction,
   serverTimestamp,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from "firebase/firestore";
 
 const projectId = "tenisbuddy-app-rules-test";
@@ -25,6 +30,7 @@ function player(id: string, name: string, level: "novato" | "d" | "c" | "b" | "a
     name,
     age: 30,
     gender: "other",
+    accountRole: "player",
     clubIds: ["club-test"],
     city: "Madrid",
     country: "España",
@@ -94,6 +100,66 @@ test.after(async () => {
 
 test.beforeEach(async () => {
   await environment.clearFirestore();
+});
+
+test("las consultas exactas de Matches pueden listar solo documentos autorizados", async () => {
+  const uid = "matches-reader";
+  const rivalId = "matches-rival";
+  const reader = environment.authenticatedContext(uid, { email_verified: true }).firestore();
+
+  await environment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    await setDoc(doc(admin, "players", uid), player(uid, "Lector", "c"));
+    await setDoc(doc(admin, "players", rivalId), player(rivalId, "Rival", "c"));
+    await setDoc(doc(admin, "matches", "mine"), {
+      ...openMatch(uid, ["c"]),
+      city: "Madrid"
+    });
+    await setDoc(doc(admin, "matches", "accepted"), {
+      ...openMatch(rivalId, ["c"]),
+      acceptedByPlayerId: uid,
+      status: "accepted",
+      city: "Madrid"
+    });
+    await setDoc(doc(admin, "matches", "doubles"), {
+      ...openMatch(rivalId, ["c"]),
+      acceptedByPlayerId: null,
+      status: "accepted",
+      format: "doubles",
+      participantIds: [rivalId, uid, "third", "fourth"],
+      teamAIds: [rivalId, "third"],
+      teamBIds: [uid, "fourth"],
+      city: "Madrid"
+    });
+    await setDoc(doc(admin, "matches", "open"), {
+      ...openMatch(rivalId, ["c"]),
+      city: "Madrid"
+    });
+  });
+
+  const succeeds = async (label: string, operation: Promise<unknown>) => {
+    try {
+      await assertSucceeds(operation);
+    } catch (error) {
+      throw new Error(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  await succeeds("partidos creados", getDocs(query(collection(reader, "matches"), where("fromPlayerId", "==", uid))));
+  await succeeds("partidos aceptados", getDocs(query(collection(reader, "matches"), where("acceptedByPlayerId", "==", uid))));
+  await succeeds("participación en dobles", getDocs(query(collection(reader, "matches"), where("participantIds", "array-contains", uid))));
+  await succeeds("propuestas abiertas de la ciudad", getDocs(query(
+    collection(reader, "matches"),
+    where("acceptedByPlayerId", "==", null),
+    where("status", "==", "proposed"),
+    where("city", "==", "Madrid")
+  )));
+  await succeeds("directorio acotado", getDocs(query(
+    collection(reader, "players"),
+    where("profileComplete", "==", true),
+    where("city", "==", "Madrid"),
+    limit(100)
+  )));
 });
 
 test("solicitud, rechazo, reenvío y aceptación respetan identidades y niveles", async () => {
@@ -330,7 +396,6 @@ test("las reseñas son dirigidas, únicas y solo entre participantes de un resul
     targetName: "Destinatario",
     stars: 5,
     skillRatings: skills,
-    comment: "Gran partido.",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };
@@ -356,7 +421,6 @@ test("las reseñas son dirigidas, únicas y solo entre participantes de un resul
   await assertSucceeds(updateDoc(doc(author, "matchReviews", reviewId), {
     stars: 4,
     skillRatings: { ...skills, serve: 8 },
-    comment: "Actualizada después del partido.",
     updatedAt: serverTimestamp()
   }));
   await assertFails(updateDoc(doc(author, "matchReviews", reviewId), {
@@ -398,7 +462,6 @@ test("dos cuentas del mismo teléfono no pueden valorarse entre ellas", async ()
     targetName: "Destinatario",
     stars: 5,
     skillRatings: { consistency: 7, forehand: 8, backhand: 6, serve: 9, volley: 5 },
-    comment: "Me voto a mí mismo.",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   };

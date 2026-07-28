@@ -16,7 +16,7 @@ import {
   type User as FirebaseUser
 } from "@react-native-firebase/auth";
 import { doc, serverTimestamp, setDoc } from "@react-native-firebase/firestore";
-import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
+import { auth, db, ensureAppCheckReady, isFirebaseConfigured } from "@/../firebase.config";
 import { setCrashReportingUser } from "@/lib/crash-reporting";
 import { getDeviceHash } from "@/lib/device-identity";
 import {
@@ -70,6 +70,7 @@ export function isNativeGoogleAuthConfigured(): boolean {
 }
 
 export async function signInWithGoogle(idToken: string, accessToken?: string) {
+  await ensureAppCheckReady();
   const credential = GoogleAuthProvider.credential(idToken, accessToken);
   return signInWithCredential(auth, credential);
 }
@@ -95,6 +96,7 @@ function normalizeEmail(email: string) {
 }
 
 export async function signUpWithEmail(email: string, password: string, displayName?: string) {
+  await ensureAppCheckReady();
   const result = await createUserWithEmailAndPassword(auth, normalizeEmail(email), password);
   if (displayName?.trim()) {
     await updateProfile(result.user, { displayName: displayName.trim() });
@@ -121,6 +123,7 @@ export async function resendVerificationEmail() {
 }
 
 export async function signInWithEmail(email: string, password: string) {
+  await ensureAppCheckReady();
   return signInWithEmailAndPassword(auth, normalizeEmail(email), password);
 }
 

@@ -85,7 +85,7 @@ def uploadKeystorePath = System.getenv("MATCHPOINT_UPLOAD_KEYSTORE") ?: "${proje
 def uploadStorePassword = System.getenv("MATCHPOINT_UPLOAD_STORE_PASSWORD") ?: ""
 def uploadKeyAlias = System.getenv("MATCHPOINT_UPLOAD_KEY_ALIAS") ?: "matchpoint-upload"
 def uploadKeyPassword = System.getenv("MATCHPOINT_UPLOAD_KEY_PASSWORD") ?: uploadStorePassword
-def configuredVersionCode = Integer.parseInt(System.getenv("MATCHPOINT_VERSION_CODE") ?: "18")
+def configuredVersionCode = Integer.parseInt(System.getenv("MATCHPOINT_VERSION_CODE") ?: "19")
 def configuredVersionName = System.getenv("MATCHPOINT_VERSION_NAME") ?: "1.2.3"
 
 android {

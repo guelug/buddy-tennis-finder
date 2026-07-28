@@ -30,6 +30,7 @@ service cloud.firestore {
         && data.age >= 13
         && data.age <= 100
         && data.gender in ["female", "male", "other"]
+        && data.accountRole in ["player", "coach", "both"]
         && data.clubIds is list
         && data.clubIds.size() > 0
         && data.clubIds.size() <= 8
@@ -70,12 +71,13 @@ service cloud.firestore {
     }
 
     function isMatchParticipant(data, uid) {
-      return uid in [data.fromPlayerId, data.acceptedByPlayerId]
-        || (
+      return (
           "participantIds" in data
           && data.participantIds is list
           && uid in data.participantIds
-        );
+        )
+        || ("fromPlayerId" in data && data.fromPlayerId == uid)
+        || ("acceptedByPlayerId" in data && data.acceptedByPlayerId == uid);
     }
 
     // Campos comunes a cualquier partido, sea propuesta abierta o parte de
@@ -247,6 +249,7 @@ service cloud.firestore {
             hasValidPublicProfile(request.resource.data, uid)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
               "name", "age", "gender", "clubIds", "city", "country",
+              "accountRole",
               "latitude", "longitude", "level", "preferredFormats",
               "availability", "bio", "languages", "photoURL", "verified",
               "profileComplete", "seekingTeam", "seekingTeamClubId", "updatedAt",
@@ -294,14 +297,29 @@ service cloud.firestore {
         && (validSinglesProposal() || validDoublesRecord());
 
       // Lectura: propuestas abiertas (nadie las ha aceptado) o las propias.
-      allow read: if request.auth != null
+      allow get: if request.auth != null
         && (
-          (resource.data.acceptedByPlayerId == null && resource.data.status == "proposed")
-          || resource.data.fromPlayerId == request.auth.uid
-          || resource.data.acceptedByPlayerId == request.auth.uid
-          // En dobles los otros tres no figuran en from/accepted.
-          || isMatchParticipant(resource.data, request.auth.uid)
+          isMatchParticipant(resource.data, request.auth.uid)
+          || (
+            "acceptedByPlayerId" in resource.data
+            && "status" in resource.data
+            && resource.data.acceptedByPlayerId == null
+            && resource.data.status == "proposed"
+          )
         );
+
+      // Cada forma de listar va en una regla independiente. Una única
+      // expresión OR intentaba leer campos ausentes de modelos históricos y
+      // Firestore convertía esa evaluación en permission-denied.
+      allow list: if request.auth != null
+        && resource.data.fromPlayerId == request.auth.uid;
+      allow list: if request.auth != null
+        && resource.data.acceptedByPlayerId == request.auth.uid;
+      allow list: if request.auth != null
+        && request.auth.uid in resource.data.participantIds;
+      allow list: if request.auth != null
+        && resource.data.acceptedByPlayerId == null
+        && resource.data.status == "proposed";
 
       // Transiciones permitidas y mínimas:
       // - creador: propuesta/aceptada → cancelada;
@@ -411,7 +429,7 @@ service cloud.firestore {
         && reviewId == request.resource.data.matchId + "_" + request.auth.uid + "_" + request.resource.data.targetId
         && request.resource.data.keys().hasOnly([
           "id", "matchId", "authorId", "authorName", "targetId", "targetName",
-          "stars", "skillRatings", "comment", "createdAt", "updatedAt"
+          "stars", "skillRatings", "createdAt", "updatedAt"
         ])
         && request.resource.data.id == reviewId
         && request.resource.data.authorId == request.auth.uid
@@ -420,8 +438,6 @@ service cloud.firestore {
         && request.resource.data.stars >= 1
         && request.resource.data.stars <= 5
         && hasValidReviewSkills(request.resource.data.skillRatings)
-        && request.resource.data.comment is string
-        && request.resource.data.comment.size() <= 180
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.authorName
@@ -443,13 +459,11 @@ service cloud.firestore {
       allow update: if request.auth != null
         && resource.data.authorId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["stars", "skillRatings", "comment", "updatedAt"])
+          .hasOnly(["stars", "skillRatings", "updatedAt"])
         && request.resource.data.stars is int
         && request.resource.data.stars >= 1
         && request.resource.data.stars <= 5
         && hasValidReviewSkills(request.resource.data.skillRatings)
-        && request.resource.data.comment is string
-        && request.resource.data.comment.size() <= 180
         && request.resource.data.updatedAt is timestamp;
 
       allow delete: if false;
@@ -605,6 +619,7 @@ service cloud.firestore {
 
       allow create: if request.auth != null
         && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.accountRole in ["coach", "both"]
         && request.resource.data.id == adId
         && request.resource.data.status == "pending_payment"
         && request.resource.data.plan in ["week", "month"]
@@ -665,9 +680,16 @@ service cloud.firestore {
         && request.resource.data.interestedName
           == get(/databases/$(database)/documents/players/$(request.auth.uid)).data.name;
       allow read: if request.auth != null
-        && (resource.data.coachOwnerId == request.auth.uid || resource.data.interestedUserId == request.auth.uid);
+        && (
+          resource.data.interestedUserId == request.auth.uid
+          || (
+            resource.data.coachOwnerId == request.auth.uid
+            && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.accountRole in ["coach", "both"]
+          )
+        );
       allow update: if request.auth != null
         && resource.data.coachOwnerId == request.auth.uid
+        && get(/databases/$(database)/documents/players/$(request.auth.uid)).data.accountRole in ["coach", "both"]
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["readAt"]);
       allow delete: if false;
     }

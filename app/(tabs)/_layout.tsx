@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, Redirect, Tabs, usePathname } from "expo-router";
 import { Platform, Pressable, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
@@ -10,6 +10,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { TennisBall } from "@/components/tennis-ball";
 import { MatchBuddyAvatar } from "@/components/match-buddy-picker";
 import { useAuth } from "@/lib/firebase-auth";
+import { getPlayer } from "@/lib/firestore";
 import { useI18n } from "@/lib/i18n";
 import { colors, contentWidth, mobileTabBar, radii, shadows, spacing, statusBarTopInset, typography, useBreakpoint, useThemeMode } from "@/theme";
 
@@ -39,6 +40,22 @@ export default function TabsLayout() {
   const { isLight } = useThemeMode();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const [coachOnly, setCoachOnly] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.uid) {
+      setCoachOnly(false);
+      return;
+    }
+    void getPlayer(user.uid).then((player) => {
+      if (active) setCoachOnly(player?.accountRole === "coach");
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.uid]);
+
+  const itemLabel = (item: (typeof NAV_ITEMS)[number]) =>
+    item.name === "index" && coachOnly ? t("nav.coachAd") : t(item.labelKey);
 
   if (isConfigured && !user) {
     return <Redirect href="/login" />;
@@ -46,7 +63,7 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {isWeb && isDesktop ? <TopNav /> : null}
+      {isWeb && isDesktop ? <TopNav coachOnly={coachOnly} /> : null}
       <Tabs
         // La app arranca en Home (la pelota), no en Rivales.
         initialRouteName="home"
@@ -103,16 +120,16 @@ export default function TabsLayout() {
           },
           tabBarStyle: isWeb ? { display: "none" } : { display: "none" }
         }}
-        tabBar={isDesktop && isWeb ? undefined : (props) => <ConceptMobileTabBar {...props} />}
+        tabBar={isDesktop && isWeb ? undefined : (props) => <ConceptMobileTabBar {...props} coachOnly={coachOnly} />}
       >
         {NAV_ITEMS.map((item) => (
           <Tabs.Screen
             key={item.name}
             name={item.name}
             options={{
-              title: t(item.labelKey),
-              headerTitle: item.name === "profile" ? t("tabs.myProfile") : t(item.labelKey),
-              tabBarLabel: t(item.labelKey),
+              title: itemLabel(item),
+              headerTitle: item.name === "profile" ? t("tabs.myProfile") : itemLabel(item),
+              tabBarLabel: itemLabel(item),
               tabBarIcon: ({ color, focused }) => (
                 <Icon name={item.icon} size={24} color={color} weight={focused ? "bold" : "regular"} />
               )
@@ -125,7 +142,7 @@ export default function TabsLayout() {
   );
 }
 
-function ConceptMobileTabBar({ state, navigation }: { state: any; navigation: any }) {
+function ConceptMobileTabBar({ state, navigation, coachOnly }: { state: any; navigation: any; coachOnly: boolean }) {
   const { isLight } = useThemeMode();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
@@ -147,7 +164,7 @@ function ConceptMobileTabBar({ state, navigation }: { state: any; navigation: an
     >
       <TabBarGlassSurface isLight={isLight}>
         <View style={{ alignItems: "center", flexDirection: "row", height: "100%", paddingHorizontal: spacing.xs }}>
-          {NAV_ITEMS.slice(0, 2).map((item) => <MobileTabItem key={item.name} item={item} state={state} navigation={navigation} inactive={inactive} label={t(item.labelKey)} />)}
+          {NAV_ITEMS.slice(0, 2).map((item) => <MobileTabItem key={item.name} item={item} state={state} navigation={navigation} inactive={inactive} label={item.name === "index" && coachOnly ? t("nav.coachAd") : t(item.labelKey)} />)}
           <View pointerEvents="none" style={{ width: mobileTabBar.ballSize + 12 }} />
           {NAV_ITEMS.slice(2).map((item) => <MobileTabItem key={item.name} item={item} state={state} navigation={navigation} inactive={inactive} label={t(item.labelKey)} />)}
         </View>
@@ -265,7 +282,7 @@ function CenterBallButton({ focused, onPress, bottomOffset }: { focused: boolean
   );
 }
 
-function TopNav({ compact = false }: { compact?: boolean }) {
+function TopNav({ compact = false, coachOnly = false }: { compact?: boolean; coachOnly?: boolean }) {
   const pathname = usePathname();
   const inactive = inactiveColor;
   const textSecondary = colors.textSecondary;
@@ -335,7 +352,7 @@ function TopNav({ compact = false }: { compact?: boolean }) {
                         fontSize: 14
                       }}
                     >
-                      {t(item.labelKey)}
+                      {item.name === "index" && coachOnly ? t("nav.coachAd") : t(item.labelKey)}
                     </Text>
                   ) : null}
                 </Pressable>

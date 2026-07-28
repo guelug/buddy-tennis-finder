@@ -32,7 +32,7 @@ import { useAuth } from "@/lib/firebase-auth";
 import { getClubs, getPlayer, savePlayerProfile } from "@/lib/firestore";
 import { openInWaze } from "@/lib/waze";
 import { colors, contentWidth, spacing, statusBarTopInset, typography, radii, shadows, useThemeMode } from "@/theme";
-import { Club, Gender, MatchFormat, PlayerProfileInput, PlayerSkills, SkillLevel } from "@/types";
+import { AccountRole, Club, Gender, MatchFormat, PlayerProfileInput, PlayerSkills, SkillLevel } from "@/types";
 import { CITIES_BY_COUNTRY, selectableCountries, Country } from "@/data/seed";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 
@@ -94,6 +94,7 @@ type DayAvailability = { active: boolean; start: string; end: string };
 type QuestionKey =
   | "language"
   | "buddy"
+  | "role"
   | "name"
   | "age"
   | "gender"
@@ -109,6 +110,7 @@ type QuestionKey =
 const QUESTIONS: Array<{ key: QuestionKey; eyebrowKey: string; titleKey: string; subtitleKey: string }> = [
   { key: "language", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.language.title", subtitleKey: "onboarding.q.language.subtitle" },
   { key: "buddy", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.buddy.title", subtitleKey: "onboarding.q.buddy.subtitle" },
+  { key: "role", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.role.title", subtitleKey: "onboarding.q.role.subtitle" },
   { key: "name", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.name.title", subtitleKey: "onboarding.q.name.subtitle" },
   { key: "age", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.age.title", subtitleKey: "onboarding.q.age.subtitle" },
   { key: "gender", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.gender.title", subtitleKey: "onboarding.q.gender.subtitle" },
@@ -155,6 +157,7 @@ export default function OnboardingScreen() {
   const [name, setName] = useState(user?.displayName ?? "");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | null>(null);
+  const [accountRole, setAccountRole] = useState<AccountRole>("player");
   // Si solo hay un país seleccionable (lanzamiento en Guatemala) lo
   // preseleccionamos, y si ese país tiene una sola ciudad, también. Cuando se
   // abran más mercados vuelve a exigir selección manual automáticamente.
@@ -192,6 +195,7 @@ export default function OnboardingScreen() {
       setName(player.name);
       setAge(String(player.age));
       setGender(player.gender);
+      setAccountRole(player.accountRole ?? "player");
       setCountry((player.country || "Guatemala") as Country);
       setCity(player.city || null);
       setClubIds(player.clubIds.length ? player.clubIds : []);
@@ -252,6 +256,7 @@ export default function OnboardingScreen() {
   const answered: Record<QuestionKey, boolean> = {
     language: true,
     buddy: true,
+    role: true,
     name: name.trim().length > 1,
     age: ageValid,
     gender: gender !== null,
@@ -322,6 +327,7 @@ export default function OnboardingScreen() {
       name: name.trim(),
       age: ageNum,
       gender: resolvedGender,
+      accountRole,
       clubIds,
       city: city ?? primaryClub?.city ?? "",
       country: country ?? primaryClub?.country ?? "Guatemala",
@@ -412,6 +418,8 @@ export default function OnboardingScreen() {
             ageValid={ageValid}
             gender={gender}
             setGender={setGender}
+            accountRole={accountRole}
+            setAccountRole={setAccountRole}
             country={country}
             setCountry={setCountry}
             city={city}
@@ -541,6 +549,8 @@ type QuestionCardProps = {
   ageValid: boolean;
   gender: Gender | null;
   setGender: (v: Gender) => void;
+  accountRole: AccountRole;
+  setAccountRole: (v: AccountRole) => void;
   country: Country | null;
   setCountry: (v: Country) => void;
   city: string | null;
@@ -625,6 +635,47 @@ function QuestionCard(props: QuestionCardProps) {
             autoFocus
             accessibilityLabel={t("onboarding.a11y.name")}
           />
+        </Field>
+      </View>
+    );
+  }
+
+  if (question === "role") {
+    return (
+      <View style={cardWrapper()}>
+        <Field label={t("onboarding.field.role")} required>
+          <View style={{ gap: spacing.sm }}>
+            {ROLE_OPTIONS.map((option) => {
+              const selected = props.accountRole === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => props.setAccountRole(option.value)}
+                  style={{
+                    alignItems: "center",
+                    backgroundColor: selected ? colors.courtLight : colors.surface,
+                    borderColor: selected ? colors.neon : colors.border,
+                    borderCurve: "continuous",
+                    borderRadius: radii.lg,
+                    borderWidth: 1,
+                    flexDirection: "row",
+                    gap: spacing.md,
+                    minHeight: 68,
+                    padding: spacing.md
+                  }}
+                >
+                  <Icon name={option.icon} size={24} color={(selected ? colors.neon : colors.textSecondary) as string} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t(option.labelKey)}</Text>
+                    <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t(option.bodyKey)}</Text>
+                  </View>
+                  {selected ? <Icon name="check-badge" size={20} color={colors.neon as string} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
         </Field>
       </View>
     );
@@ -872,6 +923,12 @@ const GENDER_OPTIONS: Array<{ labelKey: string; value: Gender }> = [
   { labelKey: "onboarding.gender.female", value: "female" },
   { labelKey: "onboarding.gender.male", value: "male" },
   { labelKey: "onboarding.gender.other", value: "other" }
+];
+
+const ROLE_OPTIONS: Array<{ labelKey: string; bodyKey: string; value: AccountRole; icon: IconName }> = [
+  { labelKey: "onboarding.role.player", bodyKey: "onboarding.role.playerBody", value: "player", icon: "tennis" },
+  { labelKey: "onboarding.role.coach", bodyKey: "onboarding.role.coachBody", value: "coach", icon: "users" },
+  { labelKey: "onboarding.role.both", bodyKey: "onboarding.role.bothBody", value: "both", icon: "check-badge" }
 ];
 
 function ScheduleStep({

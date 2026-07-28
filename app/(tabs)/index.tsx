@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { getHomeData, createProposal, requestMatchJoin } from "@/lib/app-api";
@@ -23,6 +23,7 @@ import { SkeletonCard } from "@/components/skeleton-card";
 import { TopPlayersPreview } from "@/components/top-players-preview";
 import { buildProvisionalRankings, DIVISION_LABELS } from "@/data/rankings";
 import { useI18n } from "@/lib/i18n";
+import { PURCHASES_ENABLED } from "@/lib/features";
 import { broadcast, colors, spacing, typography, radii, usePlatformLayout, useThemeMode } from "@/theme";
 import { Club, MatchCandidate, MatchFormat, MatchJoinRequest, MatchProposal, Player, SearchPreferences, SkillLevel } from "@/types";
 
@@ -79,6 +80,38 @@ function DiscoverNative() {
         : [];
     return buildProvisionalRankings(players, state.clubs)[currentDivision] ?? [];
   }, [currentDivision, state.allPlayers, state.clubs, state.currentPlayer]);
+
+  if (state.currentPlayer?.accountRole === "coach") {
+    return (
+      <LiveBackground source={bgRivalRadar} lightSource={bgRivalRadarLight} overlay={0.4}>
+        <ScreenShell onRefresh={state.refresh}>
+          <ScreenHero
+            bleed={heroBleed}
+            hint={t("coaches.body")}
+            stats={[
+              { label: t("tabs.ranking"), value: rankingPreview.length },
+              { label: t("nav.coaches"), value: 1 }
+            ]}
+          />
+          <TopPlayersPreview entries={rankingPreview} divisionLabel={DIVISION_LABELS[currentDivision]} />
+          <Card variant="plain" pad="lg" style={{ borderColor: `${colors.neon}66` }}>
+            <View style={{ alignItems: "center", gap: spacing.md }}>
+              <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderRadius: radii.xl, height: 58, justifyContent: "center", width: 58 }}>
+                <Icon name="users" size={28} color={colors.neon as string} />
+              </View>
+              <Text style={{ ...typography.headline, color: colors.textPrimary, textAlign: "center" }}>{t("home.promoteAsCoach")}</Text>
+              <Text style={{ ...typography.body, color: colors.textSecondary, textAlign: "center" }}>{t("coaches.body")}</Text>
+              <PrimaryButton
+                label={PURCHASES_ENABLED ? t("nav.coachAd") : t("ranking.comingSoon")}
+                disabled={!PURCHASES_ENABLED}
+                onPress={() => router.push("/coach-ad" as never)}
+              />
+            </View>
+          </Card>
+        </ScreenShell>
+      </LiveBackground>
+    );
+  }
 
   return (
     <LiveBackground source={bgRivalRadar} lightSource={bgRivalRadarLight} overlay={0.4}>

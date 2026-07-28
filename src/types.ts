@@ -127,7 +127,6 @@ export type MatchReview = {
   stars: number;
   /** Valoración técnica de esta persona, cada eje de 1 a 10. */
   skillRatings?: PlayerSkills;
-  comment: string;
   createdAt: string;
 };
 
@@ -156,6 +155,7 @@ export type MatchRoom = {
 };
 
 export type Gender = "female" | "male" | "other";
+export type AccountRole = "player" | "coach" | "both";
 
 export type AvailabilitySlot = {
   day: string;
@@ -191,6 +191,8 @@ export type Player = {
   name: string;
   age: number;
   gender: Gender;
+  /** Experiencia principal: competir, entrenar o ambas. */
+  accountRole?: AccountRole;
   /** Clubes habituales del jugador (muchos son miembros de varios clubes). */
   clubIds: string[];
   city: string;
@@ -297,6 +299,7 @@ export type PlayerProfileInput = {
   name: string;
   age: number;
   gender: Gender;
+  accountRole: AccountRole;
   clubIds: string[];
   city: string;
   country: string;

@@ -13,7 +13,6 @@ function review(authorId: string, targetId: string, createdAt: string): MatchRev
     targetName: targetId,
     stars: 5,
     skillRatings: skills,
-    comment: "",
     createdAt
   };
 }

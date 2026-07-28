@@ -9,7 +9,6 @@ import { Icon, type IconName } from "@/components/icon";
 import { BrandLockup } from "@/components/brand-lockup";
 import { GroupedList, GroupedRow } from "@/components/grouped-list";
 import { BroadcastHeader, GlassPanel, LiveBackground } from "@/components/live-visuals";
-import { PlayerReviews } from "@/components/player-reviews";
 import { PrimaryButton } from "@/components/primary-button";
 import { Avatar } from "@/components/avatar";
 import { ScreenShell } from "@/components/screen-shell";
@@ -176,17 +175,12 @@ function ProfileWeb() {
           {/* Reputación */}
           <GlassPanel style={{ flexBasis: 300, flexGrow: 1, minWidth: 280 }}>
             <PanelTitle icon="star" title={data.t("profile.reputation.title")} hint={data.t("profile.reputation.hint")} />
-            <ReputationSummary reviews={data.reviews} playedCount={data.playedCount} commentCount={data.commentCount} />
+            <ReputationSummary reviews={data.reviews} playedCount={data.playedCount} />
             <MatchStarsRow rivals={data.matchStars} />
           </GlassPanel>
         </View>
 
         <View style={{ alignItems: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: spacing.lg }}>
-          <GlassPanel style={{ flex: 1.3, minWidth: 340 }}>
-            <PanelTitle icon="check-badge" title={data.t("profile.reviews.title")} hint={data.t("profile.reviews.hint")} />
-            <PlayerReviews reviews={data.reviews} />
-          </GlassPanel>
-
           <View style={{ flex: 1, gap: spacing.lg, minWidth: 300 }}>
             <GlassPanel>
               <PanelTitle icon="trophy" title={data.t("profile.achievements.title")} hint={data.t("profile.achievements.hint")} />
@@ -372,7 +366,7 @@ function ProfileNative() {
         <Animated.View entering={FadeIn.delay(140).springify()}>
           <GlassPanel>
             <PanelTitle icon="star" title={data.t("profile.reputation.title")} hint={data.t("profile.reputation.hint")} />
-            <ReputationSummary reviews={data.reviews} playedCount={data.playedCount} commentCount={data.commentCount} />
+            <ReputationSummary reviews={data.reviews} playedCount={data.playedCount} />
             <MatchStarsRow rivals={data.matchStars} />
           </GlassPanel>
         </Animated.View>
@@ -382,13 +376,6 @@ function ProfileNative() {
           <GlassPanel>
             <PanelTitle icon="trophy" title={data.t("profile.achievements.title")} hint={data.t("profile.achievements.hint")} />
             <AchievementsRow playedCount={data.playedCount} streak={ranking?.streak ?? 0} reviews={data.reviews} />
-          </GlassPanel>
-        </Animated.View>
-
-        {/* Notas */}
-        <Animated.View entering={FadeIn.delay(220).springify()}>
-          <GlassPanel>
-            <PlayerReviews reviews={data.reviews} />
           </GlassPanel>
         </Animated.View>
 
@@ -466,7 +453,9 @@ function ProfileNative() {
           ) : null}
           <GroupedRow label={data.t("profile.invite")} value={data.t("profile.inviteHint")} icon="send" onPress={() => router.push("/invite" as never)} />
           {PURCHASES_ENABLED ? <GroupedRow label={data.t("profile.privateLeagues")} icon="trophy" onPress={() => router.push("/private-leagues" as never)} /> : null}
-          <GroupedRow label={data.t("profile.coachInterests")} value={data.t("profile.coachInterestsHint")} icon="users" onPress={() => router.push("/coach-interests" as never)} />
+          {player.accountRole === "coach" || player.accountRole === "both" ? (
+            <GroupedRow label={data.t("profile.coachInterests")} value={data.t("profile.coachInterestsHint")} icon="users" onPress={() => router.push("/coach-interests" as never)} />
+          ) : null}
           <GroupedRow label={data.t("profile.edit")} icon="pencil" onPress={() => router.push("/onboarding")} />
           {data.isConfigured ? (
             <GroupedRow label={data.t("profile.signOut")} icon="sign-out" onPress={data.handleSignOut} />
@@ -775,12 +764,10 @@ function PanelTitle({ icon, title, hint }: { icon: IconName; title: string; hint
 
 function ReputationSummary({
   reviews,
-  playedCount,
-  commentCount
+  playedCount
 }: {
   reviews: MatchReview[];
   playedCount: number;
-  commentCount: number;
 }) {
   const avg = averageStars(reviews);
   const { t } = useI18n();
@@ -794,7 +781,7 @@ function ReputationSummary({
       </View>
       <View style={{ flex: 1, gap: spacing.sm }}>
         <MiniCounter label={t("profile.reputation.played")} value={playedCount} />
-        <MiniCounter label={t("profile.reputation.comments")} value={commentCount} />
+        <MiniCounter label={t("profile.reviews.title")} value={reviews.length} />
       </View>
     </View>
   );
@@ -1006,11 +993,6 @@ function useProfileData() {
   }, [form]);
 
   const playedCount = validatedRooms.length;
-  const commentCount = useMemo(
-    () => rooms.flatMap((room) => room.reviews).filter((review) => review.comment).length,
-    [rooms]
-  );
-
   const skillSummary = useMemo(
     () => averageReviewSkills(reviews.map((review) => review.skillRatings), player?.skills ?? skillsFromRating(player?.rating ?? 3)),
     [reviews, player]
@@ -1060,7 +1042,6 @@ function useProfileData() {
     form,
     winRate,
     playedCount,
-    commentCount,
     matchStars,
     badges,
     skillSummary,

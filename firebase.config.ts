@@ -13,8 +13,6 @@ import {
 const app = getApp();
 
 export const isFirebaseConfigured = true;
-export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
 
 const provider = new ReactNativeFirebaseAppCheckProvider();
 provider.configure({
@@ -38,5 +36,15 @@ export const appCheckReady = initializeAppCheck(app, {
   console.warn("[matchpoint] App Check no pudo inicializarse", error);
   return null;
 });
+
+// App Check debe registrarse antes de construir Auth y Firestore. De lo
+// contrario, una primera petición muy rápida puede salir sin token justo
+// después de abrir la app y Firebase la rechaza cuando enforcement está activo.
+export const auth: Auth = getAuth(app);
+export const db: Firestore = getFirestore(app);
+
+export async function ensureAppCheckReady(): Promise<void> {
+  await appCheckReady;
+}
 
 export default app;

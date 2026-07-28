@@ -4,7 +4,7 @@ import {
   getHomeData as getMockHomeData,
   updateProposalStatus as updateMockProposalStatus
 } from "./mock-api";
-import { isFirebaseConfigured, auth, db } from "@/../firebase.config";
+import { isFirebaseConfigured, auth, db, ensureAppCheckReady } from "@/../firebase.config";
 import {
   collection,
   addDoc,
@@ -126,6 +126,8 @@ export async function getHomeData(
     return { ...mock, joinRequests: [] };
   }
 
+  await ensureAppCheckReady();
+
   const uid = currentUserId ?? auth.currentUser?.uid;
   if (!uid) {
     throw new Error("No hay sesión activa.");
@@ -159,7 +161,7 @@ export async function getHomeData(
     getJoinRequests(uid)
   ]), 12000, "La conexión está tardando demasiado. Comprueba internet y vuelve a intentarlo."));
 
-  const otherPlayers = allPlayers.filter((p) => p.id !== uid);
+  const otherPlayers = allPlayers.filter((p) => p.id !== uid && p.accountRole !== "coach");
   const candidates = rankCandidates(currentPlayer, otherPlayers, preferences ?? defaultPreferences);
 
   // Combino propias, aceptadas y abiertas, descartando duplicados por id.

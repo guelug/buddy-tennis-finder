@@ -50,6 +50,7 @@ export default function HomeScreen() {
   const [coachAds, setCoachAds] = useState<CoachAd[]>([]);
   const [coachInterests, setCoachInterests] = useState<CoachInterest[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const isCoach = player?.accountRole === "coach" || player?.accountRole === "both";
 
   const loadHome = useCallback(async () => {
     try {
@@ -69,9 +70,10 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const stopAds = subscribeToActiveCoachAds(setCoachAds);
-    const stopInterests = user?.uid ? subscribeToCoachInterests(user.uid, setCoachInterests) : () => {};
+    const stopInterests = user?.uid && isCoach ? subscribeToCoachInterests(user.uid, setCoachInterests) : () => {};
+    if (!isCoach) setCoachInterests([]);
     return () => { stopAds(); stopInterests(); };
-  }, [user?.uid]);
+  }, [user?.uid, isCoach]);
 
   const nextMatch = useMemo(() => proposals.filter((proposal) => proposal.status === "accepted" && new Date(proposal.startsAt).getTime() > Date.now()).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0], [proposals]);
   const nextClub = clubs.find((club) => club.id === nextMatch?.clubId);
@@ -95,7 +97,7 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        {coachInterests.some((item) => !item.readAt) ? (
+        {isCoach && coachInterests.some((item) => !item.readAt) ? (
           <Pressable onPress={() => router.push("/coach-interests" as never)} style={{ alignItems: "center", backgroundColor: colors.goldSoft, borderColor: `${colors.gold}66`, borderRadius: radii.lg, borderWidth: 1, flexDirection: "row", gap: spacing.md, padding: spacing.md }}>
             <Icon name="users" size={22} color={colors.gold as string} />
             <View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("home.coachInterests.title")}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("home.coachInterests.subtitle")}</Text></View>
@@ -132,7 +134,7 @@ export default function HomeScreen() {
             )}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
               <PrimaryButton label={t("home.viewAll")} fullWidth={false} onPress={() => router.push("/coaches" as never)} />
-              {PURCHASES_ENABLED ? <PrimaryButton label={t("home.promoteAsCoach")} variant="outline" fullWidth={false} onPress={() => router.push("/coach-ad" as never)} /> : null}
+              {isCoach && PURCHASES_ENABLED ? <PrimaryButton label={t("home.promoteAsCoach")} variant="outline" fullWidth={false} onPress={() => router.push("/coach-ad" as never)} /> : null}
             </View>
           </View>
 

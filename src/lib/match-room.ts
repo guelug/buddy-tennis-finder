@@ -7,7 +7,7 @@ import {
   TeamSide
 } from "@/types";
 import { isFirebaseConfigured } from "@/../firebase.config";
-import { auth, db } from "@/../firebase.config";
+import { auth, db, ensureAppCheckReady } from "@/../firebase.config";
 import { latestReviewPerAuthor, reviewTargets } from "@/lib/reviews";
 import {
   collection,
@@ -127,7 +127,6 @@ const rooms: MatchRoom[] = [
         targetName: "Ana Morales",
         stars: 5,
         skillRatings: { consistency: 9, forehand: 8, backhand: 8, serve: 9, volley: 7 },
-        comment: "Partidazo. Ana defiende todo y el tercer set fue de infarto.",
         createdAt: daysAgo(7, 23)
       }
     ]
@@ -166,7 +165,6 @@ const rooms: MatchRoom[] = [
         targetName: "María Fernanda López",
         stars: 4,
         skillRatings: { consistency: 8, forehand: 9, backhand: 8, serve: 9, volley: 8 },
-        comment: "María saca durísimo, aprendí un montón. Revancha pendiente.",
         createdAt: daysAgo(20, 13)
       },
       {
@@ -176,7 +174,6 @@ const rooms: MatchRoom[] = [
         targetName: "Ana Morales",
         stars: 4,
         skillRatings: { consistency: 9, forehand: 8, backhand: 8, serve: 8, volley: 7 },
-        comment: "Muy buen ritmo de peloteo, rival de las que te hacen mejorar.",
         createdAt: daysAgo(19, 9)
       }
     ]
@@ -210,7 +207,6 @@ const rooms: MatchRoom[] = [
         targetName: "Ana Morales",
         stars: 4,
         skillRatings: { consistency: 8, forehand: 8, backhand: 9, serve: 8, volley: 8 },
-        comment: "Puntual, buena onda y un revés cruzado que no vi venir.",
         createdAt: daysAgo(43, 8)
       },
       {
@@ -220,7 +216,6 @@ const rooms: MatchRoom[] = [
         targetName: "Diego Castillo",
         stars: 5,
         skillRatings: { consistency: 8, forehand: 8, backhand: 8, serve: 7, volley: 9 },
-        comment: "El tie-break más divertido que he jugado este año.",
         createdAt: daysAgo(43, 10)
       }
     ]
@@ -389,7 +384,7 @@ export async function disputeResult(roomId: string, playerId: string): Promise<M
 export async function submitReview(
   roomId: string,
   playerId: string,
-  input: { targetId: string; stars: number; comment: string; skillRatings: PlayerSkills }
+  input: { targetId: string; stars: number; skillRatings: PlayerSkills }
 ): Promise<MatchRoom> {
   const room = isFirebaseConfigured ? await getFirebaseRoom(roomId) : requireRoom(roomId);
   if (room.status !== "validated") {
@@ -416,7 +411,6 @@ export async function submitReview(
       serve: clampSkill(input.skillRatings.serve),
       volley: clampSkill(input.skillRatings.volley)
     },
-    comment: input.comment.trim().slice(0, 180),
     createdAt: new Date().toISOString()
   };
   if (isFirebaseConfigured) {
@@ -450,6 +444,7 @@ function validSets(sets: SetScore[]) {
 
 async function getFirebaseMatchRooms(playerId?: string): Promise<MatchRoom[]> {
   if (!playerId) return [];
+  await ensureAppCheckReady();
   const [owned, joined, playedDoubles] = await Promise.all([
     getDocs(query(collection(db, "matches"), where("fromPlayerId", "==", playerId))),
     getDocs(query(collection(db, "matches"), where("acceptedByPlayerId", "==", playerId))),
@@ -599,7 +594,6 @@ function normalizeReview(id: string, data: Record<string, unknown>): MatchReview
     targetName: String(data.targetName ?? "Jugador"),
     stars: Number(data.stars ?? 0),
     skillRatings: data.skillRatings as PlayerSkills | undefined,
-    comment: String(data.comment ?? ""),
     createdAt: typeof data.createdAt === "string"
       ? data.createdAt
       : (data.createdAt as { toDate?: () => Date } | undefined)?.toDate?.().toISOString() ?? new Date(0).toISOString()

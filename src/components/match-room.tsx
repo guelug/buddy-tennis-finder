@@ -609,14 +609,13 @@ function ReviewComposer({
   targets: Array<{ id: string; name: string }>;
   reviews: MatchRoom["reviews"];
   busy: boolean;
-  onSubmit: (targetId: string, stars: number, comment: string, skillRatings: PlayerSkills) => void;
+  onSubmit: (targetId: string, stars: number, skillRatings: PlayerSkills) => void;
 }) {
   const firstPending = targets.find((target) => !reviews.some((review) => review.targetId === target.id));
   const [targetId, setTargetId] = React.useState(firstPending?.id ?? targets[0]?.id ?? "");
   const selectedTarget = targets.find((target) => target.id === targetId);
   const existing = reviews.find((review) => review.targetId === targetId);
   const [stars, setStars] = React.useState(existing?.stars ?? 0);
-  const [comment, setComment] = React.useState(existing?.comment ?? "");
   const [skillRatings, setSkillRatings] = React.useState<PlayerSkills>(
     existing?.skillRatings ?? { consistency: 7, forehand: 7, backhand: 7, serve: 7, volley: 7 }
   );
@@ -625,7 +624,6 @@ function ReviewComposer({
     const nextReview = reviews.find((review) => review.targetId === nextTargetId);
     setTargetId(nextTargetId);
     setStars(nextReview?.stars ?? 0);
-    setComment(nextReview?.comment ?? "");
     setSkillRatings(nextReview?.skillRatings ?? { consistency: 7, forehand: 7, backhand: 7, serve: 7, volley: 7 });
     haptic("select");
   };
@@ -702,30 +700,11 @@ function ReviewComposer({
           />
         ))}
       </View>
-      <TextInput
-        value={comment}
-        onChangeText={setComment}
-        placeholder={`Comentario sobre ${selectedTarget?.name ?? "esta persona"} (máx. 180)`}
-        placeholderTextColor={colors.textTertiary as string}
-        multiline
-        maxLength={180}
-        style={{
-          ...typography.body,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
-          borderRadius: radii.sm,
-          borderWidth: 1,
-          color: colors.textPrimary as string,
-          minHeight: 68,
-          padding: spacing.md,
-          textAlignVertical: "top"
-        }}
-      />
       <SpotlightCta
         compact
         label={busy ? "Publicando..." : existing ? "Actualizar valoración" : "Publicar valoración"}
         disabled={busy || stars === 0 || !targetId}
-        onPress={() => onSubmit(targetId, stars, comment, skillRatings)}
+        onPress={() => onSubmit(targetId, stars, skillRatings)}
       />
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
         Una valoración por persona y partido · solo participantes.
@@ -808,11 +787,6 @@ function ReviewList({ room, currentPlayerId }: { room: MatchRoom; currentPlayerI
             </Text>
             <StarRating value={review.stars} size={15} gap={2} />
           </View>
-          {review.comment ? (
-            <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14, lineHeight: 20 }}>
-              “{review.comment}”
-            </Text>
-          ) : null}
         </Animated.View>
       ))}
     </View>
@@ -993,8 +967,8 @@ export function MatchRoomSheet({
               targets={reviewTargets(room, currentPlayerId ?? "")}
               reviews={a.myReviews}
               busy={busy === "review"}
-              onSubmit={(targetId, stars, comment, skillRatings) =>
-                run("review", () => submitReview(room.id, currentPlayerId ?? "", { targetId, stars, comment, skillRatings }))
+              onSubmit={(targetId, stars, skillRatings) =>
+                run("review", () => submitReview(room.id, currentPlayerId ?? "", { targetId, stars, skillRatings }))
               }
             />
           ) : null}
