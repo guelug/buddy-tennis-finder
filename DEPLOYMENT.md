@@ -1,4 +1,4 @@
-# Despliegue (gratuito, solo Firebase)
+# Despliegue (servicios con nivel gratuito)
 
 MatchPoint Tennis es **solo app nativa (iOS + Android)**. La web (`landing/`) es una landing estática de promoción + páginas de políticas (privacidad, términos, soporte, borrado de cuenta) — no contiene la app funcional ni lógica de negocio. Firebase se usa para Auth, Firestore (datos) y Hosting (solo la landing).
 
@@ -7,7 +7,7 @@ MatchPoint Tennis es **solo app nativa (iOS + Android)**. La web (`landing/`) es
 - **Hosting:** 10 GB transferidos/mes, 360 MB almacenamiento. De sobra para una landing estática.
 - **Firestore:** 50.000 lecturas/día, 20.000 escrituras/día, 1 GB almacenamiento.
 - **Authentication:** proveedores Google/Apple/Email sin costo.
-- **Cloud Functions:** el proyecto sí usa Functions (`functions/`) para verificar compras de Google Play; esto requiere plan **Blaze** (pago por uso), aunque el uso esperado es mínimo.
+- **Backend seguro:** Cloudflare Worker para compras iOS e invitaciones privadas, dentro del nivel gratuito. No se usan Cloud Functions ni el plan Blaze.
 
 ## 1. Configurar variables
 
@@ -31,7 +31,15 @@ firebase deploy --only hosting,firestore:rules
 
 Para desplegar solo la landing: `firebase deploy --only hosting`.
 Para desplegar solo reglas: `firebase deploy --only firestore:rules`.
-Para desplegar las Cloud Functions: `firebase deploy --only functions`.
+
+El backend seguro vive en `workers/iap-verifier/` y se despliega con:
+
+```bash
+cd workers/iap-verifier
+npm run typecheck && npm test && npm run deploy
+```
+
+Sus credenciales se guardan únicamente como secretos de Cloudflare; nunca en Git ni en el bundle móvil.
 
 ## 3. Apps móviles
 

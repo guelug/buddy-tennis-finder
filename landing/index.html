@@ -13,7 +13,7 @@
     <div class="shell nav-inner">
       <a class="brand" href="/"><span class="ball" aria-hidden="true"></span> MatchPoint Tennis</a>
       <div class="nav-links">
-        <a href="#como-funciona">Cómo funciona</a><a href="#ligas">Ligas</a><a href="#seguridad">Privacidad</a>
+        <a href="#como-funciona">Cómo funciona</a><a href="#ligas">Ligas</a><a href="#nosotros">Nosotros</a><a href="#seguridad">Privacidad</a>
         <a class="button" href="#descargar">Descargar</a>
       </div>
     </div>
@@ -79,6 +79,37 @@
       </div>
     </section>
 
+    <section class="section" id="nosotros">
+      <div class="shell story">
+        <div class="story-copy">
+          <div class="eyebrow">Una necesidad real, convertida en producto</div>
+          <h2>Hecha por tenistas,<br>para jugar más.</h2>
+          <p class="lead">MatchPoint no nació en una sala de reuniones. Nació de una dificultad muy concreta: encontrar rivales compatibles, organizar partidos y competir sin depender de grupos interminables.</p>
+          <p>Cristian Gonzalez Salvatierra, cofundador, vivía esa necesidad en primera persona. Su experiencia, sus peticiones y el contacto directo con lo que necesita un jugador dieron origen a la idea y siguen guiando la evolución del producto.</p>
+          <p>Pedro, fundador, ha convertido esa visión en MatchPoint: estrategia, diseño y desarrollo de la aplicación, transformando cada necesidad real en una experiencia sencilla, segura y útil dentro y fuera de la pista.</p>
+        </div>
+        <div class="founders" aria-label="Fundadores de MatchPoint">
+          <article class="founder-card founder-primary">
+            <div class="founder-mark" aria-hidden="true">P</div>
+            <div>
+              <span>Fundador</span>
+              <h3>Pedro</h3>
+              <p>Producto, diseño y desarrollo.</p>
+            </div>
+          </article>
+          <article class="founder-card">
+            <div class="founder-mark" aria-hidden="true">C</div>
+            <div>
+              <span>Cofundador</span>
+              <h3>Cristian Gonzalez Salvatierra</h3>
+              <p>Origen de la idea, necesidades de jugador y visión de producto.</p>
+            </div>
+          </article>
+          <blockquote>“Construimos lo que de verdad echábamos en falta para poder jugar.”</blockquote>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="seguridad">
       <div class="shell">
         <div class="section-header"><div class="eyebrow">Seguridad desde la primera pelota</div><h2>La comunidad importa.<br>Tus datos también.</h2><p>Acceso mediante identidad verificada, perfiles regionales con consultas limitadas, tráfico nativo certificado y resultados competitivos inmutables después de validarse.</p></div>
@@ -97,15 +128,6 @@
     </section>
   </main>
   <footer><div class="shell footer-row"><span>© 2026 MatchPoint Tennis</span><div class="footer-links"><a href="/privacy/">Privacidad</a><a href="/terms/">Términos</a><a href="/support/">Soporte</a><a href="/delete-account/">Eliminar cuenta</a></div></div></footer>
-  <script>
-    const play = "https://play.google.com/store/apps/details?id=com.matchpoint.clubs";
-    const apple = "https://apps.apple.com/app/id6793740051";
-    document.querySelectorAll(".ios-link").forEach(a => a.href = apple);
-    if (/Android/i.test(navigator.userAgent)) document.querySelectorAll(".android-link").forEach(a => a.classList.remove("secondary"));
-    if (location.pathname === "/private-league") {
-      const query = location.search;
-      setTimeout(() => { location.href = `matchpoint://private-league${query}`; }, 250);
-    }
-  </script>
+  <script src="/app.js" defer></script>
 </body>
 </html>

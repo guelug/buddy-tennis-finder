@@ -18,7 +18,30 @@ export default function PrivateLeagueScreen() {
   const [league, setLeague] = useState<PrivateLeague | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
-  useEffect(() => { if (!id) { setLoading(false); return; } void getPrivateLeague(id).then((value) => { setLeague(value); setLoading(false); }); }, [id]);
+  useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    const load = async () => {
+      try {
+        // Las reglas no revelan una liga privada a quien aún no es miembro.
+        // Con una invitación válida, el alta segura debe ocurrir antes de
+        // intentar leer el documento.
+        const value = code && user?.uid
+          ? await joinPrivateLeague(id, code)
+          : await getPrivateLeague(id);
+        if (active) setLeague(value);
+      } catch {
+        if (active) setLeague(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, [id, code, user?.uid]);
   if (loading) return <LoadingView />;
   if (!league) return <LiveBackground overlay={0.5}><ScreenShell><Text selectable style={{ ...typography.headline, color: colors.textPrimary }}>No encontramos esta liga.</Text></ScreenShell></LiveBackground>;
   const isMember = !!user?.uid && league.memberIds.includes(user.uid);

@@ -234,24 +234,17 @@ Productos previstos:
 
 El script `scripts/setup-google-play-products.mjs` usa la API moderna de monetización, pero el último intento devolvió que Play no reconocía el permiso de facturación. La causa probable era que el bundle con Billing solo estaba subido, no asociado a una release.
 
-Firebase seguía en plan Spark en la última comprobación. El alta de Blaze llegó hasta el botón final **Confirm purchase**, que no se pulsó. Aunque el usuario autorizó avanzar con lógica, comprobar el estado real antes de actuar y no exponer información de pago.
+Firebase continúa en plan Spark. No se usan Cloud Functions ni se activó Blaze.
 
-`functions/index.js` contiene:
+El verificador actual vive en `workers/iap-verifier/` y cubre compras iOS e invitaciones de liga. Exige Firebase Auth y App Check, consulta App Store Server API y entrega el producto mediante una cuenta de servicio limitada a Firestore. Las claves están almacenadas como secretos de Cloudflare y nunca se incluyen en el repositorio ni en el bundle.
 
-- `verifyCoachPurchase`;
-- `verifyLeaguePurchase`;
-- `acceptLeagueInvite`.
-
-Las Functions no estaban desplegadas en la última comprobación. Antes de desplegarlas hay que resolver qué cuenta de servicio las ejecuta y asegurar que esa identidad tiene permisos de consulta/consumo de compras en Google Play. No incrustar claves JSON en código o variables públicas.
-
-El 16 de julio de 2026 `firebase functions:list` confirmó que el proyecto sigue sin Functions. Por seguridad, los accesos a anuncios y ligas de pago están ocultos detrás de `EXPO_PUBLIC_PURCHASES_ENABLED=true`; sin esa variable, la v9 no ofrece checkouts que no puedan validarse. Activarlos solo después de productos + Functions + prueba con license tester.
+Android mantiene la monetización desactivada hasta implementar su verificación equivalente con Google Play. iOS solo debe compilarse con `EXPO_PUBLIC_IOS_PURCHASES_ENABLED=true` después de que los tres productos existan en App Store Connect y se complete una compra Sandbox.
 
 ## Scripts útiles
 
 - `npm run typecheck`: comprobación TypeScript.
 - `npm test`: tests del dominio.
 - `npm run test:firestore:run`: ejecuta la integración de reglas cuando el emulador ya está levantado; en este Mac se lanzó con `JAVA_HOME=/opt/homebrew/opt/openjdk firebase emulators:exec --only firestore --project tenisbuddy-app-rules-test 'npm run test:firestore:run'`.
-- `npm run build:web`: export web.
 - `npm run build:android-bundle`: export Android de Metro.
 - `npm run build:android-aab`: AAB/APK firmado.
 - `npm run verify`: typecheck, tests, exports y doctor.
@@ -261,11 +254,11 @@ El 16 de julio de 2026 `firebase functions:list` confirmó que el proyecto sigue
 - `scripts/publish-google-play.mjs`: admite `--upload-only`, `--version-code` y `--preserve-existing`.
 - `firebase deploy --only firestore:rules`: despliegue de reglas.
 - `firebase deploy --only hosting`: despliegue web.
-- `firebase deploy --only functions`: despliegue Functions.
+- `cd workers/iap-verifier && npm run deploy`: despliegue del backend seguro.
 
 Atención al orden de builds: `npm run build:web` recrea `dist/` y elimina temporalmente `dist/android/`. Si se compila web después del AAB, volver a copiar las salidas de Gradle desde `android/app/build/outputs/{bundle,apk}/release/` antes de publicar. No recompilar es necesario si esas salidas siguen intactas; comprobar siempre el hash y `versionCode` del archivo final.
 
-Este directorio **no es actualmente un repositorio Git** (`git status` devuelve “not a git repository”). No prometer commit o push hasta confirmar dónde está el repositorio correcto o inicializar uno con autorización expresa.
+Este directorio es un repositorio Git conectado a GitHub. Verificar siempre el estado antes de preparar un commit para no mezclar cambios ajenos.
 
 ## Orden recomendado para continuar
 

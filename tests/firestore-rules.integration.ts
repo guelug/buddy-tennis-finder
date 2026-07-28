@@ -307,6 +307,29 @@ test("las reservas admiten clubes con más de 6 canchas", async () => {
   await assertFails(setDoc(doc(owner, "matches", "court-zero"), { ...openMatch(ownerId, ["c"]), court: 0 }));
 });
 
+test("los clientes no pueden registrar compras ni altas privadas sin el backend", async () => {
+  const userId = "purchase-client";
+  const user = environment.authenticatedContext(userId, { email_verified: true }).firestore();
+
+  await assertFails(setDoc(doc(user, "iapPurchases", "2000001234567890"), {
+    ownerId: userId,
+    productId: "private_league_create",
+    status: "verified"
+  }));
+  await assertFails(setDoc(doc(user, "coachPurchases", "forged-token"), {
+    ownerId: userId,
+    productId: "coach_ad_7_days",
+    status: "pending_verification"
+  }));
+  await assertFails(setDoc(doc(user, "leagueJoinRequests", "forged-request"), {
+    leagueId: "league",
+    userId,
+    inviteCode: "ABCDEFGH",
+    status: "pending",
+    createdAt: serverTimestamp()
+  }));
+});
+
 test("solo el rival valida un resultado y crea una entrada de ranking inmutable", async () => {
   const ownerId = "result-owner";
   const rivalId = "result-rival";

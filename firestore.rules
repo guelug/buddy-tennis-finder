@@ -638,8 +638,8 @@ service cloud.firestore {
         && request.resource.data.specialties is list
         && request.resource.data.specialties.size() <= 8;
 
-      // El cliente nunca activa ni extiende un anuncio; eso lo hace la función
-      // de verificación de Google Play con privilegios administrativos.
+      // El cliente nunca activa ni extiende un anuncio; eso lo hace el
+      // verificador server-side después de consultar la tienda.
       allow update: if request.auth != null
         && resource.data.ownerId == request.auth.uid
         && request.resource.data.ownerId == resource.data.ownerId
@@ -694,35 +694,9 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // El cliente solo registra el comprobante pendiente. La verificación,
-    // activación y consumición se hacen desde Cloud Functions.
-    match /coachPurchases/{purchaseToken} {
-      allow create: if request.auth != null
-        && purchaseToken == request.resource.data.purchaseToken
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.status == "pending_verification"
-        && request.resource.data.productId in ["coach_ad_7_days", "coach_ad_30_days"];
-      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow update, delete: if false;
-    }
-
-    match /leaguePurchases/{purchaseToken} {
-      allow create: if request.auth != null
-        && purchaseToken == request.resource.data.purchaseToken
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.status == "pending_verification"
-        && request.resource.data.productId == "private_league_create"
-        && request.resource.data.league.name is string
-        && request.resource.data.league.name.size() >= 3
-        && request.resource.data.league.name.size() <= 80
-        && request.resource.data.league.division in ["novato", "d", "c", "b", "a"]
-        && request.resource.data.league.format in ["singles", "doubles"]
-        && request.resource.data.league.maxMembers is int
-        && request.resource.data.league.maxMembers >= 2
-        && request.resource.data.league.maxMembers <= 32;
-      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow update, delete: if false;
-    }
+    // Los comprobantes de compra viven en `iapPurchases` y solo el backend
+    // puede crearlos. Al no declarar una regla específica quedan cubiertos por
+    // la denegación por defecto del final del archivo.
 
     // La liga es visible para usuarios autenticados que tengan el enlace. Las
     // altas se procesan en backend para comprobar el código secreto y el cupo.
@@ -741,21 +715,6 @@ service cloud.firestore {
           && request.auth.uid in get(/databases/$(database)/documents/privateLeagues/$(leagueId)).data.memberIds;
         allow write: if false;
       }
-    }
-
-    match /leagueJoinRequests/{requestId} {
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly([
-          "leagueId", "userId", "inviteCode", "status", "createdAt"
-        ])
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.leagueId is string
-        && request.resource.data.leagueId.size() > 0
-        && request.resource.data.inviteCode is string
-        && request.resource.data.inviteCode.size() == 8
-        && request.resource.data.status == "pending";
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow update, delete: if false;
     }
 
     match /androidBetaRequests/{userId} {

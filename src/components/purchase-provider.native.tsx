@@ -1,18 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Platform } from "react-native";
-import * as Crypto from "expo-crypto";
 import { ErrorCode, useIAP } from "expo-iap";
 // `ExpoPurchaseError` es el que entregan los callbacks del hook; el
 // `PurchaseError` de la raíz declara `code` como obligatorio y no encaja.
 import type { ExpoPurchaseError, Purchase } from "expo-iap";
 import {
   COACH_PRODUCTS,
-  PRIVATE_LEAGUE_PRODUCT,
-  registerCoachPurchase,
-  registerLeaguePurchase,
-  waitForCoachPurchaseVerification,
-  waitForLeaguePurchaseVerification
+  PRIVATE_LEAGUE_PRODUCT
 } from "@/lib/community";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { useAuth } from "@/lib/firebase-auth";
@@ -26,6 +21,8 @@ import {
   type PurchaseOutcome
 } from "@/lib/purchase-intents";
 import type { CoachAd, PrivateLeagueInput } from "@/types";
+import { iapAccountTokenForUid } from "@/lib/iap-account-token";
+import { verifyApplePurchase } from "@/lib/secure-backend";
 
 export type { PurchaseOutcome } from "@/lib/purchase-intents";
 
@@ -76,7 +73,7 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   // callbacks; los reflejamos en estado para conservar el flujo por efectos.
   const [currentPurchase, setCurrentPurchase] = useState<Purchase | null>(null);
   const [currentPurchaseError, setCurrentPurchaseError] = useState<ExpoPurchaseError | null>(null);
-  const { connected, products, fetchProducts, getAvailablePurchases, availablePurchases, requestPurchase } = useIAP({
+  const { connected, products, fetchProducts, finishTransaction, getAvailablePurchases, availablePurchases, requestPurchase } = useIAP({
     onPurchaseSuccess: setCurrentPurchase,
     onPurchaseError: setCurrentPurchaseError
   });
@@ -112,28 +109,20 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   }, []);
 
   const processRecoveredPurchase = useCallback(async (purchase: Purchase) => {
-    // expo-iap 4 unificó el token: en Android es el purchaseToken de Play (el
-    // mismo valor que antes) y en iOS el JWS de StoreKit 2.
-    const token = purchase.purchaseToken;
-    if (!token || !user?.uid || processingTokens.current.has(token)) return;
+    const transactionId = purchase.transactionId;
+    if (!transactionId || !user?.uid || processingTokens.current.has(transactionId)) return;
     const intent = intents.find((item) => item.ownerId === user.uid && item.productId === purchase.productId);
     if (!intent) return;
-    processingTokens.current.add(token);
+    processingTokens.current.add(transactionId);
     setOutcome({ kind: intent.kind, productId: intent.productId, status: "recovering", adId: intent.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
     try {
-      if (intent.kind === "coach") {
-        await registerCoachPurchase(intent.adId, intent.productId, token, purchase.transactionId);
-        await waitForCoachPurchaseVerification(token);
-        await forgetIntent(intent.ownerId, intent.productId);
-        setOutcome({ kind: "coach", productId: intent.productId, status: "verified", adId: intent.adId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
-      } else {
-        await registerLeaguePurchase(intent.input, token, purchase.transactionId);
-        const leagueId = await waitForLeaguePurchaseVerification(token);
-        await forgetIntent(intent.ownerId, intent.productId);
-        setOutcome({ kind: "league", productId: intent.productId, status: "verified", leagueId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
-      }
-      // El backend consume el producto. Refrescamos la caché de Billing para
-      // que pueda volver a comprarse una nueva publicación o liga.
+      if (Platform.OS !== "ios") throw new Error("Las compras de Android todavía no están disponibles.");
+      const verified = await verifyApplePurchase(intent, transactionId);
+      await finishTransaction({ purchase, isConsumable: true });
+      await forgetIntent(intent.ownerId, intent.productId);
+      setOutcome(intent.kind === "coach"
+        ? { kind: "coach", productId: intent.productId, status: "verified", adId: intent.adId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() }
+        : { kind: "league", productId: intent.productId, status: "verified", leagueId: verified.leagueId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
       void getAvailablePurchases();
     } catch (error) {
       setOutcome({
@@ -146,9 +135,9 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
         occurredAt: Date.now()
       });
     } finally {
-      processingTokens.current.delete(token);
+      processingTokens.current.delete(transactionId);
     }
-  }, [user?.uid, intents, forgetIntent, getAvailablePurchases]);
+  }, [user?.uid, intents, finishTransaction, forgetIntent, getAvailablePurchases]);
 
   useEffect(() => {
     if (!intentsLoaded) return;
@@ -183,12 +172,11 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     setIntents((current) => [...current.filter((item) => item.productId !== intent.productId), intent]);
     setActiveProductId(intent.productId);
     setOutcome(null);
-    const accountHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, intent.ownerId);
     try {
+      if (Platform.OS !== "ios") throw new Error("Las compras de Android todavía no están disponibles.");
+      const appAccountToken = await iapAccountTokenForUid(intent.ownerId);
       await requestPurchase({
-        request: Platform.OS === "ios"
-          ? { apple: { sku: intent.productId } }
-          : { google: { skus: [intent.productId], obfuscatedAccountId: accountHash } },
+        request: { apple: { sku: intent.productId, appAccountToken } },
         type: "in-app"
       });
     } catch (error) {

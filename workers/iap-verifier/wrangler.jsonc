@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "matchpoint-iap-verifier",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "FIREBASE_PROJECT_ID": "tenisbuddy-app",
+    "FIREBASE_PROJECT_NUMBER": "245934421177",
+    "FIREBASE_IOS_APP_ID": "1:245934421177:ios:81f6744f8cb71113475768",
+    "FIREBASE_ANDROID_APP_ID": "1:245934421177:android:9ed4cdd31c04cefd475768",
+    "APPLE_BUNDLE_ID": "com.matchpoint.clubs"
+  }
+}

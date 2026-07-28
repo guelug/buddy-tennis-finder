@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Alert, Platform, Text, View } from "react-native";
 import { Icon } from "@/components/icon";
 import { PrimaryButton } from "@/components/primary-button";
 import { usePurchases } from "@/components/purchase-provider";
@@ -12,6 +12,7 @@ export function LeagueCheckout({ input, onCreated }: { input: PrivateLeagueInput
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const handledOutcome = useRef(0);
   const { connected, products, outcome, startLeaguePurchase } = usePurchases();
+  const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
   useEffect(() => {
     if (!outcome || outcome.kind !== "league" || outcome.intentCreatedAt !== attemptId || handledOutcome.current === outcome.occurredAt) return;
     handledOutcome.current = outcome.occurredAt;
@@ -32,11 +33,11 @@ export function LeagueCheckout({ input, onCreated }: { input: PrivateLeagueInput
   const buy = async () => {
     setProcessing(true);
     try {
-      if (!connected) throw new Error("Google Play no está disponible.");
+      if (!connected) throw new Error(`${storeName} no está disponible.`);
       setAttemptId(await startLeaguePurchase(input));
     } catch (error) {
       setProcessing(false);
-      Alert.alert("No se pudo abrir Google Play", error instanceof Error ? error.message : "Inténtalo de nuevo.");
+      Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
     }
   };
   return <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}><View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}><Icon name="trophy" size={24} color={colors.neon as string} /><View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Liga privada lista</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>Pago único · liga permanente</Text></View><Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text></View><PrimaryButton label={processing ? "Verificando…" : "Crear liga privada"} disabled={processing} onPress={() => void buy()} /></View>;

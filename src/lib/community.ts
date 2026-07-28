@@ -1,4 +1,3 @@
-import { Platform } from "react-native";
 import { auth, db, isFirebaseConfigured } from "@/../firebase.config";
 import {
   collection,
@@ -14,6 +13,7 @@ import {
   type DocumentData,
   type Unsubscribe
 } from "@react-native-firebase/firestore";
+import { joinPrivateLeagueSecure } from "@/lib/secure-backend";
 import type {
   CoachAd,
   CoachAdPlan,
@@ -160,59 +160,6 @@ export async function createCoachAdDraft(
   return ad;
 }
 
-// TODO(purchase-verification): `functions/index.js` solo verifica compras de
-// Google Play (Android). Este registro se usa igual en ambas plataformas
-// porque hoy `PURCHASES_ENABLED` (src/lib/features.ts) está desactivado por
-// defecto en las dos; antes de habilitar iOS hay que añadir la verificación
-// del recibo de Apple en el backend.
-export async function registerCoachPurchase(adId: string, productId: string, purchaseToken: string, transactionId?: string | null) {
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("La sesión ha caducado.");
-  const purchaseRef = doc(db, "coachPurchases", purchaseToken);
-  await setDoc(purchaseRef, {
-    ownerId: uid,
-    adId,
-    productId,
-    purchaseToken,
-    transactionId: transactionId ?? "",
-    platform: Platform.OS,
-    status: "pending_verification",
-    createdAt: serverTimestamp()
-  });
-}
-
-export function waitForCoachPurchaseVerification(purchaseToken: string, timeoutMs = 45_000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      unsubscribe();
-      reject(new Error(Platform.OS === "ios" ? "App Store está verificando el pago. Tu anuncio se activará automáticamente en unos minutos." : "Google Play está verificando el pago. Tu anuncio se activará automáticamente en unos minutos."));
-    }, timeoutMs);
-    const unsubscribe = onSnapshot(doc(db, "coachPurchases", purchaseToken), (snapshot) => {
-      if (!snapshot.exists() || settled) return;
-      const status = snapshot.data().status;
-      if (status === "verified") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        resolve();
-      } else if (status === "rejected") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        reject(new Error(Platform.OS === "ios" ? "App Store no pudo validar esta compra." : "Google Play no pudo validar esta compra."));
-      }
-    }, (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      reject(error);
-    });
-  });
-}
-
 export async function expressCoachInterest(adId: string, interested: Player): Promise<CoachContact> {
   const uid = auth.currentUser?.uid;
   if (!uid || interested.id !== uid) throw new Error("Inicia sesión para contactar.");
@@ -278,62 +225,6 @@ export async function markCoachInterestRead(id: string) {
   await updateDoc(doc(db, "coachInterests", id), { readAt: serverTimestamp() });
 }
 
-// TODO(purchase-verification): mismo hueco que registerCoachPurchase — la
-// verificación server-side hoy solo cubre Google Play.
-export async function registerLeaguePurchase(input: PrivateLeagueInput, purchaseToken: string, transactionId?: string | null) {
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("La sesión ha caducado.");
-  await setDoc(doc(db, "leaguePurchases", purchaseToken), {
-    ownerId: uid,
-    productId: PRIVATE_LEAGUE_PRODUCT.id,
-    purchaseToken,
-    transactionId: transactionId ?? "",
-    platform: Platform.OS,
-    status: "pending_verification",
-    league: {
-      name: input.name.trim().slice(0, 80),
-      description: input.description.trim().slice(0, 400),
-      division: input.division,
-      format: input.format,
-      maxMembers: Math.min(32, Math.max(2, input.maxMembers))
-    },
-    createdAt: serverTimestamp()
-  });
-}
-
-export function waitForLeaguePurchaseVerification(purchaseToken: string, timeoutMs = 45_000): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const purchaseRef = doc(db, "leaguePurchases", purchaseToken);
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      unsubscribe();
-      reject(new Error(Platform.OS === "ios" ? "App Store está verificando el pago. La liga aparecerá automáticamente en unos minutos." : "Google Play está verificando el pago. La liga aparecerá automáticamente en unos minutos."));
-    }, timeoutMs);
-    const unsubscribe = onSnapshot(purchaseRef, (snapshot) => {
-      if (!snapshot.exists() || settled) return;
-      const data = snapshot.data();
-      if (data.status === "verified" && typeof data.leagueId === "string") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        resolve(data.leagueId);
-      } else if (data.status === "rejected") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        reject(new Error(Platform.OS === "ios" ? "App Store no pudo validar esta compra." : "Google Play no pudo validar esta compra."));
-      }
-    }, (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      reject(error);
-    });
-  });
-}
-
 export function subscribeToMyPrivateLeagues(uid: string, onNext: (items: PrivateLeague[]) => void): Unsubscribe {
   if (!isFirebaseConfigured) {
     onNext([]);
@@ -364,44 +255,8 @@ export async function joinPrivateLeague(id: string, inviteCode: string): Promise
   // trim las reglas rechazaban la solicitud con un críptico "permission denied".
   const code = inviteCode.trim().toUpperCase();
   if (code.length !== 8) throw new Error("El código de invitación debe tener 8 caracteres.");
-  // Cada intento usa un documento nuevo: si el usuario se equivoca de código
-  // puede volver a intentarlo sin reabrir ni mutar una solicitud ya procesada.
-  const requestRef = doc(collection(db, "leagueJoinRequests"));
-  await setDoc(requestRef, {
-    leagueId: id,
-    userId: uid,
-    inviteCode: code,
-    status: "pending",
-    createdAt: serverTimestamp()
-  });
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const timeout = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      unsubscribe();
-      reject(new Error("La invitación se está procesando. Vuelve a abrirla en unos segundos."));
-    }, 30_000);
-    const unsubscribe = onSnapshot(requestRef, async (snapshot) => {
-      if (!snapshot.exists() || settled) return;
-      const status = snapshot.data().status;
-      if (status === "accepted") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        const league = await getPrivateLeague(id);
-        if (league) resolve(league); else reject(new Error("No pudimos cargar la liga."));
-      } else if (status === "rejected") {
-        settled = true;
-        clearTimeout(timeout);
-        unsubscribe();
-        reject(new Error(String(snapshot.data().reason || "La invitación no es válida.")));
-      }
-    }, (error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeout);
-      reject(error);
-    });
-  });
+  await joinPrivateLeagueSecure(id, code);
+  const league = await getPrivateLeague(id);
+  if (!league) throw new Error("No pudimos cargar la liga.");
+  return league;
 }
