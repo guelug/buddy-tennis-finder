@@ -37,7 +37,7 @@ Para desplegar las Cloud Functions: `firebase deploy --only functions`.
 
 - **Android (pruebas):** `npm run android` (Expo run) o `npx eas-cli build -p android --profile preview` para un APK instalable.
 - **Android (producción):** `npm run build:android-aab` + `npm run publish:android:closed`.
-- **iOS:** build gestionado vía Expo/EAS; ver [ios-native/README.md](ios-native/README.md) para el proyecto SwiftUI experimental (no es el pipeline principal).
+- **iOS:** el único proyecto vigente es `ios/MatchPointTennis.xcworkspace`; se compila y distribuye con Xcode/Xcode Cloud.
 - **Google Play / App Store:** requieren cuentas de desarrollador de pago.
 
 ## Notas

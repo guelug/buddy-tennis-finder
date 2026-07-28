@@ -1,8 +1,13 @@
 import { Platform } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import {
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID
+} from "@/lib/google-oauth-config";
 
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+// Los identificadores OAuth son públicos y viven en código para que una build
+// de Xcode Cloud/Gradle no dependa de `.env`. Un valor local antiguo ya no
+// puede invalidar los tokens nativos.
 
 const isConfigured =
   Boolean(GOOGLE_WEB_CLIENT_ID) &&

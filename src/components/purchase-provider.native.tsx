@@ -16,6 +16,7 @@ import {
 } from "@/lib/community";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { useAuth } from "@/lib/firebase-auth";
+import { PURCHASES_ENABLED } from "@/lib/features";
 import {
   loadPurchaseIntents,
   removePurchaseIntent,
@@ -44,6 +45,10 @@ const PurchaseContext = createContext<PurchaseContextValue | null>(null);
  * sigue funcionando: nunca debe tumbar el arranque.
  */
 export function PurchaseProvider({ children }: PropsWithChildren) {
+  if (!PURCHASES_ENABLED) {
+    return <UnavailablePurchaseProvider>{children}</UnavailablePurchaseProvider>;
+  }
+
   return (
     <AppErrorBoundary fallback={<UnavailablePurchaseProvider>{children}</UnavailablePurchaseProvider>}>
       <ConnectedPurchaseProvider>{children}</ConnectedPurchaseProvider>

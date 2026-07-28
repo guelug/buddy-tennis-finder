@@ -169,11 +169,13 @@ service cloud.firestore {
     // la leen con get() sin exponerla a ningún cliente. Si falta en alguno de
     // los dos lados no bloqueamos (cuentas antiguas, web o permiso denegado).
     function isDifferentDevice(authorId, targetId) {
-      let author = get(/databases/$(database)/documents/users/$(authorId)).data;
-      let target = get(/databases/$(database)/documents/users/$(targetId)).data;
-      return !("deviceHash" in author)
-        || !("deviceHash" in target)
-        || author.deviceHash != target.deviceHash;
+      let authorPath = /databases/$(database)/documents/users/$(authorId);
+      let targetPath = /databases/$(database)/documents/users/$(targetId);
+      return !exists(authorPath)
+        || !exists(targetPath)
+        || !("deviceHash" in get(authorPath).data)
+        || !("deviceHash" in get(targetPath).data)
+        || get(authorPath).data.deviceHash != get(targetPath).data.deviceHash;
     }
 
     function hasValidReviewSkills(skills) {

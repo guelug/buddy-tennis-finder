@@ -85,6 +85,8 @@ def uploadKeystorePath = System.getenv("MATCHPOINT_UPLOAD_KEYSTORE") ?: "${proje
 def uploadStorePassword = System.getenv("MATCHPOINT_UPLOAD_STORE_PASSWORD") ?: ""
 def uploadKeyAlias = System.getenv("MATCHPOINT_UPLOAD_KEY_ALIAS") ?: "matchpoint-upload"
 def uploadKeyPassword = System.getenv("MATCHPOINT_UPLOAD_KEY_PASSWORD") ?: uploadStorePassword
+def configuredVersionCode = Integer.parseInt(System.getenv("MATCHPOINT_VERSION_CODE") ?: "18")
+def configuredVersionName = System.getenv("MATCHPOINT_VERSION_NAME") ?: "1.2.3"
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -97,8 +99,8 @@ android {
         applicationId 'com.matchpoint.clubs'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 17
-        versionName "1.2.3"
+        versionCode configuredVersionCode
+        versionName configuredVersionName
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

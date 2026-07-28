@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "Y6VZTXTFW8",
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "18",
+      "buildNumber": "19",
       "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"

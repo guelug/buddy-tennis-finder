@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, createContext, useContext, useMemo, type ReactNode } from "react";
 import { Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
-import * as SecureStore from "expo-secure-store";
 import * as Crypto from "expo-crypto";
 import {
   GoogleAuthProvider,
@@ -168,20 +167,21 @@ export async function signInWithApple() {
     nonce: hashedNonce
   });
 
+  if (!appleCredential.identityToken) {
+    throw new Error("Apple no devolvió una credencial de identidad válida.");
+  }
+
   const provider = new OAuthProvider("apple.com");
   const credential = provider.credential({
-    idToken: appleCredential.identityToken!,
+    idToken: appleCredential.identityToken,
     rawNonce
   });
 
-  const result = await signInWithCredential(auth, credential);
-
-  // Guardamos el refresh token del usuario de Apple para renovación.
-  if (appleCredential.authorizationCode) {
-    await SecureStore.setItemAsync("apple_refresh_token", appleCredential.authorizationCode);
-  }
-
-  return result;
+  // Firebase administra la sesión y su refresh token. El authorizationCode
+  // de Apple es de un solo uso y no debe guardarse como si fuera un refresh
+  // token; además, un fallo de Keychain después de autenticar hacía que la UI
+  // mostrase un error aunque la sesión ya se hubiese creado correctamente.
+  return signInWithCredential(auth, credential);
 }
 
 export async function signOut() {
