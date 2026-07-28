@@ -1,8 +1,10 @@
+import type { GoogleAuthTokens } from "@/lib/google-auth-tokens";
+
 export function isNativeGoogleSignInConfigured(): boolean {
   return false;
 }
 
-export async function requestNativeGoogleIdToken(): Promise<string | null> {
+export async function requestNativeGoogleTokens(): Promise<GoogleAuthTokens | null> {
   throw new Error("Google Sign-In nativo no está disponible en esta plataforma.");
 }
 

@@ -21,9 +21,13 @@ import { setCrashReportingUser } from "@/lib/crash-reporting";
 import { getDeviceHash } from "@/lib/device-identity";
 import {
   isNativeGoogleSignInConfigured,
-  requestNativeGoogleIdToken,
+  requestNativeGoogleTokens,
   signOutFromGoogleNative
 } from "@/lib/google-native-sign-in";
+import {
+  requireGoogleAuthTokens,
+  type GoogleAuthTokens
+} from "@/lib/google-auth-tokens";
 import { AuthUser } from "@/types";
 
 /**
@@ -69,8 +73,9 @@ export function isNativeGoogleAuthConfigured(): boolean {
   return Platform.OS !== "web" && isNativeGoogleSignInConfigured();
 }
 
-export async function signInWithGoogle(idToken: string, accessToken?: string) {
+export async function signInWithGoogle(tokens: GoogleAuthTokens) {
   await ensureAppCheckReady();
+  const { idToken, accessToken } = requireGoogleAuthTokens(tokens);
   const credential = GoogleAuthProvider.credential(idToken, accessToken);
   return signInWithCredential(auth, credential);
 }
@@ -79,9 +84,9 @@ export async function signInWithGoogleNative() {
   if (Platform.OS === "web") {
     throw new Error("Este flujo solo está disponible en Android y iOS.");
   }
-  const idToken = await requestNativeGoogleIdToken();
-  if (!idToken) return null;
-  return signInWithGoogle(idToken);
+  const tokens = await requestNativeGoogleTokens();
+  if (!tokens) return null;
+  return signInWithGoogle(tokens);
 }
 
 export async function signInWithGooglePopup() {

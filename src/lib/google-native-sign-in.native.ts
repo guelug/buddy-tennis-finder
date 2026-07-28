@@ -4,6 +4,10 @@ import {
   GOOGLE_IOS_CLIENT_ID,
   GOOGLE_WEB_CLIENT_ID
 } from "@/lib/google-oauth-config";
+import {
+  requireGoogleAuthTokens,
+  type GoogleAuthTokens
+} from "@/lib/google-auth-tokens";
 
 // Los identificadores OAuth son públicos y viven en código para que una build
 // de Xcode Cloud/Gradle no dependa de `.env`. Un valor local antiguo ya no
@@ -26,7 +30,7 @@ export function isNativeGoogleSignInConfigured(): boolean {
   return isConfigured;
 }
 
-export async function requestNativeGoogleIdToken(): Promise<string | null> {
+export async function requestNativeGoogleTokens(): Promise<GoogleAuthTokens | null> {
   if (!isConfigured) {
     throw new Error("Google Sign-In nativo todavía no está configurado.");
   }
@@ -35,11 +39,12 @@ export async function requestNativeGoogleIdToken(): Promise<string | null> {
   const response = await GoogleSignin.signIn();
 
   if (response.type !== "success") return null;
-  if (!response.data.idToken) {
-    throw new Error("Google no devolvió un token de identidad válido.");
-  }
+  const tokens = await GoogleSignin.getTokens();
 
-  return response.data.idToken;
+  return requireGoogleAuthTokens({
+    idToken: response.data.idToken ?? tokens.idToken,
+    accessToken: tokens.accessToken
+  });
 }
 
 export async function signOutFromGoogleNative(): Promise<void> {
