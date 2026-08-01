@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { Icon } from "@/components/icon";
@@ -33,6 +34,7 @@ export default function AssistantScreen() {
   const { user } = useAuth();
   const { buddy } = useMatchBuddy();
   const { t, lang } = useI18n();
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [context, setContext] = useState<AssistantContext | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -109,8 +111,27 @@ export default function AssistantScreen() {
   if (!context) return <LoadingView />;
   return (
     <LiveBackground overlay={0.58}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView ref={scrollRef} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.md, padding: spacing.base, paddingBottom: 150 }}>
+      {/*
+        En Android el sistema ya encoge la ventana (windowSoftInputMode
+        adjustResize), así que KeyboardAvoidingView sobra y solo estorba. En
+        iOS sí hace falta, y hay que descontarle la cabecera nativa del Stack:
+        el componente mide su marco respecto al padre, que empieza bajo la
+        cabecera, y sin este offset levanta de menos.
+      */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 44 : 0}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          contentContainerStyle={{ gap: spacing.md, padding: spacing.base, paddingBottom: spacing.lg }}
+        >
           <Animated.View entering={FadeInUp} style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.xl, borderWidth: 1, gap: spacing.sm, padding: spacing.lg }}>
             <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
               <MatchBuddyAvatar size={48} />
@@ -160,7 +181,22 @@ export default function AssistantScreen() {
           {sending ? <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("assistant.thinking")}</Text> : null}
         </ScrollView>
 
-        <View style={{ alignItems: "center", backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1, bottom: 0, flexDirection: "row", gap: spacing.sm, left: 0, padding: spacing.md, position: "absolute", right: 0 }}>
+        {/*
+          Antes iba en position:absolute, fuera del flujo: el teclado la tapaba
+          y no se veía lo que se escribía. Como hermana en la columna, sube con
+          el resto del contenido en ambas plataformas.
+        */}
+        <View style={{
+          alignItems: "center",
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          flexDirection: "row",
+          gap: spacing.sm,
+          paddingHorizontal: spacing.md,
+          paddingTop: spacing.md,
+          paddingBottom: spacing.md + insets.bottom
+        }}>
           <TextInput
             accessibilityLabel={t("assistant.inputLabel")}
             value={input}

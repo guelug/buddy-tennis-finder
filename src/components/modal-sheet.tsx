@@ -1,5 +1,5 @@
 import * as React from "react";
-import { BackHandler, Pressable, ScrollView, View } from "react-native";
+import { BackHandler, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, mobileTabBar, radii, shadows, spacing, useBreakpoint } from "@/theme";
 import { useI18n } from "@/lib/i18n";
@@ -38,7 +38,11 @@ export function ModalSheet({ visible, onClose, children, maxWidth = 520 }: Modal
   if (!visible) return null;
 
   return (
-    <View
+    // El panel va anclado abajo, así que sin esto el teclado tapaba los campos
+    // de texto que lleva dentro (comentario de una reseña, mensaje al publicar)
+    // y no se veía lo que se escribía. En Android basta con adjustResize.
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{
         alignItems: isWide ? "center" : "stretch",
         backgroundColor: "rgba(6,18,10,0.72)",
@@ -95,6 +99,6 @@ export function ModalSheet({ visible, onClose, children, maxWidth = 520 }: Modal
           {children}
         </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

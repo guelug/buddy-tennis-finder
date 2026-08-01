@@ -465,9 +465,13 @@ export default function OnboardingScreen() {
 
   return (
     <LiveBackground overlay={isLight ? 0.5 : 0.55}>
+      {/*
+        Android ya encoge la ventana con adjustResize; "height" encima de eso
+        hacía doble ajuste. Aquí no hay cabecera, así que en iOS el offset es 0.
+      */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={0}
         style={{ flex: 1 }}
       >
         {content}

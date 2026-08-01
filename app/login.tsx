@@ -564,6 +564,9 @@ export default function LoginScreen() {
     >
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
+          // Sin esto, en iOS el teclado tapaba los campos de correo y
+          // contraseña al enfocarlos. Android ya lo cubre con adjustResize.
+          automaticallyAdjustKeyboardInsets
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           style={{ flex: 1, overscrollBehaviorY: "contain", touchAction: "pan-y" } as object}

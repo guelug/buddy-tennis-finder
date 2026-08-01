@@ -55,6 +55,11 @@ export function ScreenShell({
 
   return (
     <ScrollView
+      // iOS no aparta el contenido al abrirse el teclado: sin esto, en las
+      // pantallas con formulario (registrar dobles, anuncio de entrenador,
+      // ligas privadas) el campo enfocado se quedaba debajo del teclado.
+      // Android ya lo resuelve con adjustResize.
+      automaticallyAdjustKeyboardInsets
       contentInsetAdjustmentBehavior="automatic"
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
