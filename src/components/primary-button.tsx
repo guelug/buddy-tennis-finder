@@ -67,9 +67,11 @@ export function PrimaryButton({
   const padHorizontal = isLarge ? spacing.lg : spacing.base;
 
   const surface: ViewStyle = isSolid
-    ? { backgroundColor: colors.court }
+    // El CTA principal va siempre en lima de marca, también en claro: antes
+    // aquí salía un olivo apagado que no parecía el mismo producto.
+    ? { backgroundColor: colors.accentFill }
     : isAccent
-      ? { backgroundColor: colors.gold }
+      ? { backgroundColor: colors.goldFill }
       : isGlass
         ? { backgroundColor: colors.courtLight }
         : { backgroundColor: "transparent" };
@@ -84,7 +86,7 @@ export function PrimaryButton({
   const textColor =
     textColorOverride ??
     (isSolid
-      ? colors.textOnBrand
+      ? colors.onAccentFill
       : isAccent
         ? colors.textOnBrand
         : isGlass

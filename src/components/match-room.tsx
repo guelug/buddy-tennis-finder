@@ -106,7 +106,7 @@ function SpotlightCta({
         accessibilityRole="button"
         style={{
           alignItems: "center",
-          backgroundColor: colors.spotlight,
+          backgroundColor: colors.accentFill,
           borderRadius: radii.pill,
           boxShadow: disabled ? undefined : shadows.spotlightGlow,
           flexDirection: "row",
@@ -118,7 +118,7 @@ function SpotlightCta({
         }}
       >
         {icon}
-        <Text style={{ ...broadcast.jersey, color: colors.textOnBall, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>
+        <Text style={{ ...broadcast.jersey, color: colors.onAccentFill, fontSize: 14, letterSpacing: 1, textTransform: "uppercase" }}>
           {label}
         </Text>
       </Pressable>

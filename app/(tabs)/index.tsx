@@ -521,13 +521,13 @@ function RadarRivalChip({ candidate, clubs }: { candidate: MatchCandidate; clubs
       </View>
       <View
         style={{
-          backgroundColor: colors.neon,
+          backgroundColor: colors.accentFill,
           borderRadius: radii.pill,
           paddingHorizontal: spacing.sm,
           paddingVertical: 2
         }}
       >
-        <Text style={{ ...broadcast.stat, color: colors.textOnBall, fontSize: 12 }}>
+        <Text style={{ ...broadcast.stat, color: colors.onAccentFill, fontSize: 12 }}>
           {compatibilityPct(candidate.score)}%
         </Text>
       </View>

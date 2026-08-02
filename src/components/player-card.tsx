@@ -385,13 +385,13 @@ function MatchScoreBadge({ score, compact = false }: { score: number; compact?: 
       <Animated.View
         entering={FadeIn.delay(200).springify()}
         style={{
-          backgroundColor: colors.neon,
+          backgroundColor: colors.accentFill,
           borderRadius: radii.pill,
           paddingHorizontal: spacing.sm,
           paddingVertical: 3
         }}
       >
-        <Text style={{ ...broadcast.stat, color: colors.textOnBall, fontSize: 13 }}>{pct}%</Text>
+        <Text style={{ ...broadcast.stat, color: colors.onAccentFill, fontSize: 13 }}>{pct}%</Text>
       </Animated.View>
     );
   }

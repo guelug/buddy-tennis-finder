@@ -526,7 +526,7 @@ function ProgressBar({ pct }: { pct: number }) {
       <Animated.View
         style={[
           {
-            backgroundColor: colors.gold,
+            backgroundColor: colors.goldFill,
             borderRadius: radii.pill,
             height: 8
           },
@@ -1170,7 +1170,7 @@ function RankingChaseCard({ target, gap, rank, pct }: { target: string; gap: num
         <View
           style={{
             alignItems: "center",
-            backgroundColor: colors.gold,
+            backgroundColor: colors.goldFill,
             borderRadius: radii.lg,
             height: 48,
             justifyContent: "center",

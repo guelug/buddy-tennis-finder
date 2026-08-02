@@ -101,7 +101,7 @@ export default function HomeScreen() {
           <Pressable onPress={() => router.push("/coach-interests" as never)} style={{ alignItems: "center", backgroundColor: colors.goldSoft, borderColor: `${colors.gold}66`, borderRadius: radii.lg, borderWidth: 1, flexDirection: "row", gap: spacing.md, padding: spacing.md }}>
             <Icon name="users" size={22} color={colors.gold as string} />
             <View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("home.coachInterests.title")}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("home.coachInterests.subtitle")}</Text></View>
-            <View style={{ alignItems: "center", backgroundColor: colors.gold, borderRadius: 999, height: 28, justifyContent: "center", width: 28 }}><Text style={{ ...typography.caption, color: colors.textOnBall }}>{coachInterests.filter((item) => !item.readAt).length}</Text></View>
+            <View style={{ alignItems: "center", backgroundColor: colors.goldFill, borderRadius: 999, height: 28, justifyContent: "center", width: 28 }}><Text style={{ ...typography.caption, color: colors.textOnBall }}>{coachInterests.filter((item) => !item.readAt).length}</Text></View>
           </Pressable>
         ) : null}
 
@@ -431,7 +431,7 @@ function StoryCard({ tag, title, body, image, desktop }: { tag: string; title: s
   // En claro la imagen se lava sobre la card blanca: el scrim necesita más
   // fuerza para que el texto blanco siga siendo legible.
   const scrim = isLight ? "rgba(3,8,5,.84)" : "rgba(3,8,5,.76)";
-  return <Card variant="interactive" style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: isLight ? .92 : .82 }} style={{ height: desktop ? 280 : 150, justifyContent: "flex-end" }}><View style={{ backgroundColor: scrim, gap: desktop ? spacing.sm : 3, padding: desktop ? spacing.xl : spacing.md }}><View style={{ alignSelf: "flex-start", backgroundColor: colors.neon, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 }}><Text style={{ ...typography.footnote, color: colors.textOnBall, fontWeight: "900" }}>{tag}</Text></View><Text style={{ ...typography.subheadline, color: "#fff", fontSize: desktop ? 22 : 17 }}>{title}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.78)", fontSize: desktop ? 14 : 12 }} numberOfLines={2}>{body}</Text></View></ImageBackground></Card>;
+  return <Card variant="interactive" style={{ flexBasis: "46%", flexGrow: 1, minWidth: 150, padding: 0 }}><ImageBackground source={image} imageStyle={{ opacity: isLight ? .92 : .82 }} style={{ height: desktop ? 280 : 150, justifyContent: "flex-end" }}><View style={{ backgroundColor: scrim, gap: desktop ? spacing.sm : 3, padding: desktop ? spacing.xl : spacing.md }}><View style={{ alignSelf: "flex-start", backgroundColor: colors.accentFill, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 }}><Text style={{ ...typography.footnote, color: colors.onAccentFill, fontWeight: "900" }}>{tag}</Text></View><Text style={{ ...typography.subheadline, color: "#fff", fontSize: desktop ? 22 : 17 }}>{title}</Text><Text style={{ ...typography.footnote, color: "rgba(255,255,255,.78)", fontSize: desktop ? 14 : 12 }} numberOfLines={2}>{body}</Text></View></ImageBackground></Card>;
 }
 function CommerceCard({ name, detail, priceLabel, image, desktop }: { name: string; detail: string; priceLabel: string; image: number; desktop: boolean }) {
   const { isLight } = useThemeMode();

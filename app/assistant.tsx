@@ -211,9 +211,9 @@ export default function AssistantScreen() {
             accessibilityLabel={t("assistant.send")}
             disabled={!input.trim() || sending}
             onPress={() => void send()}
-            style={{ alignItems: "center", backgroundColor: input.trim() ? colors.neon : colors.border, borderRadius: 24, height: 48, justifyContent: "center", width: 48 }}
+            style={{ alignItems: "center", backgroundColor: input.trim() ? colors.accentFill : colors.border, borderRadius: 24, height: 48, justifyContent: "center", width: 48 }}
           >
-            <Icon name="send" size={20} color={colors.textOnBall as string} />
+            <Icon name="send" size={20} color={input.trim() ? (colors.onAccentFill as string) : (colors.textTertiary as string)} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>

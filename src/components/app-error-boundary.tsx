@@ -59,13 +59,13 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
         accessibilityLabel={t("common.retry")}
         onPress={onRetry}
         style={{
-          backgroundColor: colors.spotlight,
+          backgroundColor: colors.accentFill,
           borderRadius: radii.pill,
           paddingHorizontal: spacing.xl,
           paddingVertical: spacing.md
         }}
       >
-        <Text style={{ ...typography.headline, color: colors.textOnBall, fontSize: 15 }}>{t("common.retry")}</Text>
+        <Text style={{ ...typography.headline, color: colors.onAccentFill, fontSize: 15 }}>{t("common.retry")}</Text>
       </Pressable>
     </View>
   );

@@ -90,7 +90,23 @@ export const colors = {
   bronze: brand.bronze,
 
   courtLight: "rgba(198,241,53,0.12)",
-  textOnBrand: "#08130A"
+  textOnBrand: "#08130A",
+
+  /**
+   * Relleno de acento: el lima de marca, IDÉNTICO en claro y oscuro, siempre
+   * con texto casi negro encima. Es lo que hace reconocible a la app.
+   *
+   * Existe aparte de `neon`/`court`/`spotlight` porque esos se usan sobre todo
+   * como color de texto (más de cien veces) y en claro tienen que ser oscuros
+   * para leerse sobre blanco. Al separar relleno de tinta, el modo claro
+   * conserva el lima en botones y chips en vez del olivo apagado de antes, y
+   * de paso gana contraste: 14,5:1 frente al 5,9:1 que daba el olivo.
+   */
+  accentFill: brand.neon,
+  onAccentFill: "#08130A",
+
+  /** Relleno dorado (rankings, destacados), también igual en ambos modos. */
+  goldFill: brand.gold
 };
 
 export type ThemeColorMode = "dark" | "light";
@@ -102,8 +118,11 @@ const lightColors: typeof colors = {
   textSecondary: "#35453A",
   textTertiary: "#4F6255",
   textOnCourt: "#FFFFFF",
-  textOnBall: "#FFFFFF",
-  textOnBrand: "#FFFFFF",
+  // Tinta sobre relleno de marca (lima o dorado). Como esos rellenos son
+  // brillantes en los dos modos, la tinta es oscura también en claro; antes
+  // era blanca y quedaba ilegible en cuanto el relleno recuperó el lima.
+  textOnBall: "#08130A",
+  textOnBrand: "#08130A",
   background: "#F5F8F1",
   backgroundDeep: "#EBF2E5",
   surface: "#FFFFFF",
@@ -120,15 +139,20 @@ const lightColors: typeof colors = {
   dangerBg: "rgba(178,50,39,0.10)",
   info: "#0F5E9E",
   infoBg: "rgba(15,94,158,0.10)",
-  court: "#4A6E00",
-  courtBright: "#5C8600",
-  neon: "#4A6E00",
-  ball: "#6A9600",
-  spotlight: "#4A6E00",
-  spotlightDim: "#3F5F00",
+  // Acento como TINTA sobre superficies claras. Antes era #4A6E00, un olivo
+  // amarillento que ensuciaba la pantalla; este verde es más limpio y sube el
+  // contraste sobre blanco de 5,96 a 7,08.
+  court: "#3F6212",
+  courtBright: "#4E7A17",
+  neon: "#3F6212",
+  ball: "#3F6212",
+  spotlight: "#3F6212",
+  spotlightDim: "#35520F",
   gold: "#8A5D00",
   goldSoft: "rgba(138,93,0,0.12)",
-  courtLight: "rgba(74,110,0,0.12)"
+  courtLight: "rgba(63,98,18,0.12)"
+  // accentFill y onAccentFill se heredan a propósito: el relleno lima y su
+  // tinta casi negra son los mismos en los dos modos.
 };
 
 // ---------------------------------------------------------------------------

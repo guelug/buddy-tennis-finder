@@ -50,11 +50,11 @@ export function PlayerReviews({ reviews }: { reviews: MatchReview[] }) {
             paddingVertical: spacing.sm
           }}
         >
-          {/* Placa courtDeep siempre oscura → lima fijo (colors.spotlight es oliva en claro). */}
-          <Text style={{ ...broadcast.scoreboard, color: "#C6F135", fontSize: 34, lineHeight: 38 }}>
+          {/* La placa es courtDeep (oscura en los dos modos), así que va lima. */}
+          <Text style={{ ...broadcast.scoreboard, color: colors.accentFill, fontSize: 34, lineHeight: 38 }}>
             {avg ? avg.toFixed(1) : "—"}
           </Text>
-          <StarRating value={avg ?? 0} size={11} gap={1} color="#C6F135" />
+          <StarRating value={avg ?? 0} size={11} gap={1} color={colors.accentFill as string} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("profile.reviews.title")}</Text>

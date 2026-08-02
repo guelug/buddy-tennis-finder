@@ -501,14 +501,14 @@ function ActionBanner({ count, onPress }: { count: number; onPress: () => void }
           <View
             style={{
               alignItems: "center",
-              backgroundColor: colors.spotlight,
+              backgroundColor: colors.accentFill,
               borderRadius: radii.md,
               height: 42,
               justifyContent: "center",
               width: 42
             }}
           >
-            <Icon name="check-badge" size={22} color={colors.textOnBall as string} />
+            <Icon name="check-badge" size={22} color={colors.onAccentFill as string} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>
