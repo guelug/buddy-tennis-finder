@@ -6,14 +6,18 @@
   <meta name="theme-color" content="#060a07">
   <meta name="description" content="Encuentra tenistas de tu nivel, organiza partidos y sube en un ranking validado con MatchPoint Tennis.">
   <meta property="og:title" content="MatchPoint Tennis — Deja de buscar rival. Empieza a jugar.">
-  <meta property="og:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista.">
+  <meta property="og:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista. Ya en Ciudad de Guatemala y Barcelona.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://tennisleagueapp.win/">
-  <meta property="og:image" content="https://tennisleagueapp.win/social/feed-square.png">
+  <meta property="og:image" content="https://tennisleagueapp.win/share-card.png?v=2">
+  <meta property="og:image:width" content="1080">
+  <meta property="og:image:height" content="1080">
+  <meta property="og:image:alt" content="MatchPoint Tennis: encuentra rivales, juega partidos y sube en el ranking. tennisleagueapp.win">
+  <meta property="og:locale" content="es_ES">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MatchPoint Tennis — Deja de buscar rival. Empieza a jugar.">
-  <meta name="twitter:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista.">
-  <meta name="twitter:image" content="https://tennisleagueapp.win/social/feed-square.png">
+  <meta name="twitter:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista. Ya en Ciudad de Guatemala y Barcelona.">
+  <meta name="twitter:image" content="https://tennisleagueapp.win/share-card.png?v=2">
   <title>MatchPoint Tennis — Encuentra tu próximo partido</title>
   <link rel="canonical" href="https://tennisleagueapp.win/">
   <link rel="icon" href="/favicon.png" sizes="32x32">
@@ -38,7 +42,7 @@
     ]
   }
   </script>
-  <link rel="stylesheet" href="/styles.css?v=5">
+  <link rel="stylesheet" href="/styles.css?v=6">
   <script type="importmap">
   { "imports": { "three": "/vendor/three.module.js" } }
   </script>
@@ -72,8 +76,9 @@
           <button type="button" data-lang="es" aria-label="Español">ES</button>
           <button type="button" data-lang="en" aria-label="English">EN</button>
           <button type="button" data-lang="ca" aria-label="Català">CA</button>
+          <button type="button" data-lang="ko" aria-label="한국어">KO</button>
         </div>
-        <a class="button button-small magnetic" href="#descargar" data-i18n="nav.cta">Descargar</a>
+        <button class="button button-small magnetic" id="share-btn" type="button" data-i18n="nav.cta">Compartir</button>
       </div>
     </div>
   </nav>
@@ -186,7 +191,7 @@
         <div class="tour-slider reveal">
           <div class="tour-track" id="tour-track">
           <article class="tour-step">
-            <div class="tour-shot"><div class="mini-phone"><img src="/shots/home.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de inicio de MatchPoint con el próximo partido y los accesos rápidos."></div></div>
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/home.webp" width="540" height="1174" loading="lazy" decoding="async" alt="Pantalla de inicio de MatchPoint con el próximo partido y los accesos rápidos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">01</span>
               <h3 data-i18n="tour.s1t">Tu próximo partido, al abrir</h3>
@@ -194,7 +199,7 @@
             </div>
           </article>
           <article class="tour-step">
-            <div class="tour-shot"><div class="mini-phone"><img src="/shots/rivals.webp" width="540" height="960" loading="lazy" decoding="async" alt="Listado de rivales compatibles filtrados por nivel y disponibilidad."></div></div>
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/rivals.webp" width="540" height="1174" loading="lazy" decoding="async" alt="Listado de rivales compatibles filtrados por nivel y disponibilidad."></div></div>
             <div class="tour-copy">
               <span class="tour-num">02</span>
               <h3 data-i18n="tour.s2t">Rivales de tu nivel, no de cualquiera</h3>
@@ -202,7 +207,7 @@
             </div>
           </article>
           <article class="tour-step">
-            <div class="tour-shot"><div class="mini-phone"><img src="/shots/matches.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de partidos con propuestas y solicitudes pendientes."></div></div>
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/matches.webp" width="540" height="1174" loading="lazy" decoding="async" alt="Pantalla de partidos con propuestas y solicitudes pendientes."></div></div>
             <div class="tour-copy">
               <span class="tour-num">03</span>
               <h3 data-i18n="tour.s3t">Queda sin negociar por chat</h3>
@@ -210,7 +215,7 @@
             </div>
           </article>
           <article class="tour-step">
-            <div class="tour-shot"><div class="mini-phone"><img src="/shots/ranking.webp" width="540" height="960" loading="lazy" decoding="async" alt="Clasificación de la liga con posiciones y puntos."></div></div>
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/ranking.webp" width="540" height="1174" loading="lazy" decoding="async" alt="Clasificación de la liga con posiciones y puntos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">04</span>
               <h3 data-i18n="tour.s4t">Un resultado que los dos firmáis</h3>
@@ -218,7 +223,7 @@
             </div>
           </article>
           <article class="tour-step">
-            <div class="tour-shot"><div class="mini-phone"><img src="/shots/profile.webp" width="540" height="960" loading="lazy" decoding="async" alt="Perfil del jugador con el radar de nivel técnico y las valoraciones recibidas."></div></div>
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/profile.webp" width="540" height="1174" loading="lazy" decoding="async" alt="Perfil del jugador con el radar de nivel técnico y las valoraciones recibidas."></div></div>
             <div class="tour-copy">
               <span class="tour-num">05</span>
               <h3 data-i18n="tour.s5t">Tu juego, contado por quien te lo ha jugado</h3>
@@ -322,41 +327,25 @@
 
       <!-- Testers / colaboradores -->
       <div class="shell testers reveal">
-        <div class="eyebrow" data-i18n="testers.eyebrow">Gracias, equipo</div>
-        <h3 data-i18n="testers.title">Pulida por miradas expertas.</h3>
-        <p data-i18n="testers.sub">MatchPoint ha crecido gracias a sus early alpha testers: personas de campos muy distintos que la han probado, cuestionado y mejorado con su feedback. Estas son sus miradas.</p>
+        <div class="eyebrow" data-i18n="testers.eyebrow">Gracias, testers</div>
+        <h3 data-i18n="testers.title">Testeada por miradas expertas.</h3>
+        <p data-i18n="testers.sub">MatchPoint ha crecido gracias a sus early alpha testers: personas de campos muy distintos que la han probado a fondo y nos han dado su opinión sincera. Cada uno la mira desde su oficio.</p>
         <div class="mates-grid">
-          <span class="mate">
+          <a class="mate" href="https://www.linkedin.com/in/david-grau-martinez/" target="_blank" rel="noopener" aria-label="LinkedIn de David Grau">
             <span class="mate-ava" style="--h:210" aria-hidden="true">DG</span>
             <span class="mate-info">
               <b>David Grau</b>
-              <span class="mate-role" data-i18n="t.david.role">Programación</span>
-              <span class="mate-note" data-i18n="t.david.note">Revisión técnica y detección de bugs de lógica en partidos y ranking.</span>
-            </span>
-          </span>
-          <span class="mate">
-            <span class="mate-ava" style="--h:260" aria-hidden="true">GU</span>
-            <span class="mate-info">
-              <b>Guillermo</b>
-              <span class="mate-role" data-i18n="t.guillermo.role">Testing y marketing</span>
-              <span class="mate-note" data-i18n="t.guillermo.note">Feedback de producto y enfoque comercial para aterrizar el mensaje.</span>
-            </span>
-          </span>
-          <a class="mate" href="https://www.linkedin.com/in/elizabeth-c%C3%BAmes-6b73ab127/" target="_blank" rel="noopener" aria-label="LinkedIn de Elizabeth Cumes">
-            <span class="mate-ava" style="--h:20" aria-hidden="true">EC</span>
-            <span class="mate-info">
-              <b>Elizabeth Cumes</b>
-              <span class="mate-role" data-i18n="t.elizabeth.role">Testing y redacción</span>
-              <span class="mate-note" data-i18n="t.elizabeth.note">Pruebas de flujo y pulido de los textos de la app.</span>
+              <span class="mate-role" data-i18n="t.david.role">Programador</span>
+              <span class="mate-note" data-i18n="t.david.note">Programador: la testea con ojo técnico y caza lo que no cuadra en partidos y ranking.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
-          <a class="mate" href="https://www.linkedin.com/in/fernanda-alvarez-communitymanager" target="_blank" rel="noopener" aria-label="LinkedIn de Mafer">
-            <span class="mate-ava" style="--h:300" aria-hidden="true">MF</span>
+          <a class="mate" href="https://www.linkedin.com/in/guillermo-pascual-sanz-784895136/" target="_blank" rel="noopener" aria-label="LinkedIn de Guillermo Pascual">
+            <span class="mate-ava" style="--h:260" aria-hidden="true">GU</span>
             <span class="mate-info">
-              <b>Mafer</b>
-              <span class="mate-role" data-i18n="t.mafer.role">RRSS y estrategia</span>
-              <span class="mate-note" data-i18n="t.mafer.note">Estrategia de contenidos y visión de comunidad para el lanzamiento.</span>
+              <b>Guillermo Pascual</b>
+              <span class="mate-role" data-i18n="t.guillermo.role">Marketing</span>
+              <span class="mate-note" data-i18n="t.guillermo.note">Del mundo del marketing: opina sobre cómo se percibe el producto y su mensaje.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -364,8 +353,35 @@
             <span class="mate-ava" style="--h:160" aria-hidden="true">RA</span>
             <span class="mate-info">
               <b>Rebeca Alvarado</b>
-              <span class="mate-role" data-i18n="t.rebeca.role">RRSS y marketing</span>
-              <span class="mate-note" data-i18n="t.rebeca.note">Mirada de marketing digital y validación de la propuesta de valor.</span>
+              <span class="mate-role" data-i18n="t.rebeca.role">Marketing leader · RRSS</span>
+              <span class="mate-note" data-i18n="t.rebeca.note">Líder de marketing en su empresa y experta en redes sociales: aporta su visión sobre propuesta de valor y alcance.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/ligiamar%C3%ADaleeguandique-255777156/" target="_blank" rel="noopener" aria-label="LinkedIn de Ligia Lee">
+            <span class="mate-ava" style="--h:0" aria-hidden="true">LL</span>
+            <span class="mate-info">
+              <b>Ligia Lee</b>
+              <span class="mate-role" data-i18n="t.ligia.role">Modelo</span>
+              <span class="mate-note" data-i18n="t.ligia.note">Una mirada fresca desde fuera del sector tech y del tenis.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/elizabeth-c%C3%BAmes-6b73ab127/" target="_blank" rel="noopener" aria-label="LinkedIn de Elizabeth Cumes">
+            <span class="mate-ava" style="--h:20" aria-hidden="true">EC</span>
+            <span class="mate-info">
+              <b>Elizabeth Cumes</b>
+              <span class="mate-role" data-i18n="t.elizabeth.role">Redactora profesional</span>
+              <span class="mate-note" data-i18n="t.elizabeth.note">Redactora profesional: la testea con sensibilidad para el lenguaje y la claridad.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/fernanda-alvarez-communitymanager" target="_blank" rel="noopener" aria-label="LinkedIn de Mafer">
+            <span class="mate-ava" style="--h:300" aria-hidden="true">MF</span>
+            <span class="mate-info">
+              <b>Mafer</b>
+              <span class="mate-role" data-i18n="t.mafer.role">Community manager</span>
+              <span class="mate-note" data-i18n="t.mafer.note">Community manager: la prueba pensando en cómo la vivirá la comunidad.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -373,8 +389,8 @@
             <span class="mate-ava" style="--h:40" aria-hidden="true">ES</span>
             <span class="mate-info">
               <b>Evelin Solares</b>
-              <span class="mate-role" data-i18n="t.evelin.role">Comunidad y testing</span>
-              <span class="mate-note" data-i18n="t.evelin.note">Testing intensivo y feedback desde la gestión de comunidades.</span>
+              <span class="mate-role" data-i18n="t.evelin.role">Gestión de comunidades</span>
+              <span class="mate-note" data-i18n="t.evelin.note">Gestiona comunidades: feedback cercano y sin filtro, de usuaria real.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -382,8 +398,8 @@
             <span class="mate-ava" style="--h:330" aria-hidden="true">KI</span>
             <span class="mate-info">
               <b>Kimberly</b>
-              <span class="mate-role" data-i18n="t.kimberly.role">Diseño y edición de vídeo</span>
-              <span class="mate-note" data-i18n="t.kimberly.note">Criterio visual y piezas de vídeo para comunicar la app.</span>
+              <span class="mate-role" data-i18n="t.kimberly.role">Diseñadora · Vídeo</span>
+              <span class="mate-note" data-i18n="t.kimberly.note">Diseñadora y editora de vídeo: la testea con criterio visual.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -391,16 +407,16 @@
             <span class="mate-ava" style="--h:210" aria-hidden="true">SC</span>
             <span class="mate-info">
               <b>Stanley Castro</b>
-              <span class="mate-role" data-i18n="t.stanley.role">Diseño y fotografía</span>
-              <span class="mate-note" data-i18n="t.stanley.note">Ha diseñado y fotografiado para MatchPoint, y ha testeado la app a fondo.</span>
+              <span class="mate-role" data-i18n="t.stanley.role">Diseñador · Fotógrafo</span>
+              <span class="mate-note" data-i18n="t.stanley.note">Diseñador y fotógrafo: la ha testeado con ojo para el detalle visual.</span>
             </span>
           </span>
           <a class="mate" href="https://www.linkedin.com/in/enrique-gregori-alvarez-18aa897b/" target="_blank" rel="noopener" aria-label="LinkedIn de Enrique Gregori">
             <span class="mate-ava" style="--h:130" aria-hidden="true">EG</span>
             <span class="mate-info">
               <b>Enrique Gregori</b>
-              <span class="mate-role" data-i18n="t.enrique.role">Testing e ingeniería</span>
-              <span class="mate-note" data-i18n="t.enrique.note">Pruebas de estrés y mirada ingenieril sobre el rendimiento.</span>
+              <span class="mate-role" data-i18n="t.enrique.role">Ingeniero</span>
+              <span class="mate-note" data-i18n="t.enrique.note">Ingeniero: la pone a prueba con mirada ingenieril sobre el rendimiento.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -408,8 +424,8 @@
             <span class="mate-ava" style="--h:80" aria-hidden="true">KT</span>
             <span class="mate-info">
               <b>Kilian Tutusaus</b>
-              <span class="mate-role" data-i18n="t.kilian.role">Testing y mundo del tenis</span>
-              <span class="mate-note" data-i18n="t.kilian.note">Validación en pista: reglas, niveles y experiencia del jugador.</span>
+              <span class="mate-role" data-i18n="t.kilian.role">Mundo del tenis</span>
+              <span class="mate-note" data-i18n="t.kilian.note">Conoce el tenis por dentro: valida reglas, niveles y experiencia del jugador.</span>
             </span>
             <span class="mate-li" aria-hidden="true">in ↗</span>
           </a>
@@ -417,19 +433,10 @@
             <span class="mate-ava" style="--h:230" aria-hidden="true">AO</span>
             <span class="mate-info">
               <b>Arturo Ortega</b>
-              <span class="mate-role" data-i18n="t.arturo.role">Proyectos europeos · Consejero</span>
-              <span class="mate-note" data-i18n="t.arturo.note">Consejo estratégico y visión de producto a largo plazo.</span>
+              <span class="mate-role" data-i18n="t.arturo.role">Proyectos europeos</span>
+              <span class="mate-note" data-i18n="t.arturo.note">Lidera proyectos europeos: aporta visión estratégica a largo plazo.</span>
             </span>
           </span>
-          <a class="mate" href="https://www.linkedin.com/in/ligiamar%C3%ADaleeguandique-255777156/" target="_blank" rel="noopener" aria-label="LinkedIn de Ligia Lee">
-            <span class="mate-ava" style="--h:0" aria-hidden="true">LL</span>
-            <span class="mate-info">
-              <b>Ligia Lee</b>
-              <span class="mate-role" data-i18n="t.ligia.role">Modelo y testing</span>
-              <span class="mate-note" data-i18n="t.ligia.note">Testing de experiencia y una mirada fresca fuera del sector.</span>
-            </span>
-            <span class="mate-li" aria-hidden="true">in ↗</span>
-          </a>
         </div>
       </div>
     </section>
@@ -524,7 +531,7 @@
       </div>
     </div>
   </footer>
-  <script src="/app.js?v=5" defer></script>
-  <script type="module" src="/hero3d.js?v=5"></script>
+  <script src="/app.js?v=6" defer></script>
+  <script type="module" src="/hero3d.js?v=6"></script>
 </body>
 </html>
