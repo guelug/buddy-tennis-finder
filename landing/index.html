@@ -3,21 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#070c08">
+  <meta name="theme-color" content="#060a07">
   <meta name="description" content="Encuentra tenistas de tu nivel, organiza partidos y sube en un ranking validado con MatchPoint Tennis.">
   <meta property="og:title" content="MatchPoint Tennis — Deja de buscar rival. Empieza a jugar.">
   <meta property="og:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://tenisbuddy-app.web.app/">
-  <meta property="og:image" content="https://tenisbuddy-app.web.app/social/feed-square.png">
+  <meta property="og:url" content="https://tennisleagueapp.win/">
+  <meta property="og:image" content="https://tennisleagueapp.win/social/feed-square.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="MatchPoint Tennis — Deja de buscar rival. Empieza a jugar.">
   <meta name="twitter:description" content="Rivales de tu nivel, partidos reales y un ranking que se gana en pista.">
-  <meta name="twitter:image" content="https://tenisbuddy-app.web.app/social/feed-square.png">
+  <meta name="twitter:image" content="https://tennisleagueapp.win/social/feed-square.png">
   <title>MatchPoint Tennis — Encuentra tu próximo partido</title>
-  <link rel="canonical" href="https://tenisbuddy-app.web.app/">
+  <link rel="canonical" href="https://tennisleagueapp.win/">
   <link rel="icon" href="/favicon.png" sizes="32x32">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -26,7 +29,7 @@
     "applicationCategory": "SportsApplication",
     "operatingSystem": "iOS, Android",
     "description": "Encuentra tenistas de tu nivel, organiza partidos y sube en un ranking construido con resultados que ambos jugadores confirman.",
-    "url": "https://tenisbuddy-app.web.app/",
+    "url": "https://tennisleagueapp.win/",
     "inLanguage": "es",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
     "installUrl": [
@@ -38,199 +41,372 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <nav class="nav">
+  <canvas id="court-canvas" aria-hidden="true"></canvas>
+  <div class="cursor-ball" aria-hidden="true"></div>
+  <div id="scroll-progress" aria-hidden="true"></div>
+
+  <nav class="nav" id="nav">
     <div class="shell nav-inner">
-      <a class="brand" href="/"><span class="ball" aria-hidden="true"></span> MatchPoint Tennis</a>
+      <a class="brand" href="/"><span class="ball" aria-hidden="true"></span> <span>MatchPoint</span></a>
       <div class="nav-links">
-        <a href="#como-funciona">Cómo funciona</a><a href="#tour">La app</a><a href="#ligas">Ligas</a><a href="#nosotros">Nosotros</a><a href="#seguridad">Seguridad</a>
-        <a class="button" href="#descargar">Descargar</a>
+        <a href="#como-funciona" data-i18n="nav.how">Cómo funciona</a>
+        <a href="#tour" data-i18n="nav.tour">La app</a>
+        <a href="#ligas" data-i18n="nav.leagues">Ligas</a>
+        <a href="#nosotros" data-i18n="nav.about">Nosotros</a>
+        <a href="#faq" data-i18n="nav.faq">FAQ</a>
+      </div>
+      <div class="nav-right">
+        <div class="lang-select" role="group" aria-label="Idioma / Language / Idioma">
+          <button type="button" data-lang="es" aria-label="Español">ES</button>
+          <button type="button" data-lang="en" aria-label="English">EN</button>
+          <button type="button" data-lang="ca" aria-label="Català">CA</button>
+        </div>
+        <a class="button button-small magnetic" href="#descargar" data-i18n="nav.cta">Descargar</a>
       </div>
     </div>
   </nav>
+
   <main>
-    <section class="shell hero">
-      <div>
-        <div class="eyebrow">Tu ciudad · tu nivel · tu próximo partido</div>
-        <h1>Deja de buscar rival.<br><span>Empieza a jugar.</span></h1>
-        <p class="lead">MatchPoint conecta tenistas de tu nivel, organiza partidos con pista y convierte cada resultado validado en un ranking que sí refleja tu juego.</p>
-        <div class="actions" id="descargar">
-          <a class="button ios-link" href="https://apps.apple.com/app/id6793740051" aria-label="Descargar MatchPoint para iPhone"> Descargar para iPhone</a>
-          <a class="button secondary android-link" href="https://play.google.com/store/apps/details?id=com.matchpoint.clubs" aria-label="Descargar MatchPoint para Android">▶ Descargar para Android</a>
+    <!-- ============================= HERO ============================= -->
+    <section class="shell hero" id="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <div class="eyebrow reveal" data-i18n="hero.eyebrow">Tu ciudad · Tu nivel · Tu próximo partido</div>
+        <h1 class="reveal" data-i18n-html="hero.title">Deja de buscar rival.<br><span class="accent">Empieza a jugar.</span></h1>
+        <p class="lead reveal" data-i18n="hero.lead">MatchPoint conecta tenistas de tu nivel, organiza partidos con pista y convierte cada resultado validado en un ranking que sí refleja tu juego.</p>
+        <div class="actions reveal" id="descargar">
+          <a class="button magnetic ios-link" href="https://apps.apple.com/app/id6793740051" aria-label="Descargar MatchPoint para iPhone">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c-.03-2.9 2.37-4.29 2.48-4.36-1.35-1.98-3.46-2.25-4.21-2.28-1.79-.18-3.5 1.06-4.4 1.06-.91 0-2.31-1.03-3.8-1-1.95.03-3.75 1.14-4.76 2.88-2.03 3.52-.52 8.74 1.46 11.6.97 1.4 2.12 2.97 3.63 2.91 1.46-.06 2.01-.94 3.77-.94s2.26.94 3.8.91c1.57-.03 2.57-1.42 3.53-2.83 1.11-1.62 1.57-3.19 1.6-3.27-.04-.02-3.07-1.18-3.1-4.68zM14.14 4c.8-.97 1.34-2.32 1.19-3.66-1.15.05-2.55.77-3.38 1.74-.74.85-1.39 2.22-1.22 3.53 1.29.1 2.6-.65 3.41-1.61z"/></svg>
+            <span data-i18n="hero.ios">Descargar para iPhone</span>
+          </a>
+          <a class="button secondary magnetic android-link" href="https://play.google.com/store/apps/details?id=com.matchpoint.clubs" aria-label="Descargar MatchPoint para Android">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M3.6 2.3c-.34.36-.6 1-.6 1.86v15.68c0 .86.26 1.5.6 1.86l.08.08 8.79-8.8v-.2L3.68 2.22l-.08.08zm11.6 8.67l-3.7-3.7 4.24-4.24 3.14 1.78c.9.51.9 1.35 0 1.86l-3.68 2.3zm-.86.86l-3.7 3.7 3.7 3.7 3.72-2.32c.9-.51.9-1.35 0-1.86l-3.72-1.22zm-4.56 4.56l-4.24 4.24 8.5-8.5-4.26 4.26z" opacity=".9"/><path d="M5.54 20.63l8.24-8.25-2.02-2.02-6.22 10.27zm8.24-16.7L5.54 3.37l6.22 10.27 2.02-2.02-8.24-7.69z" fill="none"/></svg>
+            <span data-i18n="hero.android">Descargar para Android</span>
+          </a>
         </div>
-        <div class="availability">iPhone y Android · Una comunidad pensada para jugar más.</div>
-        <div class="hero-proof" aria-label="Ventajas de MatchPoint">
-          <span>✓ Rivales compatibles</span><span>✓ Partidos con pista</span><span>✓ Ranking validado</span>
+        <div class="availability reveal" data-i18n="hero.availability">Gratis · iPhone y Android · Sin permanencia</div>
+        <div class="hero-proof reveal" aria-label="Ventajas de MatchPoint">
+          <span data-i18n="hero.proof1">✓ Rivales compatibles</span>
+          <span data-i18n="hero.proof2">✓ Partidos con pista</span>
+          <span data-i18n="hero.proof3">✓ Ranking validado</span>
         </div>
       </div>
-      <div class="phone-wrap" aria-label="Vista previa de MatchPoint">
-        <div class="orbit"></div>
-        <div class="phone">
-          <div class="island"></div>
-          <div class="eyebrow">Liga Barcelona · Nivel C</div>
-          <div class="screen-title">Juega. Valida.<br>Sube puestos.</div>
-          <div class="match-card"><small>Resultado pendiente de validación</small><strong>Lucía vs. Dani</strong><div class="score"><span>Club Esportiu<br><small>Hoy · 19:30</small></span><b>6–4 6–3</b></div></div>
-          <div class="rank-card"><small>Clasificación regional</small><div class="rank-row"><b>1</b><span class="avatar">M</span><span>Marta R.</span><b>425</b></div><div class="rank-row"><b>2</b><span class="avatar">A</span><span>Álex P.</span><b>390</b></div><div class="rank-row"><b>3</b><span class="avatar">T</span><span>Tú</span><b>375</b></div></div>
+
+      <div class="hero-stage" aria-label="Vista previa de MatchPoint">
+        <div class="orbit" aria-hidden="true"></div>
+        <!-- iPhone con showcase rotatorio -->
+        <div class="device iphone tilt" id="hero-iphone">
+          <div class="device-buttons" aria-hidden="true"></div>
+          <div class="device-screen">
+            <div class="dynamic-island" aria-hidden="true"></div>
+            <div class="showcase" id="showcase">
+              <img src="/shots/home.webp" alt="Pantalla de inicio de MatchPoint" class="active" data-caption="showcase.cap1">
+              <img src="/shots/rivals.webp" alt="Rivales compatibles en MatchPoint" loading="lazy" data-caption="showcase.cap2">
+              <img src="/shots/matches.webp" alt="Partidos y reservas en MatchPoint" loading="lazy" data-caption="showcase.cap3">
+              <img src="/shots/ranking.webp" alt="Ranking de la liga en MatchPoint" loading="lazy" data-caption="showcase.cap4">
+              <img src="/shots/profile.webp" alt="Perfil de jugador en MatchPoint" loading="lazy" data-caption="showcase.cap5">
+            </div>
+            <div class="showcase-caption" id="showcase-caption" data-i18n="showcase.cap1">Tu próximo partido, al abrir la app</div>
+            <div class="showcase-dots" id="showcase-dots" aria-hidden="true"></div>
+          </div>
         </div>
+        <!-- Pixel detrás -->
+        <div class="device pixel tilt" id="hero-pixel" aria-hidden="true">
+          <div class="device-screen">
+            <div class="punch-hole" aria-hidden="true"></div>
+            <img src="/shots/ranking.webp" alt="" loading="lazy">
+          </div>
+        </div>
+        <div class="floating-ball fb1" aria-hidden="true"></div>
+        <div class="floating-ball fb2" aria-hidden="true"></div>
+      </div>
+      <div class="scroll-hint" aria-hidden="true"><span data-i18n="hero.scroll">Desliza</span><i></i></div>
+    </section>
+
+    <!-- ========================= SOCIAL PROOF ========================= -->
+    <section class="proof-strip" aria-label="Comunidad MatchPoint">
+      <div class="marquee" aria-hidden="true">
+        <div class="marquee-track" id="marquee-track">
+          <span>Barcelona</span><i>·</i><span>Madrid</span><i>·</i><span>Valencia</span><i>·</i><span>Sevilla</span><i>·</i><span>Girona</span><i>·</i><span>Tarragona</span><i>·</i><span>Ciudad de Guatemala</span><i>·</i><span data-i18n="proof.city">Tu ciudad es la siguiente</span><i>·</i>
+        </div>
+      </div>
+      <div class="shell stats">
+        <div class="stat reveal"><b data-count="100">0</b><span data-i18n="proof.stat1">% gratis, sin letra pequeña</span></div>
+        <div class="stat reveal"><b data-count="2">0</b><span data-i18n="proof.stat2">jugadores confirman cada resultado</span></div>
+        <div class="stat reveal"><b data-count="5">0</b><span data-i18n="proof.stat3">golpes que puntúan tus rivales</span></div>
+        <div class="stat reveal"><b data-count="1">0</b><span data-i18n="proof.stat4">toque para encontrar rival</span></div>
       </div>
     </section>
 
+    <!-- =========================== FEATURES =========================== -->
     <section class="section" id="como-funciona">
       <div class="shell">
-        <div class="section-header"><div class="eyebrow">Todo el club en tu bolsillo</div><h2>Menos chats eternos.<br>Más tiempo en pista.</h2><p>MatchPoint organiza la parte difícil para que tú solo tengas que elegir rival, pista y hora.</p></div>
-        <div class="grid">
-          <article class="card"><span class="card-number">01</span><h3>Rivales compatibles</h3><p>Descubre tenistas cercanos por ciudad, nivel, disponibilidad y modalidad. Menos ruido, mejores partidos.</p></article>
-          <article class="card"><span class="card-number">02</span><h3>Partidos abiertos</h3><p>¿Ya tienes pista? Publica la reserva y encuentra un rival compatible sin llenar grupos de mensajes.</p></article>
-          <article class="card"><span class="card-number">03</span><h3>Resultado consensuado</h3><p>Un jugador reporta el marcador y el rival lo confirma. Tu ranking se construye con partidos reales.</p></article>
-          <article class="card"><span class="card-number">04</span><h3>Clubes y entrenadores</h3><p>Guarda tus clubes habituales, descubre pistas y encuentra profesionales que entrenan cerca de ti.</p></article>
-          <article class="card"><span class="card-number">05</span><h3>Tu Match Buddy</h3><p>Resuelve dudas, prepara partidos y descubre tu siguiente paso sin salir de la app.</p></article>
-          <article class="card"><span class="card-number">06</span><h3>Tu ciudad primero</h3><p>Encuentra oportunidades relevantes para tu zona y mantén tu información personal bajo control.</p></article>
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="feat.eyebrow">Todo el club en tu bolsillo</div>
+          <h2 data-i18n-html="feat.title">Menos chats eternos.<br><span class="accent">Más tiempo en pista.</span></h2>
+          <p data-i18n="feat.sub">MatchPoint organiza la parte difícil para que tú solo tengas que elegir rival, pista y hora.</p>
+        </div>
+        <div class="grid stagger">
+          <article class="card tilt-card"><span class="card-number">01</span><h3 data-i18n="feat.c1t">Rivales compatibles</h3><p data-i18n="feat.c1p">Descubre tenistas cercanos por ciudad, nivel, disponibilidad y modalidad. Menos ruido, mejores partidos.</p></article>
+          <article class="card tilt-card"><span class="card-number">02</span><h3 data-i18n="feat.c2t">Partidos abiertos</h3><p data-i18n="feat.c2p">¿Ya tienes pista? Publica la reserva y encuentra un rival compatible sin llenar grupos de mensajes.</p></article>
+          <article class="card tilt-card"><span class="card-number">03</span><h3 data-i18n="feat.c3t">Resultado consensuado</h3><p data-i18n="feat.c3p">Un jugador reporta el marcador y el rival lo confirma. Tu ranking se construye con partidos reales.</p></article>
+          <article class="card tilt-card"><span class="card-number">04</span><h3 data-i18n="feat.c4t">Clubes y entrenadores</h3><p data-i18n="feat.c4p">Guarda tus clubes habituales, descubre pistas y encuentra profesionales que entrenan cerca de ti.</p></article>
+          <article class="card tilt-card"><span class="card-number">05</span><h3 data-i18n="feat.c5t">Tu Match Buddy</h3><p data-i18n="feat.c5p">Resuelve dudas, prepara partidos y descubre tu siguiente paso sin salir de la app.</p></article>
+          <article class="card tilt-card"><span class="card-number">06</span><h3 data-i18n="feat.c6t">Tu ciudad primero</h3><p data-i18n="feat.c6p">Encuentra oportunidades relevantes para tu zona y mantén tu información personal bajo control.</p></article>
         </div>
       </div>
     </section>
 
-
+    <!-- ========================= PRODUCT TOUR ========================= -->
     <section class="section" id="tour">
       <div class="shell">
-        <div class="section-header">
-          <div class="eyebrow">Un paseo por la app</div>
-          <h2>Así se juega<br><span>un partido en MatchPoint.</span></h2>
-          <p>De abrir la app a subir en el ranking, en cinco pasos. Sin grupos de mensajes y sin discutir el resultado.</p>
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="tour.eyebrow">Un paseo por la app</div>
+          <h2 data-i18n-html="tour.title">Así se juega<br><span class="accent">un partido en MatchPoint.</span></h2>
+          <p data-i18n="tour.sub">De abrir la app a subir en el ranking, en cinco pasos. Sin grupos de mensajes y sin discutir el resultado.</p>
         </div>
 
         <div class="tour">
-          <article class="tour-step">
-            <div class="tour-shot"><img src="/shots/home.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de inicio de MatchPoint con el próximo partido y los accesos rápidos."></div>
+          <article class="tour-step reveal">
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/home.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de inicio de MatchPoint con el próximo partido y los accesos rápidos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">01</span>
-              <h3>Tu próximo partido, al abrir</h3>
-              <p>Nada más entrar ves qué tienes en la agenda, en qué club y a qué hora. Desde ahí llegas en un toque a buscar rival, reservar o mirar tu posición.</p>
+              <h3 data-i18n="tour.s1t">Tu próximo partido, al abrir</h3>
+              <p data-i18n="tour.s1p">Nada más entrar ves qué tienes en la agenda, en qué club y a qué hora. Desde ahí llegas en un toque a buscar rival, reservar o mirar tu posición.</p>
             </div>
           </article>
-
-          <article class="tour-step">
-            <div class="tour-shot"><img src="/shots/rivals.webp" width="540" height="960" loading="lazy" decoding="async" alt="Listado de rivales compatibles filtrados por nivel y disponibilidad."></div>
+          <article class="tour-step reveal">
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/rivals.webp" width="540" height="960" loading="lazy" decoding="async" alt="Listado de rivales compatibles filtrados por nivel y disponibilidad."></div></div>
             <div class="tour-copy">
               <span class="tour-num">02</span>
-              <h3>Rivales de tu nivel, no de cualquiera</h3>
-              <p>Filtra por ciudad, nivel, edad y disponibilidad. Cada perfil llega con su valoración y sus notas técnicas, así sabes a qué vas antes de quedar.</p>
+              <h3 data-i18n="tour.s2t">Rivales de tu nivel, no de cualquiera</h3>
+              <p data-i18n="tour.s2p">Filtra por ciudad, nivel, edad y disponibilidad. Cada perfil llega con su valoración y sus notas técnicas, así sabes a qué vas antes de quedar.</p>
             </div>
           </article>
-
-          <article class="tour-step">
-            <div class="tour-shot"><img src="/shots/matches.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de partidos con propuestas y solicitudes pendientes."></div>
+          <article class="tour-step reveal">
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/matches.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de partidos con propuestas y solicitudes pendientes."></div></div>
             <div class="tour-copy">
               <span class="tour-num">03</span>
-              <h3>Queda sin negociar por chat</h3>
-              <p>Publica tu reserva o pide plaza en la de otro. La app se encarga de horarios, pista y confirmaciones; tú solo dices que sí.</p>
+              <h3 data-i18n="tour.s3t">Queda sin negociar por chat</h3>
+              <p data-i18n="tour.s3p">Publica tu reserva o pide plaza en la de otro. La app se encarga de horarios, pista y confirmaciones; tú solo dices que sí.</p>
             </div>
           </article>
-
-          <article class="tour-step">
-            <div class="tour-shot"><img src="/shots/ranking.webp" width="540" height="960" loading="lazy" decoding="async" alt="Clasificación de la liga con posiciones y puntos."></div>
+          <article class="tour-step reveal">
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/ranking.webp" width="540" height="960" loading="lazy" decoding="async" alt="Clasificación de la liga con posiciones y puntos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">04</span>
-              <h3>Un resultado que los dos firmáis</h3>
-              <p>Uno registra el marcador y el rival lo confirma. Solo entonces cuenta para la clasificación, así que el ranking refleja partidos de verdad.</p>
+              <h3 data-i18n="tour.s4t">Un resultado que los dos firmáis</h3>
+              <p data-i18n="tour.s4p">Uno registra el marcador y el rival lo confirma. Solo entonces cuenta para la clasificación, así que el ranking refleja partidos de verdad.</p>
             </div>
           </article>
-
-          <article class="tour-step">
-            <div class="tour-shot"><img src="/shots/profile.webp" width="540" height="960" loading="lazy" decoding="async" alt="Perfil del jugador con el radar de nivel técnico y las valoraciones recibidas."></div>
+          <article class="tour-step reveal">
+            <div class="tour-shot"><div class="mini-phone"><img src="/shots/profile.webp" width="540" height="960" loading="lazy" decoding="async" alt="Perfil del jugador con el radar de nivel técnico y las valoraciones recibidas."></div></div>
             <div class="tour-copy">
               <span class="tour-num">05</span>
-              <h3>Tu juego, contado por quien te lo ha jugado</h3>
-              <p>Después del partido os puntuáis saque, derecha, revés, volea y consistencia. Con el tiempo tu perfil deja de ser lo que tú dices y pasa a ser lo que demuestras.</p>
+              <h3 data-i18n="tour.s5t">Tu juego, contado por quien te lo ha jugado</h3>
+              <p data-i18n="tour.s5p">Después del partido os puntuáis saque, derecha, revés, volea y consistencia. Con el tiempo tu perfil deja de ser lo que tú dices y pasa a ser lo que demuestras.</p>
             </div>
           </article>
         </div>
       </div>
     </section>
 
+    <!-- =========================== LEAGUES ============================ -->
     <section class="section" id="ligas">
       <div class="shell league">
-        <div class="league-board">
-          <div class="eyebrow">Liga pública · Individual</div>
-          <div class="league-row"><b>1</b><span>Carla M.<br><small>8 victorias</small></span><b>825 pts</b></div>
-          <div class="league-row"><b>2</b><span>Jorge A.<br><small>7 victorias</small></span><b>740 pts</b></div>
-          <div class="league-row"><b>3</b><span>Marina S.<br><small>6 victorias</small></span><b>650 pts</b></div>
-          <div class="league-row"><b>4</b><span>David L.<br><small>5 victorias</small></span><b>575 pts</b></div>
+        <div class="league-board reveal" aria-hidden="true">
+          <div class="eyebrow" data-i18n="league.boardLabel">Liga pública · Individual</div>
+          <div class="league-row"><b>1</b><span>Carla M.<br><small data-i18n="league.w8">8 victorias</small></span><b>825 <i data-i18n="league.pts">pts</i></b></div>
+          <div class="league-row"><b>2</b><span>Jorge A.<br><small data-i18n="league.w7">7 victorias</small></span><b>740 <i data-i18n="league.pts">pts</i></b></div>
+          <div class="league-row you"><b>3</b><span data-i18n-html="league.you">Tú<br><small>5 victorias</small></span><b>650 <i data-i18n="league.pts">pts</i></b></div>
+          <div class="league-row"><b>4</b><span>Marina S.<br><small data-i18n="league.w5">5 victorias</small></span><b>575 <i data-i18n="league.pts">pts</i></b></div>
         </div>
-        <div>
-          <div class="eyebrow">Competición que sí encaja contigo</div>
-          <h2>Un ranking que se gana en pista.</h2>
-          <p class="lead">Desde Novato hasta A. Te inscribes en tu división, juegas cuando ambos podéis y cada partido validado alimenta una clasificación transparente.</p>
-          <div class="steps">
-            <div class="step"><b>01</b><p>Elige tu nivel y ciudad.</p></div>
-            <div class="step"><b>02</b><p>Únete a la liga regional.</p></div>
-            <div class="step"><b>03</b><p>Juega y registra el marcador.</p></div>
-            <div class="step"><b>04</b><p>Tu rival valida y puntúas.</p></div>
+        <div class="reveal">
+          <div class="eyebrow" data-i18n="league.eyebrow">Competición que sí encaja contigo</div>
+          <h2 data-i18n-html="league.title">Un ranking que<br><span class="accent">se gana en pista.</span></h2>
+          <p class="lead" data-i18n="league.lead">Desde Novato hasta A. Te inscribes en tu división, juegas cuando ambos podéis y cada partido validado alimenta una clasificación transparente.</p>
+          <div class="steps stagger">
+            <div class="step"><b>01</b><p data-i18n="league.st1">Elige tu nivel y ciudad.</p></div>
+            <div class="step"><b>02</b><p data-i18n="league.st2">Únete a la liga regional.</p></div>
+            <div class="step"><b>03</b><p data-i18n="league.st3">Juega y registra el marcador.</p></div>
+            <div class="step"><b>04</b><p data-i18n="league.st4">Tu rival valida y puntúas.</p></div>
           </div>
         </div>
       </div>
     </section>
 
+    <!-- =========================== BENEFITS =========================== -->
+    <section class="section" id="beneficios">
+      <div class="shell">
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="vs.eyebrow">El antes y el después</div>
+          <h2 data-i18n-html="vs.title">El grupo de WhatsApp<br><span class="accent">contra MatchPoint.</span></h2>
+        </div>
+        <div class="vs-grid reveal">
+          <div class="vs-col vs-old">
+            <h3 data-i18n="vs.oldT">El caos de siempre</h3>
+            <ul>
+              <li data-i18n="vs.old1">237 mensajes para quedar un martes</li>
+              <li data-i18n="vs.old2">Rivales que no son de tu nivel</li>
+              <li data-i18n="vs.old3">Resultados que nadie recuerda igual</li>
+              <li data-i18n="vs.old4">Tu progreso, guardado en la nada</li>
+            </ul>
+          </div>
+          <div class="vs-col vs-new">
+            <h3 data-i18n="vs.newT">Con MatchPoint</h3>
+            <ul>
+              <li data-i18n="vs.new1">Un toque: rival, pista y hora</li>
+              <li data-i18n="vs.new2">Rivales filtrados por nivel real</li>
+              <li data-i18n="vs.new3">Marcador confirmado por los dos</li>
+              <li data-i18n="vs.new4">Un récord que crece partido a partido</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ ABOUT ============================= -->
     <section class="section" id="nosotros">
       <div class="shell story">
-        <div class="story-copy">
-          <div class="eyebrow">Una necesidad real, convertida en producto</div>
-          <h2>Hecha por tenistas,<br>para jugar más.</h2>
-          <p class="lead">MatchPoint no nació en una sala de reuniones. Nació de una dificultad muy concreta: encontrar rivales compatibles, organizar partidos y competir sin depender de grupos interminables.</p>
-          <p>Cristian Gonzalez Salvatierra, cofundador, vivía esa necesidad en primera persona. Su experiencia, sus peticiones y el contacto directo con lo que necesita un jugador dieron origen a la idea y siguen guiando la evolución del producto.</p>
-          <p>Pedro, fundador, ha convertido esa visión en MatchPoint: estrategia, diseño y desarrollo de la aplicación, transformando cada necesidad real en una experiencia sencilla, segura y útil dentro y fuera de la pista.</p>
+        <div class="story-copy reveal">
+          <div class="eyebrow" data-i18n="about.eyebrow">Una necesidad real, convertida en producto</div>
+          <h2 data-i18n-html="about.title">Hecha por tenistas,<br><span class="accent">para jugar más.</span></h2>
+          <p class="lead" data-i18n="about.lead">MatchPoint no nació en una sala de reuniones. Nació de una dificultad muy concreta: encontrar rivales compatibles, organizar partidos y competir sin depender de grupos interminables.</p>
+          <p data-i18n="about.p1">Cristian Gonzalez Salvatierra, cofundador, vivía esa necesidad en primera persona. Su experiencia, sus peticiones y el contacto directo con lo que necesita un jugador dieron origen a la idea y siguen guiando la evolución del producto.</p>
+          <p data-i18n="about.p2">Pedro Caparrós, fundador y desarrollador, ha convertido esa visión en MatchPoint: diseño, usabilidad y desarrollo de la aplicación de principio a fin, transformando cada necesidad real en una experiencia sencilla y útil dentro y fuera de la pista.</p>
         </div>
-        <div class="founders" aria-label="Fundadores de MatchPoint">
+        <div class="founders reveal" aria-label="Fundadores de MatchPoint">
           <article class="founder-card founder-primary">
             <div class="founder-mark" aria-hidden="true">P</div>
             <div>
-              <span>Fundador</span>
-              <h3>Pedro</h3>
-              <p>Producto, diseño y desarrollo.</p>
+              <span data-i18n="about.pedroRole">Fundador y desarrollador</span>
+              <h3>Pedro Caparrós</h3>
+              <p data-i18n="about.pedroDesc">Diseño, usabilidad y desarrollo, de la idea a la app.</p>
             </div>
           </article>
           <article class="founder-card">
             <div class="founder-mark" aria-hidden="true">C</div>
             <div>
-              <span>Cofundador</span>
+              <span data-i18n="about.crisRole">Cofundador</span>
               <h3>Cristian Gonzalez Salvatierra</h3>
-              <p>Origen de la idea, necesidades de jugador y visión de producto.</p>
+              <p data-i18n="about.crisDesc">Origen de la idea, necesidades de jugador y visión de producto.</p>
             </div>
           </article>
-          <blockquote>“Construimos lo que de verdad echábamos en falta para poder jugar.”</blockquote>
+          <blockquote data-i18n="about.quote">“Construimos lo que de verdad echábamos en falta para poder jugar.”</blockquote>
+        </div>
+      </div>
+
+      <!-- Testers -->
+      <div class="shell testers reveal">
+        <div class="eyebrow" data-i18n="testers.eyebrow">Gracias, equipo</div>
+        <h3 data-i18n="testers.title">Construida con jugadores reales.</h3>
+        <p data-i18n="testers.sub">MatchPoint es mejor gracias a nuestros testers, que la han probado en pista y nos han llenado de sugerencias para pulir cada detalle:</p>
+        <div class="tester-wall">
+          <span class="tester">David Grau</span>
+          <span class="tester">Guillermo</span>
+          <span class="tester">Rebeca Alvarado</span>
+          <span class="tester">Elizabeth Cumes</span>
+          <span class="tester">Mafer</span>
+          <span class="tester">Evelin Solares</span>
+          <span class="tester">Kimberly</span>
+          <span class="tester">Enrique Gregori</span>
+          <span class="tester">Kilian Tutusaus</span>
+          <span class="tester">Arturo Ortega</span>
+          <span class="tester tester-more" data-i18n="testers.more">…y muchos más</span>
         </div>
       </div>
     </section>
 
-    <section class="section" id="seguridad">
+    <!-- =========================== PRIVACY ============================ -->
+    <section class="section" id="privacidad">
       <div class="shell">
-        <div class="section-header"><div class="eyebrow">Juega con tranquilidad</div><h2>Tu juego es público.<br>Tus datos, no.</h2><p>Diseñamos MatchPoint para que competir sea sencillo y tu información personal permanezca bajo tu control.</p></div>
-        <div class="grid">
-          <article class="card"><span class="card-number">PROTECCIÓN</span><h3>Acceso seguro</h3><p>Usamos autenticación nativa y controles de integridad para proteger el acceso a la comunidad.</p></article>
-          <article class="card"><span class="card-number">CONTROL</span><h3>Borra tu cuenta</h3><p>Puedes eliminar desde la app tu perfil, identidad privada y datos asociados, sin escribir a soporte.</p></article>
-          <article class="card"><span class="card-number">TRANSPARENCIA</span><h3>Reglas claras</h3><p>Consulta nuestra política de privacidad, términos, soporte y procedimiento de eliminación.</p></article>
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="priv.eyebrow">Juega con tranquilidad</div>
+          <h2 data-i18n-html="priv.title">Tu juego es público.<br><span class="accent">Tus datos, no.</span></h2>
+          <p data-i18n="priv.sub">Solo te pedimos lo imprescindible para que puedas jugar, y usamos estadísticas anónimas para mantener la app rápida, estable y mejorando cada semana.</p>
+        </div>
+        <div class="grid stagger">
+          <article class="card tilt-card"><span class="card-number" data-i18n="priv.k1">MÍNIMO</span><h3 data-i18n="priv.c1t">Solo lo imprescindible</h3><p data-i18n="priv.c1p">Tu perfil de jugador, tu ciudad y tus partidos. Nada más. Lo justo para encontrarte rivales y llevar tu récord.</p></article>
+          <article class="card tilt-card"><span class="card-number" data-i18n="priv.k2">MEJORA</span><h3 data-i18n="priv.c2t">Estadísticas anónimas</h3><p data-i18n="priv.c2p">Datos agregados y anónimos de uso nos ayudan a detectar fallos y mantener la app en forma. Nunca sabemos quién eres.</p></article>
+          <article class="card tilt-card"><span class="card-number" data-i18n="priv.k3">CONTROL</span><h3 data-i18n="priv.c3t">Tú tienes el control</h3><p data-i18n="priv.c3p">Borra tu cuenta y tus datos desde la propia app, cuando quieras, sin escribir a soporte y sin esperas.</p></article>
         </div>
       </div>
     </section>
 
+    <!-- ============================ PRICING =========================== -->
+    <section class="section" id="precio">
+      <div class="shell">
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="price.eyebrow">Sin letra pequeña</div>
+          <h2 data-i18n-html="price.title">Gratis.<br><span class="accent">De verdad.</span></h2>
+          <p data-i18n="price.sub">Todo lo que necesitas para jugar más y mejor está incluido desde el primer día.</p>
+        </div>
+        <div class="price-card reveal">
+          <div class="price-head">
+            <span class="price-plan" data-i18n="price.plan">Jugador</span>
+            <div class="price-amount">0 €<small data-i18n="price.forever">/ para siempre</small></div>
+          </div>
+          <ul class="price-list">
+            <li data-i18n="price.f1">Rivales compatibles por nivel y ciudad</li>
+            <li data-i18n="price.f2">Partidos abiertos y reservas con pista</li>
+            <li data-i18n="price.f3">Ranking validado entre jugadores</li>
+            <li data-i18n="price.f4">Perfil técnico con valoraciones reales</li>
+            <li data-i18n="price.f5">Ligas regionales por división</li>
+          </ul>
+          <a class="button magnetic ios-link" href="https://apps.apple.com/app/id6793740051" data-i18n="price.cta">Empezar ahora</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== FAQ ============================= -->
     <section class="section faq" id="faq">
       <div class="shell">
-        <div class="section-header"><div class="eyebrow">Antes de entrar en pista</div><h2>Lo que quieres saber.</h2><p>Todo claro desde el primer partido.</p></div>
-        <div class="faq-grid">
-          <details class="faq-item" open><summary>¿Para quién es MatchPoint?</summary><p>Para tenistas que quieren jugar más y organizarse mejor: desde quienes empiezan hasta quienes compiten por subir de nivel.</p></details>
-          <details class="faq-item"><summary>¿Cómo encuentro un rival?</summary><p>Indica tu ciudad, nivel, modalidad y disponibilidad. MatchPoint te muestra perfiles y partidos compatibles para que elijas con quién jugar.</p></details>
-          <details class="faq-item"><summary>¿Quién valida el resultado?</summary><p>El marcador lo confirma tu rival. Así el ranking se alimenta de partidos reales y no de puntos autoproclamados.</p></details>
-          <details class="faq-item"><summary>¿Tengo que pertenecer a un club?</summary><p>No. Puedes descubrir jugadores de tu zona, guardar tus clubes habituales y organizar el partido que mejor encaje contigo.</p></details>
+        <div class="section-header reveal">
+          <div class="eyebrow" data-i18n="faq.eyebrow">Antes de entrar en pista</div>
+          <h2 data-i18n="faq.title">Lo que quieres saber.</h2>
+          <p data-i18n="faq.sub">Todo claro desde el primer partido.</p>
+        </div>
+        <div class="faq-grid stagger">
+          <details class="faq-item" open><summary data-i18n="faq.q1">¿Para quién es MatchPoint?</summary><p data-i18n="faq.a1">Para tenistas que quieren jugar más y organizarse mejor: desde quienes empiezan hasta quienes compiten por subir de nivel.</p></details>
+          <details class="faq-item"><summary data-i18n="faq.q2">¿Cuánto cuesta?</summary><p data-i18n="faq.a2">Nada. MatchPoint es gratis: encontrar rivales, organizar partidos y competir en el ranking no cuestan un euro.</p></details>
+          <details class="faq-item"><summary data-i18n="faq.q3">¿Cómo encuentro un rival?</summary><p data-i18n="faq.a3">Indica tu ciudad, nivel, modalidad y disponibilidad. MatchPoint te muestra perfiles y partidos compatibles para que elijas con quién jugar.</p></details>
+          <details class="faq-item"><summary data-i18n="faq.q4">¿Quién valida el resultado?</summary><p data-i18n="faq.a4">El marcador lo confirma tu rival. Así el ranking se alimenta de partidos reales y no de puntos autoproclamados.</p></details>
+          <details class="faq-item"><summary data-i18n="faq.q5">¿Tengo que pertenecer a un club?</summary><p data-i18n="faq.a5">No. Puedes descubrir jugadores de tu zona, guardar tus clubes habituales y organizar el partido que mejor encaje contigo.</p></details>
+          <details class="faq-item"><summary data-i18n="faq.q6">¿Y si no hay jugadores en mi ciudad?</summary><p data-i18n="faq.a6">La comunidad crece cada semana. Invita a tus compañeros de pista con tu enlace y sé el primero de tu ciudad en abrir el ranking.</p></details>
         </div>
       </div>
     </section>
 
-    <section class="shell cta">
-      <div class="eyebrow">Listo para jugar</div>
-      <h2>Tu próximo rival está más cerca de lo que crees.</h2>
-      <p>Descarga MatchPoint y empieza por tu ciudad, tu nivel y tu forma de jugar.</p>
-      <div class="actions"><a class="button ios-link" href="https://apps.apple.com/app/id6793740051" aria-label="Descargar MatchPoint para iPhone"> iPhone</a><a class="button secondary android-link" href="https://play.google.com/store/apps/details?id=com.matchpoint.clubs" aria-label="Descargar MatchPoint para Android">▶ Android</a></div>
+    <!-- ============================== CTA ============================= -->
+    <section class="shell cta reveal">
+      <div class="cta-ball" aria-hidden="true"></div>
+      <div class="eyebrow" data-i18n="cta.eyebrow">Listo para jugar</div>
+      <h2 data-i18n-html="cta.title">Empieza tu récord<br><span class="accent">en la liga de tu ciudad.</span></h2>
+      <p data-i18n="cta.sub">Cada partido cuenta. Encuentra rivales más diversos, juega tu primer partido esta semana y empieza a escribir tu nombre en el ranking.</p>
+      <div class="actions">
+        <a class="button magnetic ios-link" href="https://apps.apple.com/app/id6793740051" aria-label="Descargar MatchPoint para iPhone"><span data-i18n="cta.ios"> iPhone</span></a>
+        <a class="button secondary magnetic android-link" href="https://play.google.com/store/apps/details?id=com.matchpoint.clubs" aria-label="Descargar MatchPoint para Android"><span data-i18n="cta.android">▶ Android</span></a>
+      </div>
+      <div class="cta-note" data-i18n="cta.note">Gratis · Sin tarjeta · 2 minutos para crear tu perfil</div>
     </section>
   </main>
-  <footer><div class="shell footer-row"><span>© 2026 MatchPoint Tennis</span><div class="footer-links"><a href="/privacy/">Privacidad</a><a href="/terms/">Términos</a><a href="/support/">Soporte</a><a href="/delete-account/">Eliminar cuenta</a></div></div></footer>
+
+  <a class="floating-cta ios-link magnetic" href="https://apps.apple.com/app/id6793740051" id="floating-cta" aria-label="Descargar MatchPoint gratis">
+    <span class="ball" aria-hidden="true"></span>
+    <span data-i18n="float.cta">Descargar gratis</span>
+  </a>
+
+  <footer>
+    <div class="shell footer-row">
+      <span data-i18n="footer.copy">© 2026 MatchPoint Tennis · Hecha por tenistas, para tenistas</span>
+      <div class="footer-links">
+        <a href="/privacy/" data-i18n="footer.privacy">Privacidad</a>
+        <a href="/terms/" data-i18n="footer.terms">Términos</a>
+        <a href="/support/" data-i18n="footer.support">Soporte</a>
+        <a href="/delete-account/" data-i18n="footer.delete">Eliminar cuenta</a>
+      </div>
+    </div>
+  </footer>
   <script src="/app.js" defer></script>
 </body>
 </html>
