@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+  <title id="title">MatchPoint Tennis — Feed</title>
+  <desc id="desc">Creatividad cuadrada para redes sociales: deja de buscar rival, empieza a jugar.</desc>
+  <defs>
+    <radialGradient id="glow" cx="78%" cy="18%" r="72%">
+      <stop offset="0" stop-color="#c6f135" stop-opacity=".32"/>
+      <stop offset=".45" stop-color="#2e8f5a" stop-opacity=".11"/>
+      <stop offset="1" stop-color="#070c08" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#193b29"/>
+      <stop offset="1" stop-color="#0b150e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="#070c08"/>
+  <rect width="1080" height="1080" fill="url(#glow)"/>
+  <g opacity=".16" fill="none" stroke="#c6f135">
+    <circle cx="875" cy="190" r="240"/>
+    <circle cx="875" cy="190" r="166"/>
+    <path d="M-100 1020 1060 80M80 1160 1240 220"/>
+  </g>
+  <g transform="translate(64 66)">
+    <circle cx="24" cy="24" r="23" fill="#c6f135"/>
+    <path d="M11 12c18 6 25 17 27 35M36 8C19 16 13 28 15 45" fill="none" stroke="#17300e" stroke-width="3" stroke-linecap="round"/>
+    <text x="62" y="32" fill="#f7f8f2" font-family="Arial" font-size="25" font-weight="800">MATCHPOINT TENNIS</text>
+  </g>
+  <g transform="translate(64 190)">
+    <text fill="#c6f135" font-family="Arial, sans-serif" font-size="20" font-weight="800" letter-spacing="3">TENIS REAL · GENTE REAL</text>
+    <text y="100" fill="#f7f8f2" font-family="Arial" font-size="78" font-weight="900">DEJA DE</text>
+    <text y="180" fill="#f7f8f2" font-family="Arial" font-size="78" font-weight="900">BUSCAR RIVAL.</text>
+    <text y="260" fill="#c6f135" font-family="Arial" font-size="78" font-weight="900">EMPIEZA A JUGAR.</text>
+  </g>
+  <g transform="translate(64 570)">
+    <rect width="952" height="300" rx="34" fill="url(#card)" stroke="#c6f135" stroke-opacity=".3" stroke-width="2"/>
+    <text x="36" y="54" fill="#c6f135" font-family="Arial, sans-serif" font-size="18" font-weight="800" letter-spacing="2">TU PRÓXIMO PARTIDO</text>
+    <text x="36" y="110" fill="#f7f8f2" font-family="Arial" font-size="34" font-weight="900">Rivales de tu nivel.</text>
+    <text x="36" y="154" fill="#f7f8f2" font-family="Arial" font-size="34" font-weight="900">Partidos que sí ocurren.</text>
+    <g transform="translate(36 202)">
+      <rect width="232" height="50" rx="25" fill="#c6f135"/>
+      <text x="116" y="33" text-anchor="middle" fill="#101708" font-family="Arial, sans-serif" font-size="18" font-weight="900">DESCARGA LA APP</text>
+    </g>
+    <text x="744" y="236" fill="#aab3a3" font-family="Arial, sans-serif" font-size="17">iPhone + Android</text>
+  </g>
+  <text x="64" y="1014" fill="#7f897a" font-family="Arial, sans-serif" font-size="18">Encuentra. Juega. Valida. Sube.</text>
+</svg>
