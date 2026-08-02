@@ -979,3 +979,43 @@ body::after {
   .marquee-track { font-size: 13px; }
   .lang-select button { padding: 6px 9px; }
 }
+
+/* ── Cities ─────────────────────────────────────────── */
+.cities { text-align: center; }
+.cities h2 { margin: 0 0 34px; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.03em; }
+.cities-group { margin-bottom: 26px; }
+.cities-label {
+  font-family: var(--display); font-size: 12px; font-weight: 700;
+  letter-spacing: .28em; text-transform: uppercase;
+  color: var(--lime); margin-bottom: 14px;
+}
+.cities-label.soon { color: var(--muted); }
+.cities-pills { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.city-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 12px 22px; border-radius: 999px;
+  font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: .01em;
+}
+.city-pill.live {
+  color: #eaf4d8;
+  background: linear-gradient(160deg, rgba(200, 245, 66, .14), rgba(200, 245, 66, .05));
+  border: 1px solid rgba(200, 245, 66, .38);
+  box-shadow: 0 0 26px -10px rgba(200, 245, 66, .45), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+.city-pill.soon {
+  color: var(--muted);
+  background: rgba(255, 255, 255, .04);
+  border: 1px dashed rgba(255, 255, 255, .18);
+}
+.city-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 0 0 rgba(200, 245, 66, .55);
+  animation: city-pulse 2s infinite;
+}
+@keyframes city-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(200, 245, 66, .55); }
+  70%  { box-shadow: 0 0 0 11px rgba(200, 245, 66, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(200, 245, 66, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .city-dot { animation: none; } }
