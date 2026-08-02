@@ -77,7 +77,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Permite acceder a tus fotos para elegir una imagen de perfil."
+          "photosPermission": "Permite acceder a tus fotos para elegir una imagen de perfil.",
+          "microphonePermission": false
         }
       ],
       [
@@ -95,7 +96,8 @@
           }
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

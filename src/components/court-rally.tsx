@@ -341,7 +341,7 @@ export function CourtRally({ size = 150, width, height, label, duration = 3400 }
       {label ? (
         <View
           style={{
-            backgroundColor: colors.neon,
+            backgroundColor: colors.accentFill,
             borderRadius: radii.pill,
             bottom: 0,
             boxShadow: shadows.spotlightGlow,
@@ -350,7 +350,7 @@ export function CourtRally({ size = 150, width, height, label, duration = 3400 }
             position: "absolute"
           }}
         >
-          <Text style={{ ...broadcast.jersey, color: colors.textOnBall, fontSize: 11 }}>{label}</Text>
+          <Text style={{ ...broadcast.jersey, color: colors.onAccentFill, fontSize: 11 }}>{label}</Text>
         </View>
       ) : null}
     </View>

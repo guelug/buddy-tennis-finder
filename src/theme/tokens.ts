@@ -45,7 +45,9 @@ export const colors = {
   // Texto
   textPrimary: "#F3F7EF",
   textSecondary: "#A8B8AC",
-  textTertiary: "#6B7F70",
+  // #6B7F70 se quedaba en 4,14 sobre `surface`, por debajo de AA: las horas y
+  // los textos de apoyo costaban de leer en oscuro.
+  textTertiary: "#7A8E7F",
   textOnCourt: "#FFFFFF",
   textOnBall: "#08130A",
 
