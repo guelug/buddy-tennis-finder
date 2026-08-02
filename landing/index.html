@@ -38,11 +38,20 @@
     ]
   }
   </script>
-  <link rel="stylesheet" href="/styles.css?v=3">
+  <link rel="stylesheet" href="/styles.css?v=4">
 </head>
 <body>
   <canvas id="court-canvas" aria-hidden="true"></canvas>
-  <div class="cursor-ball" aria-hidden="true"></div>
+  <div class="touch-ambient" id="touch-ambient" aria-hidden="true"></div>
+  <svg class="racket" id="racket" viewBox="0 0 72 72" aria-hidden="true">
+    <g fill="none" stroke="#c8f542" stroke-linecap="round">
+      <ellipse cx="28" cy="24" rx="17" ry="20" stroke-width="3.5"/>
+      <path d="M18 12 v24 M24 8 v32 M30 7 v34 M36 10 v28" stroke-width="1.4" opacity=".65"/>
+      <path d="M13 18 h30 M11.5 24 h33 M13 30 h30" stroke-width="1.4" opacity=".65"/>
+      <path d="M41 40 L58 58" stroke-width="6"/>
+      <path d="M55 55 L62 62" stroke-width="8" stroke="#9fd41f"/>
+    </g>
+  </svg>
   <div id="scroll-progress" aria-hidden="true"></div>
 
   <nav class="nav" id="nav">
@@ -166,8 +175,9 @@
           <p data-i18n="tour.sub">De abrir la app a subir en el ranking, en cinco pasos. Sin grupos de mensajes y sin discutir el resultado.</p>
         </div>
 
-        <div class="tour">
-          <article class="tour-step reveal">
+        <div class="tour-slider reveal">
+          <div class="tour-track" id="tour-track">
+          <article class="tour-step">
             <div class="tour-shot"><div class="mini-phone"><img src="/shots/home.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de inicio de MatchPoint con el próximo partido y los accesos rápidos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">01</span>
@@ -175,7 +185,7 @@
               <p data-i18n="tour.s1p">Nada más entrar ves qué tienes en la agenda, en qué club y a qué hora. Desde ahí llegas en un toque a buscar rival, reservar o mirar tu posición.</p>
             </div>
           </article>
-          <article class="tour-step reveal">
+          <article class="tour-step">
             <div class="tour-shot"><div class="mini-phone"><img src="/shots/rivals.webp" width="540" height="960" loading="lazy" decoding="async" alt="Listado de rivales compatibles filtrados por nivel y disponibilidad."></div></div>
             <div class="tour-copy">
               <span class="tour-num">02</span>
@@ -183,7 +193,7 @@
               <p data-i18n="tour.s2p">Filtra por ciudad, nivel, edad y disponibilidad. Cada perfil llega con su valoración y sus notas técnicas, así sabes a qué vas antes de quedar.</p>
             </div>
           </article>
-          <article class="tour-step reveal">
+          <article class="tour-step">
             <div class="tour-shot"><div class="mini-phone"><img src="/shots/matches.webp" width="540" height="960" loading="lazy" decoding="async" alt="Pantalla de partidos con propuestas y solicitudes pendientes."></div></div>
             <div class="tour-copy">
               <span class="tour-num">03</span>
@@ -191,7 +201,7 @@
               <p data-i18n="tour.s3p">Publica tu reserva o pide plaza en la de otro. La app se encarga de horarios, pista y confirmaciones; tú solo dices que sí.</p>
             </div>
           </article>
-          <article class="tour-step reveal">
+          <article class="tour-step">
             <div class="tour-shot"><div class="mini-phone"><img src="/shots/ranking.webp" width="540" height="960" loading="lazy" decoding="async" alt="Clasificación de la liga con posiciones y puntos."></div></div>
             <div class="tour-copy">
               <span class="tour-num">04</span>
@@ -199,7 +209,7 @@
               <p data-i18n="tour.s4p">Uno registra el marcador y el rival lo confirma. Solo entonces cuenta para la clasificación, así que el ranking refleja partidos de verdad.</p>
             </div>
           </article>
-          <article class="tour-step reveal">
+          <article class="tour-step">
             <div class="tour-shot"><div class="mini-phone"><img src="/shots/profile.webp" width="540" height="960" loading="lazy" decoding="async" alt="Perfil del jugador con el radar de nivel técnico y las valoraciones recibidas."></div></div>
             <div class="tour-copy">
               <span class="tour-num">05</span>
@@ -207,6 +217,12 @@
               <p data-i18n="tour.s5p">Después del partido os puntuáis saque, derecha, revés, volea y consistencia. Con el tiempo tu perfil deja de ser lo que tú dices y pasa a ser lo que demuestras.</p>
             </div>
           </article>
+          </div>
+          <div class="tour-nav">
+            <button class="tour-arrow" id="tour-prev" type="button" aria-label="Anterior">‹</button>
+            <div class="tour-dots" id="tour-dots" role="tablist"></div>
+            <button class="tour-arrow" id="tour-next" type="button" aria-label="Siguiente">›</button>
+          </div>
         </div>
       </div>
     </section>
@@ -379,7 +395,7 @@
 
     <!-- ============================== CTA ============================= -->
     <section class="shell cta reveal">
-      <div class="cta-ball" aria-hidden="true"></div>
+      <div class="cta-ball" id="cta-ball" aria-hidden="true"></div>
       <div class="eyebrow" data-i18n="cta.eyebrow">Listo para jugar</div>
       <h2 data-i18n-html="cta.title">Empieza tu récord<br><span class="accent">en la liga de tu ciudad.</span></h2>
       <p data-i18n="cta.sub">Cada partido cuenta. Encuentra rivales más diversos, juega tu primer partido esta semana y empieza a escribir tu nombre en el ranking.</p>
@@ -407,6 +423,6 @@
       </div>
     </div>
   </footer>
-  <script src="/app.js?v=3" defer></script>
+  <script src="/app.js?v=4" defer></script>
 </body>
 </html>

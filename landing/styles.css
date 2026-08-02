@@ -49,32 +49,33 @@ img { max-width: 100%; }
 }
 main, footer, .nav { position: relative; z-index: 1; }
 
-/* Bola que sigue al cursor */
-.cursor-ball {
+/* Raqueta que sigue al cursor / dedo */
+.racket {
   position: fixed;
   z-index: 60;
-  width: 26px;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 32% 30%, #eaff9a, var(--lime) 55%, #86b514);
-  box-shadow: 0 0 24px rgba(200, 245, 66, .5);
+  width: 64px;
+  height: 64px;
+  top: 0;
+  left: 0;
   pointer-events: none;
-  top: 0; left: 0;
-  transform: translate(-100px, -100px);
-  transition: transform .12s linear;
+  transform: translate(-200px, -200px);
   opacity: 0;
+  filter: drop-shadow(0 6px 18px rgba(200, 245, 66, .35));
+  transition: opacity .3s ease;
 }
-.cursor-ball::after {
-  content: "";
-  position: absolute;
-  inset: 3px -3px;
-  border: 2px solid rgba(20, 40, 10, .8);
-  border-left-color: transparent;
-  border-right-color: transparent;
-  border-radius: 50%;
-  transform: rotate(40deg);
+body.has-racket .racket { opacity: 1; }
+
+/* Luz ambiental que sigue al dedo / ratón */
+.touch-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(340px circle at var(--ax, 50%) var(--ay, 40%), rgba(200, 245, 66, .13), transparent 70%);
+  opacity: 0;
+  transition: opacity .7s ease;
 }
-body.has-cursor .cursor-ball { opacity: 1; }
+.touch-ambient.on { opacity: 1; }
 
 /* ============================== NAVBAR ================================== */
 .nav {
@@ -229,7 +230,9 @@ h1 { margin: 18px 0 22px; font-size: clamp(50px, 7vw, 88px); line-height: .95; l
   border-radius: 46px;
   margin: 10px;
   background: #000;
-  aspect-ratio: 9 / 19.2;
+  /* Las capturas reales son 540x960 (9:16): el marco se ajusta a ellas
+     para que no se recorte nada de la app. */
+  aspect-ratio: 9 / 16;
 }
 .device-screen img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
@@ -238,11 +241,11 @@ h1 { margin: 18px 0 22px; font-size: clamp(50px, 7vw, 88px); line-height: .95; l
 .iphone .device-screen { border-radius: 46px; }
 .dynamic-island {
   position: absolute;
-  top: 12px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  width: 96px;
-  height: 28px;
+  width: 84px;
+  height: 24px;
   background: #000;
   border-radius: 20px;
   z-index: 4;
@@ -314,7 +317,7 @@ h1 { margin: 18px 0 22px; font-size: clamp(50px, 7vw, 88px); line-height: .95; l
   transform: rotate(7deg);
   opacity: .96;
 }
-.pixel .device-screen { border-radius: 30px; margin: 7px; aspect-ratio: 9 / 19.5; }
+.pixel .device-screen { border-radius: 30px; margin: 7px; aspect-ratio: 9 / 16; }
 .punch-hole {
   position: absolute;
   top: 12px;
@@ -390,11 +393,30 @@ h2 { font-size: clamp(38px, 5vw, 60px); line-height: 1.02; letter-spacing: -.045
 .card p { color: var(--muted); margin: 0; font-size: 15px; }
 
 /* ============================== TOUR ==================================== */
-.tour { display: grid; gap: 84px; margin-top: 60px; }
-.tour-step { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: clamp(30px, 5vw, 70px); align-items: center; }
-.tour-step:nth-child(even) { grid-template-columns: minmax(0, 1fr) minmax(0, 330px); }
-.tour-step:nth-child(even) .tour-shot { grid-column: 2; grid-row: 1; }
-.tour-step:nth-child(even) .tour-copy { grid-column: 1; grid-row: 1; }
+.tour-slider { margin-top: 56px; position: relative; }
+.tour-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab;
+  border-radius: 32px;
+}
+.tour-track::-webkit-scrollbar { display: none; }
+.tour-track.dragging { cursor: grabbing; scroll-snap-type: none; scroll-behavior: auto; }
+.tour-step {
+  min-width: 100%;
+  scroll-snap-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+  padding: 30px clamp(8px, 3vw, 40px);
+  transition: transform .5s var(--ease-out), opacity .5s ease;
+  user-select: none;
+}
+.tour-step img { pointer-events: none; }
 .tour-shot { position: relative; justify-self: center; }
 .tour-shot::after {
   content: "";
@@ -416,6 +438,34 @@ h2 { font-size: clamp(38px, 5vw, 60px); line-height: 1.02; letter-spacing: -.045
 .tour-num { display: inline-block; font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .3em; color: var(--lime); margin-bottom: 12px; }
 .tour-copy h3 { margin: 0 0 12px; font-size: clamp(24px, 3vw, 32px); letter-spacing: -.025em; font-weight: 700; }
 .tour-copy p { margin: 0; color: var(--muted); font-size: 17px; max-width: 48ch; }
+
+.tour-nav { display: flex; align-items: center; justify-content: center; gap: 22px; margin-top: 26px; }
+.tour-arrow {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, .05);
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color .25s ease, background .25s ease, transform .25s var(--ease-out);
+  backdrop-filter: blur(8px);
+}
+.tour-arrow:hover { border-color: var(--line-strong); background: var(--lime-soft); transform: scale(1.08); }
+.tour-dots { display: flex; gap: 8px; }
+.tour-dots button {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .25);
+  cursor: pointer;
+  transition: width .3s var(--ease-out), background .3s ease;
+}
+.tour-dots button.active { width: 26px; background: var(--lime); }
 
 /* ============================= LEAGUE =================================== */
 .league { display: grid; grid-template-columns: .9fr 1.1fr; gap: 70px; align-items: center; }
@@ -573,20 +623,13 @@ h2 { font-size: clamp(38px, 5vw, 60px); line-height: 1.02; letter-spacing: -.045
   aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 30%, #eaff9a, var(--lime) 55%, #86b514);
-  opacity: .9;
-  left: -60px;
-  top: 30%;
-  animation: cta-ball-fly 9s linear infinite;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  will-change: transform;
   box-shadow: 0 0 34px rgba(200, 245, 66, .45);
 }
 .cta-ball::after { content: ""; position: absolute; inset: 7px -4px; border: 3px solid rgba(20, 40, 10, .85); border-left-color: transparent; border-right-color: transparent; border-radius: 50%; transform: rotate(40deg); }
-@keyframes cta-ball-fly {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(38vw, -70px) rotate(220deg); }
-  50% { transform: translate(72vw, 50px) rotate(440deg); }
-  75% { transform: translate(96vw, -40px) rotate(620deg); }
-  100% { transform: translate(120vw, 20px) rotate(720deg); }
-}
 
 /* ============================= FOOTER =================================== */
 footer { border-top: 1px solid var(--line); margin-top: 100px; padding: 44px 0; color: var(--muted); font-size: 14px; }
@@ -611,7 +654,7 @@ footer { border-top: 1px solid var(--line); margin-top: 100px; padding: 44px 0; 
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   html { scroll-behavior: auto; }
   .reveal, .stagger > * { opacity: 1; transform: none; }
-  .cursor-ball, #court-canvas { display: none; }
+  .racket, #court-canvas, .touch-ambient { display: none; }
 }
 
 /* ========================= POLISH / EFECTOS ============================= */
@@ -722,11 +765,11 @@ body::after {
 .floating-cta.show { transform: translate(-50%, 0); }
 .floating-cta:hover { border-color: var(--lime); }
 
-/* Parallax suave en el tour */
-.tour-shot { will-change: transform; }
-
 @media (max-width: 980px) {
   .scroll-hint { display: none; }
+  .tour-step { grid-template-columns: 1fr; gap: 22px; text-align: center; padding: 20px 10px; }
+  .tour-copy p { margin-inline: auto; }
+  .tour-shot .mini-phone { max-width: 250px; }
 }
 @media (max-width: 600px) {
   .floating-cta { bottom: 14px; font-size: 13.5px; padding: 9px 18px 9px 10px; }
@@ -746,10 +789,6 @@ body::after {
   .vs-grid { grid-template-columns: 1fr; }
   .faq-grid { grid-template-columns: 1fr; }
   .stats { grid-template-columns: 1fr 1fr; row-gap: 28px; }
-  .tour-step, .tour-step:nth-child(even) { grid-template-columns: 1fr; gap: 26px; }
-  .tour-step:nth-child(even) .tour-shot, .tour-step:nth-child(even) .tour-copy { grid-column: 1; grid-row: auto; }
-  .tour-copy { text-align: center; }
-  .tour-copy p { margin-inline: auto; }
 }
 
 @media (max-width: 600px) {

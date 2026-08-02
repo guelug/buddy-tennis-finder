@@ -606,24 +606,179 @@ function onScrollChrome() {
 window.addEventListener("scroll", onScrollChrome, { passive: true });
 onScrollChrome();
 
-/* ------------------------- Parallax en el tour --------------------------- */
-if (!REDUCED_MOTION) {
-  const parallaxEls = Array.from(document.querySelectorAll(".tour-shot"));
-  let ticking = false;
-  function parallax() {
-    ticking = false;
-    const mid = window.innerHeight / 2;
-    parallaxEls.forEach((el) => {
-      const r = el.getBoundingClientRect();
-      if (r.bottom < -100 || r.top > window.innerHeight + 100) return;
-      const delta = (r.top + r.height / 2 - mid) * -0.055;
-      el.style.transform = `translateY(${delta.toFixed(1)}px)`;
-    });
+/* --------------------- Raqueta + luz que sigue al dedo ------------------- */
+const racket = document.getElementById("racket");
+const ambient = document.getElementById("touch-ambient");
+const racketState = { x: -200, y: -200, tx: -200, ty: -200, angle: -20, visible: false };
+let ambientTimer = null;
+
+function pointTo(x, y) {
+  racketState.tx = x;
+  racketState.ty = y;
+  if (!racketState.visible) {
+    racketState.visible = true;
+    document.body.classList.add("has-racket");
   }
-  window.addEventListener("scroll", () => {
-    if (!ticking) { ticking = true; requestAnimationFrame(parallax); }
+  if (ambient) {
+    ambient.style.setProperty("--ax", `${x}px`);
+    ambient.style.setProperty("--ay", `${y}px`);
+    ambient.classList.add("on");
+    window.clearTimeout(ambientTimer);
+    ambientTimer = window.setTimeout(() => ambient.classList.remove("on"), 1400);
+  }
+}
+
+if (!REDUCED_MOTION) {
+  if (FINE_POINTER) {
+    document.addEventListener("mousemove", (e) => pointTo(e.clientX, e.clientY), { passive: true });
+  }
+  document.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (t) pointTo(t.clientX, t.clientY);
   }, { passive: true });
-  parallax();
+  document.addEventListener("touchend", () => {
+    racketState.visible = false;
+    document.body.classList.remove("has-racket");
+  }, { passive: true });
+
+  (function followRacket() {
+    const px = racketState.x;
+    racketState.x += (racketState.tx - racketState.x) * 0.2;
+    racketState.y += (racketState.ty - racketState.y) * 0.2;
+    const vx = racketState.x - px;
+    const targetAngle = -20 + Math.max(-35, Math.min(35, vx * 2.4));
+    racketState.angle += (targetAngle - racketState.angle) * 0.18;
+    if (racket) {
+      racket.style.transform = `translate(${racketState.x - 26}px, ${racketState.y - 26}px) rotate(${racketState.angle}deg)`;
+    }
+    requestAnimationFrame(followRacket);
+  })();
+}
+
+/* ------------------------- Slider del tour ------------------------------- */
+const tourTrack = document.getElementById("tour-track");
+if (tourTrack) {
+  const slides = Array.from(tourTrack.children);
+  const dotsBox = document.getElementById("tour-dots");
+  const currentSlide = () => Math.round(tourTrack.scrollLeft / tourTrack.clientWidth);
+  const goTo = (i) => {
+    const clamped = Math.max(0, Math.min(slides.length - 1, i));
+    tourTrack.scrollTo({ left: clamped * tourTrack.clientWidth, behavior: "smooth" });
+  };
+
+  slides.forEach((_, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.setAttribute("aria-label", `Paso ${i + 1}`);
+    if (i === 0) b.classList.add("active");
+    b.addEventListener("click", () => goTo(i));
+    dotsBox.appendChild(b);
+  });
+  document.getElementById("tour-prev").addEventListener("click", () => goTo(currentSlide() - 1));
+  document.getElementById("tour-next").addEventListener("click", () => goTo(currentSlide() + 1));
+
+  function paintSlides() {
+    const center = tourTrack.scrollLeft + tourTrack.clientWidth / 2;
+    let active = 0, best = Infinity;
+    slides.forEach((s, i) => {
+      const sc = s.offsetLeft + s.offsetWidth / 2;
+      const d = Math.abs(center - sc);
+      const ratio = Math.min(1, d / tourTrack.clientWidth);
+      s.style.transform = `scale(${1 - ratio * 0.07})`;
+      s.style.opacity = String(1 - ratio * 0.55);
+      if (d < best) { best = d; active = i; }
+    });
+    Array.from(dotsBox.children).forEach((d, i) => d.classList.toggle("active", i === active));
+  }
+  let sTick = false;
+  tourTrack.addEventListener("scroll", () => {
+    if (!sTick) {
+      sTick = true;
+      requestAnimationFrame(() => { sTick = false; paintSlides(); });
+    }
+  }, { passive: true });
+  window.addEventListener("resize", paintSlides);
+  paintSlides();
+
+  // Arrastre con ratón (en táctil el swipe es nativo)
+  let dragX = 0, dragL = 0, dragging = false;
+  tourTrack.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse") return;
+    dragging = true;
+    dragX = e.clientX;
+    dragL = tourTrack.scrollLeft;
+    tourTrack.classList.add("dragging");
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    tourTrack.scrollLeft = dragL - (e.clientX - dragX);
+  });
+  window.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    dragging = false;
+    tourTrack.classList.remove("dragging");
+    goTo(currentSlide());
+  });
+}
+
+/* ------------------- Pelota del CTA con física arcade -------------------- */
+const ctaSection = document.querySelector(".cta");
+const ctaBall = document.getElementById("cta-ball");
+if (ctaSection && ctaBall && !REDUCED_MOTION) {
+  const R = 27;
+  let bx = 70, by = 50, vx = 2.4, vy = 1.8, rot = 0, running = false;
+
+  new IntersectionObserver((entries) => {
+    const vis = entries[0].isIntersecting;
+    if (vis && !running) {
+      running = true;
+      requestAnimationFrame(stepBall);
+    } else if (!vis) {
+      running = false;
+    }
+  }, { threshold: 0.05 }).observe(ctaSection);
+
+  function stepBall() {
+    if (!running) return;
+    const w = ctaSection.clientWidth;
+    const h = ctaSection.clientHeight;
+    const cRect = ctaSection.getBoundingClientRect();
+
+    bx += vx;
+    by += vy;
+
+    // Rebote en los bordes de la tarjeta
+    if (bx < 0) { bx = 0; vx = Math.abs(vx); }
+    if (bx > w - R * 2) { bx = w - R * 2; vx = -Math.abs(vx); }
+    if (by < 0) { by = 0; vy = Math.abs(vy); }
+    if (by > h - R * 2) { by = h - R * 2; vy = -Math.abs(vy); }
+
+    // Golpe de raqueta (cursor o dedo)
+    if (racketState.visible) {
+      const rx = racketState.x - cRect.left;
+      const ry = racketState.y - cRect.top;
+      const dx = (bx + R) - rx;
+      const dy = (by + R) - ry;
+      const dist = Math.hypot(dx, dy);
+      if (dist < R + 32 && dist > 0.01) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const speed = Math.min(9, Math.hypot(vx, vy) + 1.7);
+        vx = nx * speed;
+        vy = ny * speed;
+        bx = rx + nx * (R + 33) - R;
+        by = ry + ny * (R + 33) - R;
+      }
+    }
+
+    // Rozamiento suave para que no se acelere sin fin
+    const sp = Math.hypot(vx, vy);
+    if (sp > 3.2) { vx *= 0.995; vy *= 0.995; }
+
+    rot += sp * 1.4;
+    ctaBall.style.transform = `translate(${bx}px, ${by}px) rotate(${rot}deg)`;
+    requestAnimationFrame(stepBall);
+  }
 }
 
 /* ------------------------- Reveal on scroll ----------------------------- */
@@ -679,23 +834,6 @@ if (FINE_POINTER && !REDUCED_MOTION) {
     iphone.style.transition = "transform .25s ease-out";
     if (pixel) pixel.style.transition = "transform .25s ease-out";
   }
-}
-
-/* ------------------------ Bola que sigue al ratón ----------------------- */
-if (FINE_POINTER && !REDUCED_MOTION) {
-  const cursorBall = document.querySelector(".cursor-ball");
-  let cx = -100, cy = -100, tx = -100, ty = -100;
-  document.addEventListener("mousemove", (e) => {
-    tx = e.clientX - 13;
-    ty = e.clientY - 13;
-    document.body.classList.add("has-cursor");
-  });
-  (function follow() {
-    cx += (tx - cx) * 0.18;
-    cy += (ty - cy) * 0.18;
-    cursorBall.style.transform = `translate(${cx}px, ${cy}px)`;
-    requestAnimationFrame(follow);
-  })();
 }
 
 /* ------------------- Spotlight en tarjetas ------------------------------ */
