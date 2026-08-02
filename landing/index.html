@@ -38,7 +38,10 @@
     ]
   }
   </script>
-  <link rel="stylesheet" href="/styles.css?v=4">
+  <link rel="stylesheet" href="/styles.css?v=5">
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+  </script>
 </head>
 <body>
   <canvas id="court-canvas" aria-hidden="true"></canvas>
@@ -56,7 +59,7 @@
 
   <nav class="nav" id="nav">
     <div class="shell nav-inner">
-      <a class="brand" href="/"><span class="ball" aria-hidden="true"></span> <span>MatchPoint</span></a>
+      <a class="brand" href="/"><img src="/brand-logo.png" alt="MatchPoint Tennis" width="150" height="45"></a>
       <div class="nav-links">
         <a href="#como-funciona" data-i18n="nav.how">Cómo funciona</a>
         <a href="#tour" data-i18n="nav.tour">La app</a>
@@ -78,6 +81,7 @@
   <main>
     <!-- ============================= HERO ============================= -->
     <section class="shell hero" id="hero">
+      <canvas id="hero-3d" aria-hidden="true"></canvas>
       <div class="hero-glow" aria-hidden="true"></div>
       <div class="hero-copy">
         <div class="eyebrow reveal" data-i18n="hero.eyebrow">Tu ciudad · Tu nivel · Tu próximo partido</div>
@@ -93,7 +97,7 @@
             <span data-i18n="hero.android">Descargar para Android</span>
           </a>
         </div>
-        <div class="availability reveal" data-i18n="hero.availability">Gratis · iPhone y Android · Sin permanencia</div>
+        <div class="availability reveal" data-i18n="hero.availability">Gratis · iPhone y Android · Disponible en Ciudad de Guatemala y Barcelona · Más ciudades muy pronto</div>
         <div class="hero-proof reveal" aria-label="Ventajas de MatchPoint">
           <span data-i18n="hero.proof1">✓ Rivales compatibles</span>
           <span data-i18n="hero.proof2">✓ Partidos con pista</span>
@@ -106,24 +110,28 @@
         <!-- iPhone con showcase rotatorio -->
         <div class="device iphone tilt" id="hero-iphone">
           <div class="device-buttons" aria-hidden="true"></div>
-          <div class="device-screen">
-            <div class="dynamic-island" aria-hidden="true"></div>
-            <div class="showcase" id="showcase">
-              <img src="/shots/home.webp" alt="Pantalla de inicio de MatchPoint" class="active" data-caption="showcase.cap1">
-              <img src="/shots/rivals.webp" alt="Rivales compatibles en MatchPoint" loading="lazy" data-caption="showcase.cap2">
-              <img src="/shots/matches.webp" alt="Partidos y reservas en MatchPoint" loading="lazy" data-caption="showcase.cap3">
-              <img src="/shots/ranking.webp" alt="Ranking de la liga en MatchPoint" loading="lazy" data-caption="showcase.cap4">
-              <img src="/shots/profile.webp" alt="Perfil de jugador en MatchPoint" loading="lazy" data-caption="showcase.cap5">
+          <div class="device-bezel">
+            <div class="device-screen">
+              <div class="dynamic-island" aria-hidden="true"></div>
+              <div class="showcase" id="showcase">
+                <img src="/shots/home.webp" alt="Pantalla de inicio de MatchPoint" class="active" data-caption="showcase.cap1">
+                <img src="/shots/rivals.webp" alt="Rivales compatibles en MatchPoint" loading="lazy" data-caption="showcase.cap2">
+                <img src="/shots/matches.webp" alt="Partidos y reservas en MatchPoint" loading="lazy" data-caption="showcase.cap3">
+                <img src="/shots/ranking.webp" alt="Ranking de la liga en MatchPoint" loading="lazy" data-caption="showcase.cap4">
+                <img src="/shots/profile.webp" alt="Perfil de jugador en MatchPoint" loading="lazy" data-caption="showcase.cap5">
+              </div>
+              <div class="showcase-caption" id="showcase-caption" data-i18n="showcase.cap1">Tu próximo partido, al abrir la app</div>
+              <div class="showcase-dots" id="showcase-dots" aria-hidden="true"></div>
             </div>
-            <div class="showcase-caption" id="showcase-caption" data-i18n="showcase.cap1">Tu próximo partido, al abrir la app</div>
-            <div class="showcase-dots" id="showcase-dots" aria-hidden="true"></div>
           </div>
         </div>
         <!-- Pixel detrás -->
         <div class="device pixel tilt" id="hero-pixel" aria-hidden="true">
-          <div class="device-screen">
-            <div class="punch-hole" aria-hidden="true"></div>
-            <img src="/shots/ranking.webp" alt="" loading="lazy">
+          <div class="device-bezel">
+            <div class="device-screen">
+              <div class="punch-hole" aria-hidden="true"></div>
+              <img src="/shots/ranking.webp" alt="" loading="lazy">
+            </div>
           </div>
         </div>
         <div class="floating-ball fb1" aria-hidden="true"></div>
@@ -312,23 +320,116 @@
         </div>
       </div>
 
-      <!-- Testers -->
+      <!-- Testers / colaboradores -->
       <div class="shell testers reveal">
         <div class="eyebrow" data-i18n="testers.eyebrow">Gracias, equipo</div>
-        <h3 data-i18n="testers.title">Construida con jugadores reales.</h3>
-        <p data-i18n="testers.sub">MatchPoint es mejor gracias a nuestros testers, que la han probado en pista y nos han llenado de sugerencias para pulir cada detalle:</p>
-        <div class="tester-wall">
-          <span class="tester">David Grau</span>
-          <span class="tester">Guillermo</span>
-          <span class="tester">Rebeca Alvarado</span>
-          <span class="tester">Elizabeth Cumes</span>
-          <span class="tester">Mafer</span>
-          <span class="tester">Evelin Solares</span>
-          <span class="tester">Kimberly</span>
-          <span class="tester">Enrique Gregori</span>
-          <span class="tester">Kilian Tutusaus</span>
-          <span class="tester">Arturo Ortega</span>
-          <span class="tester tester-more" data-i18n="testers.more">…y muchos más</span>
+        <h3 data-i18n="testers.title">Pulida por miradas expertas.</h3>
+        <p data-i18n="testers.sub">MatchPoint ha crecido gracias a sus early alpha testers: personas de campos muy distintos que la han probado, cuestionado y mejorado con su feedback. Estas son sus miradas.</p>
+        <div class="mates-grid">
+          <span class="mate">
+            <span class="mate-ava" style="--h:210" aria-hidden="true">DG</span>
+            <span class="mate-info">
+              <b>David Grau</b>
+              <span class="mate-role" data-i18n="t.david.role">Programación</span>
+              <span class="mate-note" data-i18n="t.david.note">Revisión técnica y detección de bugs de lógica en partidos y ranking.</span>
+            </span>
+          </span>
+          <span class="mate">
+            <span class="mate-ava" style="--h:260" aria-hidden="true">GU</span>
+            <span class="mate-info">
+              <b>Guillermo</b>
+              <span class="mate-role" data-i18n="t.guillermo.role">Testing y marketing</span>
+              <span class="mate-note" data-i18n="t.guillermo.note">Feedback de producto y enfoque comercial para aterrizar el mensaje.</span>
+            </span>
+          </span>
+          <a class="mate" href="https://www.linkedin.com/in/elizabeth-c%C3%BAmes-6b73ab127/" target="_blank" rel="noopener" aria-label="LinkedIn de Elizabeth Cumes">
+            <span class="mate-ava" style="--h:20" aria-hidden="true">EC</span>
+            <span class="mate-info">
+              <b>Elizabeth Cumes</b>
+              <span class="mate-role" data-i18n="t.elizabeth.role">Testing y redacción</span>
+              <span class="mate-note" data-i18n="t.elizabeth.note">Pruebas de flujo y pulido de los textos de la app.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/fernanda-alvarez-communitymanager" target="_blank" rel="noopener" aria-label="LinkedIn de Mafer">
+            <span class="mate-ava" style="--h:300" aria-hidden="true">MF</span>
+            <span class="mate-info">
+              <b>Mafer</b>
+              <span class="mate-role" data-i18n="t.mafer.role">RRSS y estrategia</span>
+              <span class="mate-note" data-i18n="t.mafer.note">Estrategia de contenidos y visión de comunidad para el lanzamiento.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/rebeca-alvarado-sem/" target="_blank" rel="noopener" aria-label="LinkedIn de Rebeca Alvarado">
+            <span class="mate-ava" style="--h:160" aria-hidden="true">RA</span>
+            <span class="mate-info">
+              <b>Rebeca Alvarado</b>
+              <span class="mate-role" data-i18n="t.rebeca.role">RRSS y marketing</span>
+              <span class="mate-note" data-i18n="t.rebeca.note">Mirada de marketing digital y validación de la propuesta de valor.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/evelyn-melgar-10aa90217/" target="_blank" rel="noopener" aria-label="LinkedIn de Evelin Solares">
+            <span class="mate-ava" style="--h:40" aria-hidden="true">ES</span>
+            <span class="mate-info">
+              <b>Evelin Solares</b>
+              <span class="mate-role" data-i18n="t.evelin.role">Comunidad y testing</span>
+              <span class="mate-note" data-i18n="t.evelin.note">Testing intensivo y feedback desde la gestión de comunidades.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/kimberly-estrada-a87440328/" target="_blank" rel="noopener" aria-label="LinkedIn de Kimberly">
+            <span class="mate-ava" style="--h:330" aria-hidden="true">KI</span>
+            <span class="mate-info">
+              <b>Kimberly</b>
+              <span class="mate-role" data-i18n="t.kimberly.role">Diseño y edición de vídeo</span>
+              <span class="mate-note" data-i18n="t.kimberly.note">Criterio visual y piezas de vídeo para comunicar la app.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <span class="mate">
+            <span class="mate-ava" style="--h:210" aria-hidden="true">SC</span>
+            <span class="mate-info">
+              <b>Stanley Castro</b>
+              <span class="mate-role" data-i18n="t.stanley.role">Diseño y fotografía</span>
+              <span class="mate-note" data-i18n="t.stanley.note">Ha diseñado y fotografiado para MatchPoint, y ha testeado la app a fondo.</span>
+            </span>
+          </span>
+          <a class="mate" href="https://www.linkedin.com/in/enrique-gregori-alvarez-18aa897b/" target="_blank" rel="noopener" aria-label="LinkedIn de Enrique Gregori">
+            <span class="mate-ava" style="--h:130" aria-hidden="true">EG</span>
+            <span class="mate-info">
+              <b>Enrique Gregori</b>
+              <span class="mate-role" data-i18n="t.enrique.role">Testing e ingeniería</span>
+              <span class="mate-note" data-i18n="t.enrique.note">Pruebas de estrés y mirada ingenieril sobre el rendimiento.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <a class="mate" href="https://www.linkedin.com/in/kilian-tutusaus-38807182/" target="_blank" rel="noopener" aria-label="LinkedIn de Kilian Tutusaus">
+            <span class="mate-ava" style="--h:80" aria-hidden="true">KT</span>
+            <span class="mate-info">
+              <b>Kilian Tutusaus</b>
+              <span class="mate-role" data-i18n="t.kilian.role">Testing y mundo del tenis</span>
+              <span class="mate-note" data-i18n="t.kilian.note">Validación en pista: reglas, niveles y experiencia del jugador.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
+          <span class="mate">
+            <span class="mate-ava" style="--h:230" aria-hidden="true">AO</span>
+            <span class="mate-info">
+              <b>Arturo Ortega</b>
+              <span class="mate-role" data-i18n="t.arturo.role">Proyectos europeos · Consejero</span>
+              <span class="mate-note" data-i18n="t.arturo.note">Consejo estratégico y visión de producto a largo plazo.</span>
+            </span>
+          </span>
+          <a class="mate" href="https://www.linkedin.com/in/ligiamar%C3%ADaleeguandique-255777156/" target="_blank" rel="noopener" aria-label="LinkedIn de Ligia Lee">
+            <span class="mate-ava" style="--h:0" aria-hidden="true">LL</span>
+            <span class="mate-info">
+              <b>Ligia Lee</b>
+              <span class="mate-role" data-i18n="t.ligia.role">Modelo y testing</span>
+              <span class="mate-note" data-i18n="t.ligia.note">Testing de experiencia y una mirada fresca fuera del sector.</span>
+            </span>
+            <span class="mate-li" aria-hidden="true">in ↗</span>
+          </a>
         </div>
       </div>
     </section>
@@ -423,6 +524,7 @@
       </div>
     </div>
   </footer>
-  <script src="/app.js?v=4" defer></script>
+  <script src="/app.js?v=5" defer></script>
+  <script type="module" src="/hero3d.js?v=5"></script>
 </body>
 </html>

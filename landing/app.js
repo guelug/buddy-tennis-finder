@@ -24,7 +24,7 @@ const I18N = {
     "hero.lead": "MatchPoint conecta tenistas de tu nivel, organiza partidos con pista y convierte cada resultado validado en un ranking que sí refleja tu juego.",
     "hero.ios": "Descargar para iPhone",
     "hero.android": "Descargar para Android",
-    "hero.availability": "Gratis · iPhone y Android · Sin permanencia",
+    "hero.availability": "Gratis · iPhone y Android · Disponible en Ciudad de Guatemala y Barcelona · Más ciudades muy pronto",
     "hero.proof1": "✓ Rivales compatibles",
     "hero.proof2": "✓ Partidos con pista",
     "hero.proof3": "✓ Ranking validado",
@@ -112,9 +112,32 @@ const I18N = {
     "about.quote": "“Construimos lo que de verdad echábamos en falta para poder jugar.”",
 
     "testers.eyebrow": "Gracias, equipo",
-    "testers.title": "Construida con jugadores reales.",
-    "testers.sub": "MatchPoint es mejor gracias a nuestros testers, que la han probado en pista y nos han llenado de sugerencias para pulir cada detalle:",
-    "testers.more": "…y muchos más",
+    "testers.title": "Pulida por miradas expertas.",
+    "testers.sub": "MatchPoint ha crecido gracias a sus early alpha testers: personas de campos muy distintos que la han probado, cuestionado y mejorado con su feedback. Estas son sus miradas.",
+    "t.david.role": "Programación",
+    "t.david.note": "Revisión técnica y detección de bugs de lógica en partidos y ranking.",
+    "t.guillermo.role": "Testing y marketing",
+    "t.guillermo.note": "Feedback de producto y enfoque comercial para aterrizar el mensaje.",
+    "t.elizabeth.role": "Testing y redacción",
+    "t.elizabeth.note": "Pruebas de flujo y pulido de los textos de la app.",
+    "t.mafer.role": "RRSS y estrategia",
+    "t.mafer.note": "Estrategia de contenidos y visión de comunidad para el lanzamiento.",
+    "t.rebeca.role": "RRSS y marketing",
+    "t.rebeca.note": "Mirada de marketing digital y validación de la propuesta de valor.",
+    "t.evelin.role": "Comunidad y testing",
+    "t.evelin.note": "Testing intensivo y feedback desde la gestión de comunidades.",
+    "t.kimberly.role": "Diseño y edición de vídeo",
+    "t.kimberly.note": "Criterio visual y piezas de vídeo para comunicar la app.",
+    "t.stanley.role": "Diseño y fotografía",
+    "t.stanley.note": "Ha diseñado y fotografiado para MatchPoint, y ha testeado la app a fondo.",
+    "t.enrique.role": "Testing e ingeniería",
+    "t.enrique.note": "Pruebas de estrés y mirada ingenieril sobre el rendimiento.",
+    "t.kilian.role": "Testing y mundo del tenis",
+    "t.kilian.note": "Validación en pista: reglas, niveles y experiencia del jugador.",
+    "t.arturo.role": "Proyectos europeos · Consejero",
+    "t.arturo.note": "Consejo estratégico y visión de producto a largo plazo.",
+    "t.ligia.role": "Modelo y testing",
+    "t.ligia.note": "Testing de experiencia y una mirada fresca fuera del sector.",
 
     "priv.eyebrow": "Juega con tranquilidad",
     "priv.title": "Tu juego es público.<br><span class=\"accent\">Tus datos, no.</span>",
@@ -182,7 +205,7 @@ const I18N = {
       "hero.lead": "MatchPoint connects tennis players at your level, organizes matches with a court, and turns every validated result into a ranking that truly reflects your game.",
       "hero.ios": "Download for iPhone",
       "hero.android": "Download for Android",
-      "hero.availability": "Free · iPhone and Android · No commitment",
+      "hero.availability": "Free · iPhone and Android · Available in Guatemala City and Barcelona · More cities coming soon",
       "hero.proof1": "✓ Compatible opponents",
       "hero.proof2": "✓ Matches with a court",
       "hero.proof3": "✓ Validated ranking",
@@ -260,9 +283,32 @@ const I18N = {
       "about.crisDesc": "The idea’s origin, player needs, and product vision.",
       "about.quote": "“We built what we genuinely felt was missing so we could play.”",
       "testers.eyebrow": "Thanks, team",
-      "testers.title": "Built with real players.",
-      "testers.sub": "MatchPoint is better thanks to our testers, who tried it on court and shared suggestions to refine every detail:",
-      "testers.more": "…and many more",
+      "testers.title": "Polished by expert eyes.",
+      "testers.sub": "MatchPoint grew thanks to its early alpha testers: people from very different fields who tried it, challenged it, and made it better with their feedback. These are their perspectives.",
+      "t.david.role": "Software development",
+      "t.david.note": "Technical review and logic-bug hunting in matches and ranking.",
+      "t.guillermo.role": "Testing & marketing",
+      "t.guillermo.note": "Product feedback and commercial focus to sharpen the message.",
+      "t.elizabeth.role": "Testing & copywriting",
+      "t.elizabeth.note": "Flow testing and polishing of the app's copy.",
+      "t.mafer.role": "Social media & strategy",
+      "t.mafer.note": "Content strategy and community vision for the launch.",
+      "t.rebeca.role": "Social media & marketing",
+      "t.rebeca.note": "Digital marketing insight and value proposition validation.",
+      "t.evelin.role": "Community & testing",
+      "t.evelin.note": "Intensive testing and feedback from community management.",
+      "t.kimberly.role": "Design & video editing",
+      "t.kimberly.note": "Visual judgment and video pieces to communicate the app.",
+      "t.stanley.role": "Design & photography",
+      "t.stanley.note": "Designed and photographed for MatchPoint, and put the app through deep testing.",
+      "t.enrique.role": "Testing & engineering",
+      "t.enrique.note": "Stress testing and an engineer's eye on performance.",
+      "t.kilian.role": "Testing & tennis world",
+      "t.kilian.note": "On-court validation: rules, levels, and player experience.",
+      "t.arturo.role": "European projects · Advisor",
+      "t.arturo.note": "Strategic advice and long-term product vision.",
+      "t.ligia.role": "Model & testing",
+      "t.ligia.note": "Experience testing and a fresh perspective from outside the sector.",
       "priv.eyebrow": "Play with peace of mind",
       "priv.title": "Your game is public.<br><span class=\"accent\">Your data isn’t.</span>",
       "priv.sub": "We only ask for what you need to play, and use anonymous statistics to keep the app fast, stable, and improving every week.",
@@ -327,7 +373,7 @@ const I18N = {
       "hero.lead": "MatchPoint connecta tennistes del teu nivell, organitza partits amb pista i converteix cada resultat validat en un rànquing que reflecteix de debò el teu joc.",
       "hero.ios": "Descarrega per a iPhone",
       "hero.android": "Descarrega per a Android",
-      "hero.availability": "Gratis · iPhone i Android · Sense permanència",
+      "hero.availability": "Gratis · iPhone i Android · Disponible a Ciutat de Guatemala i Barcelona · Més ciutats molt aviat",
       "hero.proof1": "✓ Rivals compatibles",
       "hero.proof2": "✓ Partits amb pista",
       "hero.proof3": "✓ Rànquing validat",
@@ -405,9 +451,32 @@ const I18N = {
       "about.crisDesc": "Origen de la idea, necessitats del jugador i visió de producte.",
       "about.quote": "“Construïm allò que realment trobàvem a faltar per poder jugar.”",
       "testers.eyebrow": "Gràcies, equip",
-      "testers.title": "Construïda amb jugadors reals.",
-      "testers.sub": "MatchPoint és millor gràcies als nostres testers, que l’han provat a la pista i ens han fet arribar suggeriments per polir cada detall:",
-      "testers.more": "…i molts més",
+      "testers.title": "Polida per mirades expertes.",
+      "testers.sub": "MatchPoint ha crescut gràcies als seus early alpha testers: persones de camps molt diferents que l’han provada, qüestionada i millorada amb el seu feedback. Aquestes són les seves mirades.",
+      "t.david.role": "Programació",
+      "t.david.note": "Revisió tècnica i detecció d’errors de lògica en partits i rànquing.",
+      "t.guillermo.role": "Testing i màrqueting",
+      "t.guillermo.note": "Feedback de producte i enfoc comercial per aterrar el missatge.",
+      "t.elizabeth.role": "Testing i redacció",
+      "t.elizabeth.note": "Proves de flux i polit dels textos de l’app.",
+      "t.mafer.role": "Xarxes socials i estratègia",
+      "t.mafer.note": "Estratègia de continguts i visió de comunitat per al llançament.",
+      "t.rebeca.role": "Xarxes socials i màrqueting",
+      "t.rebeca.note": "Mirada de màrqueting digital i validació de la proposta de valor.",
+      "t.evelin.role": "Comunitat i testing",
+      "t.evelin.note": "Testing intensiu i feedback des de la gestió de comunitats.",
+      "t.kimberly.role": "Disseny i edició de vídeo",
+      "t.kimberly.note": "Criteri visual i peces de vídeo per comunicar l’app.",
+      "t.stanley.role": "Disseny i fotografia",
+      "t.stanley.note": "Ha dissenyat i fotografiat per a MatchPoint, i ha testat l’app a fons.",
+      "t.enrique.role": "Testing i enginyeria",
+      "t.enrique.note": "Proves d’estrès i mirada enginyeril sobre el rendiment.",
+      "t.kilian.role": "Testing i món del tennis",
+      "t.kilian.note": "Validació a la pista: regles, nivells i experiència del jugador.",
+      "t.arturo.role": "Projectes europeus · Assessor",
+      "t.arturo.note": "Consell estratègic i visió de producte a llarg termini.",
+      "t.ligia.role": "Model i testing",
+      "t.ligia.note": "Testing d’experiència i una mirada fresca fora del sector.",
       "priv.eyebrow": "Juga amb tranquil·litat",
       "priv.title": "El teu joc és públic.<br><span class=\"accent\">Les teves dades, no.</span>",
       "priv.sub": "Només et demanem allò imprescindible perquè puguis jugar, i fem servir estadístiques anònimes per mantenir l’app ràpida i estable, i fer-la millorar cada setmana.",
@@ -649,7 +718,7 @@ if (!REDUCED_MOTION) {
     const targetAngle = -20 + Math.max(-35, Math.min(35, vx * 2.4));
     racketState.angle += (targetAngle - racketState.angle) * 0.18;
     if (racket) {
-      racket.style.transform = `translate(${racketState.x - 26}px, ${racketState.y - 26}px) rotate(${racketState.angle}deg)`;
+      racket.style.transform = `translate(${racketState.x - 37}px, ${racketState.y - 37}px) rotate(${racketState.angle}deg)`;
     }
     requestAnimationFrame(followRacket);
   })();
@@ -725,7 +794,7 @@ if (tourTrack) {
 const ctaSection = document.querySelector(".cta");
 const ctaBall = document.getElementById("cta-ball");
 if (ctaSection && ctaBall && !REDUCED_MOTION) {
-  const R = 27;
+  const R = 19;
   let bx = 70, by = 50, vx = 2.4, vy = 1.8, rot = 0, running = false;
 
   new IntersectionObserver((entries) => {
@@ -760,14 +829,14 @@ if (ctaSection && ctaBall && !REDUCED_MOTION) {
       const dx = (bx + R) - rx;
       const dy = (by + R) - ry;
       const dist = Math.hypot(dx, dy);
-      if (dist < R + 32 && dist > 0.01) {
+      if (dist < R + 46 && dist > 0.01) {
         const nx = dx / dist;
         const ny = dy / dist;
         const speed = Math.min(9, Math.hypot(vx, vy) + 1.7);
         vx = nx * speed;
         vy = ny * speed;
-        bx = rx + nx * (R + 33) - R;
-        by = ry + ny * (R + 33) - R;
+        bx = rx + nx * (R + 47) - R;
+        by = ry + ny * (R + 47) - R;
       }
     }
 
