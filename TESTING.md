@@ -1,58 +1,76 @@
-# Test ready
+# Validación local y checklist de release
 
-## Prueba local
+## Alcance
+
+MatchPoint Tennis es una aplicación nativa de Expo para iOS y Android. La carpeta
+`landing/` contiene únicamente la landing pública y las páginas legales; no es una
+versión web de la aplicación ni existe un backend local en `api/`.
+
+## Comprobaciones automáticas
+
+Desde la raíz del proyecto:
 
 ```bash
 npm install
-npm --prefix api install
-npm run verify
+npm run typecheck
+npm test
+npm run i18n:validate
+npm run build:android-bundle
+npm --prefix workers/iap-verifier run typecheck
+npm --prefix workers/iap-verifier test
+```
+
+`npm run verify` ejecuta typecheck, tests, exportación Android y `expo-doctor` en
+una sola orden. `expo-doctor` necesita acceso a npm; si la máquina está sin red,
+ejecútalo cuando vuelva a estar disponible.
+
+### Reglas de Firestore
+
+La prueba de integración necesita Java, Firebase CLI y el emulador local:
+
+```bash
+firebase emulators:start --only firestore --project tenisbuddy-app-rules-test
+# En otra terminal:
+npm run test:firestore:run
+```
+
+## Ejecutar la app nativa
+
+```bash
 npm run start
 ```
 
 Con Expo abierto:
 
-- Android: escanea el QR con Expo Go o presiona `a` para emulador Android.
-- iOS: escanea el QR con Expo Go o presiona `i` para simulador iOS en Mac.
-- Web: presiona `w` o usa `npm run web`.
+- Android: presiona `a` o usa un dispositivo físico.
+- iOS: presiona `i` en macOS con Xcode y un runtime de simulador instalado.
 
-La app funciona sin backend porque usa datos mock. Para probar API real:
+También se pueden generar builds de prueba con `npx eas-cli build -p android
+--profile preview`. No uses `w` ni `npm run web`: la aplicación funcional no se
+distribuye como web.
 
-```bash
-npm run api
-EXPO_PUBLIC_API_URL=http://localhost:4000 npm run start
-```
+## Validación manual mínima
 
-En Android físico, `localhost` no apunta a la computadora. Usa una URL pública o la IP local de la computadora.
+- Completar login/onboarding y comprobar que el teclado no tapa los campos.
+- Conceder ubicación y cambiar distancia, nivel, formato y disponibilidad.
+- Abrir un candidato y enviar una propuesta; aceptarla o rechazarla desde
+  `Partidos`.
+- Abrir el asistente, escribir con el teclado abierto y comprobar que el texto
+  permanece visible; enviar el mensaje y verificar que aparece en el chat.
+- Abrir una conversación, enviar/recibir mensajes y comprobar estados de carga y
+  error.
+- Probar Google/Apple/email según las credenciales configuradas.
+- Validar compra/restauración en los entornos sandbox de App Store y Play antes de
+  publicar.
 
-## Vercel Free para web
+## Landing y páginas legales
 
-Configura el proyecto en Vercel con:
-
-- Framework preset: Other.
-- Build command: `npm run build:web`.
-- Output directory: `dist`.
-- Environment variable: `EXPO_PUBLIC_APP_URL=https://tu-proyecto.vercel.app`.
-
-Después de desplegar, actualiza `EXPO_PUBLIC_APP_URL` para que el enlace de prueba del home apunte a tu URL final.
-
-## Android para testers
-
-Opción gratis sin Play Store:
+Para revisar la landing estática localmente:
 
 ```bash
-npx eas-cli build -p android --profile preview
+npm run landing:serve
 ```
 
-Ese perfil genera APK para instalar directamente. También puedes usar Expo Go sin generar APK.
-
-Google Play no es gratis: requiere cuenta de desarrollador con pago único. Para pruebas privadas por Play Store, crea una pista de Internal testing cuando ya tengas la cuenta.
-
-## Checklist manual
-
-- Abrir app en Android con Expo Go.
-- Tocar `Ubicación` y aceptar permiso.
-- Cambiar distancia, nivel, formato y disponibilidad.
-- Abrir un candidato y enviar propuesta.
-- Ir a `Partidos` y aceptar o declinar una solicitud.
-- Abrir la web desplegada en móvil y usar `Agregar a pantalla de inicio`.
-- Revisar que el enlace de prueba del home abre la URL final.
+Comprueba `/`, `/privacy/`, `/terms/`, `/support/` y `/delete-account/`. El
+despliegue de esta carpeta se documenta en `DEPLOYMENT.md` y se realiza mediante
+Firebase Hosting.

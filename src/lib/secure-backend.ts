@@ -82,6 +82,22 @@ export async function verifyApplePurchase(
     : { ...common, league: intent.input });
 }
 
+export async function verifyAndroidPurchase(
+  intent: PurchaseIntent,
+  purchaseToken: string
+): Promise<VerifyPurchaseResult> {
+  const appAccountToken = await iapAccountTokenForUid(intent.ownerId);
+  const common = {
+    kind: intent.kind,
+    productId: intent.productId,
+    purchaseToken,
+    appAccountToken
+  };
+  return authenticatedPost<VerifyPurchaseResult>("/v1/android/verify", intent.kind === "coach"
+    ? { ...common, adId: intent.adId }
+    : { ...common, league: intent.input });
+}
+
 export async function joinPrivateLeagueSecure(leagueId: string, inviteCode: string): Promise<void> {
   await authenticatedPost<{ joined: true }>("/v1/leagues/join", {
     leagueId,

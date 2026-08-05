@@ -82,7 +82,7 @@ export default function HomeScreen() {
   return (
     <LiveBackground overlay={0.58}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-      <ScreenShell width={isWebDesktop ? "wide" : "base"} bottomInset={isWebDesktop ? 64 : 8} onRefresh={loadHome}>
+      <ScreenShell width={isWebDesktop ? "wide" : "base"} bottomInset={isWebDesktop ? 64 : 8} onRefresh={loadHome} keyboardAware={false}>
         <HomeHeader player={player} intro={content.intro} isDesktop={isWebDesktop} isLight={isLight} />
 
         {error ? (
@@ -138,12 +138,12 @@ export default function HomeScreen() {
             </View>
           </View>
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
+        <View style={{ alignContent: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm, width: "100%" }}>
           <QuickAction
             imageDark={iconPublishDark}
             imageLight={iconPublishLight}
-            label="MatchPoint Assistant"
-            detail="Pregunta por tus estadísticas, partidos y torneos"
+            label={t("home.quick.assistant")}
+            detail={t("home.quick.assistantDetail")}
             desktop={isWebDesktop}
             onPress={() => router.push("/assistant" as never)}
           />
@@ -425,7 +425,23 @@ function InviteFriendsCard({ playerName, desktop }: { playerName?: string; deskt
   );
 }
 
-function SectionTitle({ title, subtitle, trailing }: { title: string; subtitle: string; trailing?: string }) { return <View style={{ gap: 2, marginTop: spacing.sm }}><View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}><Text style={{ ...typography.headline, color: colors.textPrimary }}>{title}</Text>{trailing ? <Text style={{ ...typography.footnote, color: colors.gold }}>{trailing}</Text> : null}</View><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{subtitle}</Text></View>; }
+function SectionTitle({ title, subtitle, trailing }: { title: string; subtitle: string; trailing?: string }) {
+  return (
+    <View style={{ gap: 4, marginTop: spacing.md, zIndex: 0 }}>
+      <View style={{ alignItems: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, justifyContent: "space-between" }}>
+        <Text numberOfLines={2} style={{ ...typography.headline, color: colors.textPrimary, flexGrow: 1, flexShrink: 1, minWidth: "55%" }}>
+          {title}
+        </Text>
+        {trailing ? (
+          <Text numberOfLines={1} style={{ ...typography.footnote, color: colors.gold, flexShrink: 0, fontWeight: "800", marginTop: 4 }}>
+            {trailing}
+          </Text>
+        ) : null}
+      </View>
+      <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{subtitle}</Text>
+    </View>
+  );
+}
 function StoryCard({ tag, title, body, image, desktop }: { tag: string; title: string; body: string; index: number; image: number; desktop: boolean }) {
   const { isLight } = useThemeMode();
   // En claro la imagen se lava sobre la card blanca: el scrim necesita más
@@ -472,10 +488,15 @@ function QuickAction({
           borderRadius: radii.lg,
           borderWidth: 1,
           boxShadow: desktop ? (isLight ? "0 12px 32px rgba(36,62,43,.09)" : shadows.card) : shadows.subtle,
-          flex: 1,
+          // Explicit basis so the wrap container measures BOTH rows.
+          // bare flex:1 + wrap under-measures height → next siblings overlap the 2nd row.
+          flexBasis: desktop ? "31%" : "31%",
+          flexGrow: 0,
+          flexShrink: 0,
           gap: spacing.sm,
-          minHeight: desktop ? 160 : 100,
-          minWidth: 100,
+          minHeight: desktop ? 160 : 108,
+          maxWidth: desktop ? undefined : "32%",
+          width: desktop ? undefined : "31.5%",
           justifyContent: "center",
           overflow: "hidden",
           padding: desktop ? spacing.xl : spacing.sm

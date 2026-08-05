@@ -2,8 +2,11 @@ import LocalAI, { type LocalAIAvailability } from "@/../modules/matchpoint-local
 import { tournaments, publicLeagueForDivision, publicLeagueIdsFor } from "@/data/competition-hub";
 import { DIVISION_LABELS } from "@/data/rankings";
 import { getHomeData } from "@/lib/app-api";
+import { detectIdentityIntent, identityAnswerText } from "@/lib/assistant-identity";
 import { getMatchRooms, scoreLine } from "@/lib/match-room";
 import type { Club, MatchProposal, MatchRoom, Player } from "@/types";
+
+export { detectIdentityIntent, type IdentityIntent } from "@/lib/assistant-identity";
 
 /** Acción que el asistente puede ofrecer al final de una respuesta. */
 export type AssistantAction = {
@@ -122,7 +125,7 @@ export async function getLocalAIAvailability(): Promise<LocalAIAvailability> {
  * para que el modelo no tenga que adivinar qué es real: todo lo que no esté
  * aquí, no existe.
  */
-function groundedPrompt(question: string, context: AssistantContext, languageName: string) {
+function groundedPrompt(question: string, context: AssistantContext, languageName: string, assistantName: string) {
   const payload = {
     jugador: {
       nombre: context.player.name,
@@ -182,13 +185,16 @@ function groundedPrompt(question: string, context: AssistantContext, languageNam
     }
   };
   return [
-    `Eres MatchPoint Assistant, dentro de una app de tenis. Responde en ${languageName}.`,
+    `Eres ${assistantName}, el asistente personal de MatchPoint, dentro de una app de tenis. Responde en ${languageName}.`,
+    "Identidades separadas, no las confundas nunca:",
+    `- Tú eres ${assistantName}, el asistente. Si el jugador te pregunta quién eres o cómo te llamas, preséntate como ${assistantName}, su asistente.`,
+    `- El jugador que te escribe se llama ${context.player.name}. Si te pregunta si sabes quién es, responde que es ${context.player.name}. Nunca digas que tú eres ${context.player.name}: ese nombre es del jugador, no tuyo.`,
     "Usa exclusivamente los datos verificados de abajo. Si un dato no aparece, di que todavía no está registrado; nunca lo inventes ni lo estimes.",
     "Responde en 3 frases como máximo, en tono directo y práctico.",
     "",
-    `Pregunta del jugador: ${question}`,
+    `Pregunta del jugador (${context.player.name}): ${question}`,
     "",
-    `Datos verificados de MatchPoint (JSON):\n${JSON.stringify(payload)}`
+    `Datos verificados del jugador en MatchPoint (JSON):\n${JSON.stringify(payload)}`
   ].join("\n");
 }
 
@@ -204,14 +210,32 @@ export async function askMatchPointAssistant(
   question: string,
   context: AssistantContext,
   t: Translate,
-  languageName = "español"
+  languageName = "español",
+  assistantName = "Match Buddy"
 ): Promise<AssistantAnswer> {
+  const identity = detectIdentityIntent(question);
+  if (identity) {
+    const profile: AssistantAction = { id: "profile", labelKey: "assistant.action.profile", route: "/profile" };
+    const ranking: AssistantAction = { id: "ranking", labelKey: "assistant.action.ranking", route: "/liga" };
+    const rivals: AssistantAction = { id: "rivals", labelKey: "assistant.action.rivals", route: "/" };
+    const actions = identity === "user" ? [profile, ranking] : [rivals, ranking];
+    return {
+      text: identityAnswerText(identity, {
+        assistantName,
+        playerName: context.player.name,
+        divisionLabel: DIVISION_LABELS[context.player.level],
+        city: context.player.city
+      }, t),
+      provider: "fallback",
+      actions
+    };
+  }
   const intent = detectIntent(question);
   const actions = actionsForIntent(intent, context);
   const availability = await getLocalAIAvailability();
   if (availability.available && LocalAI) {
     try {
-      const generated = await LocalAI.generate(groundedPrompt(question, context, languageName));
+      const generated = await LocalAI.generate(groundedPrompt(question, context, languageName, assistantName));
       const text = cleanAssistantText(generated);
       if (text) return { text, provider: availability.provider, actions };
     } catch {

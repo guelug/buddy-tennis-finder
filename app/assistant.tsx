@@ -52,8 +52,8 @@ export default function AssistantScreen() {
   );
 
   useEffect(() => {
-    setMessages((current) => (current.length ? current : [{ id: "welcome", role: "assistant", text: t("assistant.welcome") }]));
-  }, [t]);
+    setMessages((current) => (current.length ? current : [{ id: "welcome", role: "assistant", text: t("assistant.welcome", { name: buddy.name }) }]));
+  }, [t, buddy.name]);
 
   useEffect(() => {
     let active = true;
@@ -81,7 +81,7 @@ export default function AssistantScreen() {
     setMessages((current) => [...current, { id: `u-${Date.now()}`, role: "user", text: question }]);
     setSending(true);
     try {
-      const answer = await askMatchPointAssistant(question, context, t, languageName);
+      const answer = await askMatchPointAssistant(question, context, t, languageName, buddy.name);
       setProvider(describeProvider(answer.provider, t));
       setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: answer.text, actions: answer.actions }]);
     } catch {

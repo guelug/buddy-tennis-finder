@@ -18,6 +18,7 @@ type Env = {
   APPLE_IAP_PRIVATE_KEY: string;
   GOOGLE_CLIENT_EMAIL: string;
   GOOGLE_PRIVATE_KEY: string;
+  ANDROID_PACKAGE_NAME: string;
 };
 
 type AuthContext = {
@@ -76,6 +77,22 @@ type PurchaseBody =
       kind: "league";
       productId: "private_league_create";
       transactionId: string;
+      appAccountToken: string;
+      league: LeagueInput;
+    };
+
+type AndroidPurchaseBody =
+  | {
+      kind: "coach";
+      productId: "coach_ad_7_days" | "coach_ad_30_days";
+      purchaseToken: string;
+      appAccountToken: string;
+      adId: string;
+    }
+  | {
+      kind: "league";
+      productId: "private_league_create";
+      purchaseToken: string;
       appAccountToken: string;
       league: LeagueInput;
     };
@@ -237,6 +254,37 @@ export function validatePurchaseBody(value: unknown): PurchaseBody {
   throw new HttpError(400, "Producto no válido.");
 }
 
+export function validateAndroidPurchaseBody(value: unknown): AndroidPurchaseBody {
+  if (!isRecord(value)) throw new HttpError(400, "Compra no válida.");
+  const purchaseToken = boundedString(value.purchaseToken, 10, 512, "Token de compra");
+  const appAccountToken = boundedString(value.appAccountToken, 36, 36, "Cuenta");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(appAccountToken)) {
+    throw new HttpError(400, "Cuenta no válida.");
+  }
+  if (value.kind === "coach") {
+    if (!(value.productId === "coach_ad_7_days" || value.productId === "coach_ad_30_days")) {
+      throw new HttpError(400, "Producto no válido.");
+    }
+    return {
+      kind: "coach",
+      productId: value.productId,
+      purchaseToken,
+      appAccountToken,
+      adId: boundedString(value.adId, 1, 150, "Anuncio")
+    };
+  }
+  if (value.kind === "league" && value.productId === LEAGUE_PRODUCT) {
+    return {
+      kind: "league",
+      productId: LEAGUE_PRODUCT,
+      purchaseToken,
+      appAccountToken,
+      league: validateLeague(value.league)
+    };
+  }
+  throw new HttpError(400, "Producto no válido.");
+}
+
 export async function accountTokenForUid(uid: string): Promise<string> {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(uid))).slice(0, 16);
   bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x50;
@@ -317,11 +365,21 @@ function validateAppleTransaction(
 }
 
 async function googleAccessToken(env: Env): Promise<string> {
+  return googleScopedAccessToken(env, "https://www.googleapis.com/auth/datastore");
+}
+
+/**
+ * Token de Google con scope para la Play Developer API. Permite verificar
+ * compras in-app de Android llamando a androidpublisher.googleapis.com.
+ */
+async function googlePlayAccessToken(env: Env): Promise<string> {
+  return googleScopedAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
+}
+
+async function googleScopedAccessToken(env: Env, scope: string): Promise<string> {
   const key = await importPKCS8(normalizePrivateKey(env.GOOGLE_PRIVATE_KEY), "RS256");
   const now = Math.floor(Date.now() / 1000);
-  const assertion = await new SignJWT({
-    scope: "https://www.googleapis.com/auth/datastore"
-  })
+  const assertion = await new SignJWT({ scope })
     .setProtectedHeader({ alg: "RS256", typ: "JWT" })
     .setIssuer(env.GOOGLE_CLIENT_EMAIL)
     .setSubject(env.GOOGLE_CLIENT_EMAIL)
@@ -338,12 +396,79 @@ async function googleAccessToken(env: Env): Promise<string> {
     })
   });
   if (!response.ok) {
-    console.error("Google OAuth failed", { status: response.status });
+    console.error("Google OAuth failed", { status: response.status, scope });
     throw new HttpError(503, "No se pudo completar la entrega.");
   }
   const result = await response.json() as { access_token?: unknown };
   if (typeof result.access_token !== "string") throw new HttpError(503, "No se pudo completar la entrega.");
   return result.access_token;
+}
+
+type GooglePlayPurchase = {
+  purchaseState: number;
+  consumptionState: number;
+  productId: string;
+  purchaseTimeMillis: string;
+  orderId: string;
+  purchaseToken: string;
+  quantity: number;
+  acknowledgementState: number;
+  obfuscatedExternalAccountId?: string;
+};
+
+/**
+ * Consulta la Google Play Developer API para verificar que el purchaseToken
+ * corresponde a una compra real y válida del producto esperado.
+ */
+async function fetchGooglePlayPurchase(
+  productId: string,
+  purchaseToken: string,
+  env: Env
+): Promise<GooglePlayPurchase> {
+  const accessToken = await googlePlayAccessToken(env);
+  const packageName = env.ANDROID_PACKAGE_NAME;
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${packageName}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/json"
+    }
+  });
+  if (!response.ok) {
+    console.error("Google Play purchase lookup failed", { status: response.status });
+    throw new HttpError(response.status >= 500 ? 503 : 400, "Google Play no pudo validar la compra.");
+  }
+  const result = await response.json() as Partial<GooglePlayPurchase>;
+  if (!result.productId || !result.purchaseToken) {
+    throw new HttpError(502, "Respuesta de Google Play no válida.");
+  }
+  return result as GooglePlayPurchase;
+}
+
+function validateGooglePlayPurchase(
+  purchase: GooglePlayPurchase,
+  body: AndroidPurchaseBody,
+  expectedAccountToken: string
+): void {
+  if (purchase.productId !== body.productId) {
+    throw new HttpError(403, "El producto no coincide con la compra.");
+  }
+  // 0 = purchased, 1 = canceled, 2 = pending
+  if (purchase.purchaseState !== 0) {
+    throw new HttpError(400, "La compra no está completada.");
+  }
+  // 0 = yet to be consumed, 1 = consumed — los consumibles deben estar ack'd
+  if (purchase.acknowledgementState !== 1) {
+    // No bloqueamos: el cliente hace acknowledge tras la verificación.
+  }
+  if (purchase.quantity !== 1) {
+    throw new HttpError(400, "La cantidad de compra no es válida.");
+  }
+  // Verificamos que el obfuscatedAccountId (que el cliente setea con el
+  // appAccountToken derivado del uid) coincida con el esperado.
+  if (purchase.obfuscatedExternalAccountId?.toLowerCase() !== expectedAccountToken) {
+    throw new HttpError(403, "La compra no pertenece a esta cuenta.");
+  }
 }
 
 function documentUrl(env: Env, path: string): string {
@@ -542,6 +667,106 @@ async function verifyApplePurchase(request: Request, auth: AuthContext, env: Env
   return json(await deliverPurchase(body, transaction, auth.uid, env));
 }
 
+/**
+ * Entrega una compra de Android verificada. La estructura es la misma que
+ * iOS: crea iapPurchases/{orderId} (idempotente) y actualiza el anuncio o
+ * crea la liga privada según el tipo de producto.
+ */
+async function deliverAndroidPurchase(
+  body: AndroidPurchaseBody,
+  purchase: GooglePlayPurchase,
+  uid: string,
+  env: Env
+): Promise<Record<string, unknown>> {
+  const token = await googleAccessToken(env);
+  // Usamos orderId como identificador único de la compra (equivalente al
+  // transactionId de Apple). Si no hay orderId, caemos al purchaseToken.
+  const purchaseId = purchase.orderId || `android-${body.purchaseToken.slice(0, 40)}`;
+  const purchasePath = `iapPurchases/${purchaseId}`;
+  const previous = await getDocument(env, token, purchasePath);
+  if (previous) {
+    const stored = decodeFields(previous.fields ?? {});
+    if (stored.ownerId !== uid || stored.productId !== body.productId) {
+      throw new HttpError(409, "La transacción ya fue utilizada.");
+    }
+    return {
+      verified: true,
+      repeated: true,
+      kind: stored.kind,
+      adId: stored.adId,
+      leagueId: stored.leagueId
+    };
+  }
+
+  const now = new Date();
+  const basePurchase = {
+    ownerId: uid,
+    productId: body.productId,
+    transactionId: purchaseId,
+    originalTransactionId: purchaseId,
+    purchaseToken: body.purchaseToken,
+    platform: "android",
+    environment: "production",
+    purchaseDate: new Date(Number(purchase.purchaseTimeMillis) || now.getTime()),
+    verifiedAt: now,
+    status: "verified",
+    kind: body.kind
+  };
+
+  if (body.kind === "coach") {
+    const adPath = `coachAds/${body.adId}`;
+    const adDocument = await getDocument(env, token, adPath);
+    if (!adDocument?.updateTime) throw new HttpError(404, "El anuncio ya no existe.");
+    const ad = decodeFields(adDocument.fields ?? {});
+    const product = COACH_PRODUCTS[body.productId];
+    if (ad.ownerId !== uid || ad.plan !== product.plan || !["pending_payment", "active"].includes(String(ad.status))) {
+      throw new HttpError(403, "El anuncio no coincide con la compra.");
+    }
+    const previousExpiry = typeof ad.expiresAt === "string" ? Date.parse(ad.expiresAt) : 0;
+    const activeFrom = now;
+    const expiresAt = new Date(Math.max(Date.now(), previousExpiry) + product.days * 86_400_000);
+    await commit(env, token, [
+      createWrite(env, purchasePath, { ...basePurchase, adId: body.adId }),
+      updateWrite(env, adPath, { status: "active", activeFrom, expiresAt, updatedAt: now }, adDocument.updateTime)
+    ]);
+    return { verified: true, repeated: false, kind: "coach", adId: body.adId };
+  }
+
+  const leagueId = crypto.randomUUID().replaceAll("-", "");
+  const code = inviteCode();
+  await commit(env, token, [
+    createWrite(env, purchasePath, { ...basePurchase, leagueId }),
+    createWrite(env, `privateLeagues/${leagueId}`, {
+      id: leagueId,
+      ownerId: uid,
+      name: body.league.name,
+      description: body.league.description,
+      division: body.league.division,
+      format: body.league.format,
+      maxMembers: body.league.maxMembers,
+      memberIds: [uid],
+      createdAt: now
+    }),
+    createWrite(env, `privateLeagues/${leagueId}/private/invite`, {
+      code,
+      createdAt: now
+    })
+  ]);
+  return { verified: true, repeated: false, kind: "league", leagueId };
+}
+
+async function verifyAndroidPurchase(request: Request, auth: AuthContext, env: Env): Promise<Response> {
+  if (auth.appId !== env.FIREBASE_ANDROID_APP_ID) throw new HttpError(403, "Esta compra solo está disponible en Android.");
+  const body = validateAndroidPurchaseBody(await readJson(request));
+  const expectedAccountToken = await accountTokenForUid(auth.uid);
+  if (body.appAccountToken.toLowerCase() !== expectedAccountToken) {
+    throw new HttpError(403, "La compra no pertenece a esta cuenta.");
+  }
+  const purchase = await fetchGooglePlayPurchase(body.productId, body.purchaseToken, env);
+  validateGooglePlayPurchase(purchase, body, expectedAccountToken);
+  return json(await deliverAndroidPurchase(body, purchase, auth.uid, env));
+}
+
 async function joinLeague(request: Request, auth: AuthContext, env: Env): Promise<Response> {
   const body = await readJson(request);
   if (!isRecord(body)) throw new HttpError(400, "Invitación no válida.");
@@ -580,6 +805,7 @@ export default {
       if (request.method !== "POST") throw new HttpError(405, "Método no permitido.");
       const auth = await authenticate(request, env);
       if (url.pathname === "/v1/apple/verify") return verifyApplePurchase(request, auth, env);
+      if (url.pathname === "/v1/android/verify") return verifyAndroidPurchase(request, auth, env);
       if (url.pathname === "/v1/leagues/join") return joinLeague(request, auth, env);
       throw new HttpError(404, "Ruta no encontrada.");
     } catch (error) {

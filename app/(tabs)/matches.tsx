@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Pressable, Text, View } from "react-native";
 import Animated, { FadeIn, SlideInRight } from "react-native-reanimated";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { winCelebration as winFeedback } from "@/lib/feedback";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
 import { ConceptHero } from "@/components/concept-hero";
@@ -17,9 +18,12 @@ import { Avatar } from "@/components/avatar";
 import { SegmentedTabs } from "@/components/segmented-tabs";
 import { ModalSheet } from "@/components/modal-sheet";
 import { MatchRoomCard, MatchRoomSheet } from "@/components/match-room";
+import { WinCelebration } from "@/components/win-celebration";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { WebShell } from "@/components/web/web-shell";
 import { getMatchRooms, roomAffordances } from "@/lib/match-room";
+import { rankTeamSeekers, type TeamSeeker } from "@/lib/auto-match";
+import { notifyNewSeeker, startSeekingTeam, stopSeekingTeam, subscribeToTeamSeekers } from "@/lib/team-seeking";
 import { getHomeData, requestMatchJoin, respondToMatchJoinRequest, updateProposalStatus } from "@/lib/app-api";
 import { isLevelCompatible, levelLabel } from "@/lib/matching";
 import { openInWaze } from "@/lib/waze";
@@ -53,6 +57,8 @@ function MatchesWeb() {
     <LiveBackground source={bgMatchControl} lightSource={bgMatchControlLight} overlay={0.36}>
       <WebShell width="wide">
         <MatchControlDashboard state={state} />
+
+        <TeamSeekingSection state={state} desktop />
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
           {filterChips.map((chip) => (
@@ -107,6 +113,8 @@ function MatchesNative() {
         </Animated.View>
 
         <MatchOpsHero state={state} />
+
+        <TeamSeekingSection state={state} />
 
         {state.actionCount > 0 ? (
           <ActionBanner count={state.actionCount} onPress={() => state.setFilter("results")} />
@@ -475,17 +483,26 @@ function RoomsList({ state, columns }: { state: MatchesState; columns: 1 | 2 }) 
 function RoomModal({ state }: { state: MatchesState }) {
   const room = state.activeRoom;
   return (
-    <ModalSheet visible={!!room} onClose={state.closeRoom} maxWidth={560}>
-      {room ? (
-        <MatchRoomSheet
-          room={room}
-          currentPlayerId={state.currentPlayer?.id}
-          clubName={state.clubs.find((c) => c.id === room.clubId)?.name}
-          onRoomChange={state.updateRoom}
-          onClose={state.closeRoom}
-        />
-      ) : null}
-    </ModalSheet>
+    <>
+      <ModalSheet visible={!!room} onClose={state.closeRoom} maxWidth={560}>
+        {room ? (
+          <MatchRoomSheet
+            room={room}
+            currentPlayerId={state.currentPlayer?.id}
+            clubName={state.clubs.find((c) => c.id === room.clubId)?.name}
+            onRoomChange={state.updateRoom}
+            onClose={state.closeRoom}
+          />
+        ) : null}
+      </ModalSheet>
+      {/* Celebración de victoria — overlay a pantalla completa por encima del modal. */}
+      <WinCelebration
+        visible={state.winCelebration !== null}
+        points={state.winCelebration?.points ?? 100}
+        playerName={state.winCelebration?.playerName ?? ""}
+        onDone={state.dismissWinCelebration}
+      />
+    </>
   );
 }
 
@@ -803,6 +820,10 @@ function useMatchesState() {
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<MatchFilter>("all");
+  // Celebración de victoria: se dispara cuando una sala pasa a "validated" y
+  // el jugador actual está en el equipo ganador. +100 = lo que suma una
+  // victoria en el ranking provisional (wins*100).
+  const [winCelebration, setWinCelebration] = useState<{ playerName: string; points: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -864,6 +885,18 @@ function useMatchesState() {
 
   const updateRoom = (updated: MatchRoom) => {
     setRooms((prev) => prev.map((room) => (room.id === updated.id ? updated : room)));
+    // ¿Acaba de validarse con el jugador actual en el equipo ganador?
+    if (updated.status === "validated" && updated.result && currentPlayer) {
+      const previous = rooms.find((room) => room.id === updated.id);
+      if (previous?.status !== "validated") {
+        const wonSide = updated.result.winner;
+        const wonTeam = wonSide === "A" ? updated.teamA : updated.teamB;
+        if (wonTeam.playerIds.includes(currentPlayer.id)) {
+          winFeedback();
+          setWinCelebration({ playerName: currentPlayer.name.split(" ")[0], points: 100 });
+        }
+      }
+    }
   };
 
   const requestJoin = async (matchId: string) => {
@@ -943,6 +976,8 @@ function useMatchesState() {
     refresh,
     updateRoom,
     activeRoom,
+    winCelebration,
+    dismissWinCelebration: () => setWinCelebration(null),
     openRoom: (room: MatchRoom) => setActiveRoomId(room.id),
     closeRoom: () => setActiveRoomId(null)
   };
@@ -1004,6 +1039,106 @@ function statusIconFor(status: MatchProposal["status"]): IconName {
   if (status === "accepted") return "check-badge";
   if (status === "declined") return "sign-out";
   return "clock";
+}
+
+/**
+ * Sección "Buscando partido casual": quien quiera rival activa el toggle y
+ * aparece en la lista junto con el resto de jugadores compatibles de su
+ * ciudad. Si ya hay alguien buscando cuando activas, se empareja
+ * automáticamente (aviso al que estaba primero). Todos siguen visibles para
+ * poder ojearse.
+ */
+function TeamSeekingSection({ state, desktop = false }: { state: MatchesState; desktop?: boolean }) {
+  const { t } = useI18n();
+  const player = state.currentPlayer;
+  const [seekers, setSeekers] = useState<TeamSeeker[]>([]);
+  const [iAmSeeking, setIAmSeeking] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const prevSeekerIds = useRef<Set<string>>(new Set());
+
+  useEffect(
+    () => subscribeToTeamSeekers(player?.city, player?.id, (next, seeking) => {
+      setSeekers(next);
+      setIAmSeeking(seeking);
+      // Sonido + vibración cuando alguien nuevo entra a buscar mientras busco.
+      const prev = prevSeekerIds.current;
+      const fresh = next.filter((seeker) => !prev.has(seeker.id) && seeker.id !== player?.id);
+      prevSeekerIds.current = new Set(next.map((seeker) => seeker.id));
+      if (seeking && fresh.length > 0) notifyNewSeeker();
+    }),
+    [player?.city, player?.id]
+  );
+
+  if (!player) return null;
+
+  const toggle = async () => {
+    if (toggling) return;
+    setToggling(true);
+    try {
+      if (iAmSeeking) {
+        await stopSeekingTeam(player.id);
+      } else {
+        const matched = await startSeekingTeam(player, {
+          autoMatch: (name) => t("notifications.toast.auto_match").replace("{name}", name),
+          teamSeeking: (name) => t("notifications.toast.team_seeking").replace("{name}", name)
+        });
+        if (matched) {
+          Alert.alert(t("matches.seeking.autoMatch"), t("notifications.toast.auto_match").replace("{name}", matched.name));
+        }
+      }
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const viewer = { id: player.id, name: player.name, level: player.level, city: player.city, clubIds: player.clubIds, seekingSince: "" };
+  const others = rankTeamSeekers(viewer, seekers);
+
+  return (
+    <Card variant="plain" pad={desktop ? "xl" : "lg"} style={{ borderColor: `${colors.neon}44`, gap: spacing.md }}>
+      <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.md }}>
+        <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderRadius: radii.lg, height: 46, justifyContent: "center", width: 46 }}>
+          <Icon name="users" size={22} color={colors.neon as string} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("matches.seeking.title")}</Text>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("matches.seeking.subtitle")}</Text>
+        </View>
+      </View>
+      <PrimaryButton
+        label={iAmSeeking ? t("matches.seeking.toggleOff") : t("matches.seeking.toggleOn")}
+        variant={iAmSeeking ? "outline" : "solid"}
+        disabled={toggling}
+        icon={<Icon name="send" size={16} color={(iAmSeeking ? colors.neon : colors.textOnBall) as string} />}
+        onPress={() => void toggle()}
+      />
+      {iAmSeeking ? (
+        <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderRadius: radii.md, flexDirection: "row", gap: spacing.sm, padding: spacing.sm }}>
+          <Icon name="check-badge" size={16} color={colors.neon as string} />
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, flex: 1 }}>{t("matches.seeking.active")}</Text>
+        </View>
+      ) : null}
+      {others.length > 0 ? (
+        <View style={{ gap: spacing.sm }}>
+          {others.map((seeker) => {
+            const sharesClub = seeker.clubIds.some((clubId) => player.clubIds.includes(clubId));
+            return (
+              <View key={seeker.id} style={{ alignItems: "center", backgroundColor: sharesClub ? colors.courtLight : colors.surface, borderColor: sharesClub ? `${colors.neon}44` : colors.border, borderRadius: radii.md, borderWidth: 1, flexDirection: "row", gap: spacing.md, padding: spacing.sm }}>
+                <Avatar name={seeker.name} size={40} />
+                <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
+                  <Text style={{ ...typography.subheadline, color: colors.textPrimary }} numberOfLines={1}>{seeker.name}</Text>
+                  <Text style={{ ...typography.caption, color: colors.textSecondary }}>{levelLabel(seeker.level)}{sharesClub ? ` · ${t("rivals.open.yourClub")}` : ""}</Text>
+                </View>
+                <Pressable accessibilityRole="button" onPress={() => router.push(`/player/${seeker.id}` as never)}>
+                  <Icon name="chevron-right" size={16} color={colors.neon as string} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+    </Card>
+  );
 }
 
 function formatProposalDate(proposal: MatchProposal, lang: string) {

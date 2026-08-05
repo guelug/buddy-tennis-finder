@@ -8,6 +8,7 @@ import { Chip } from "@/components/chip";
 import { Icon, type IconName } from "@/components/icon";
 import { BrandLockup } from "@/components/brand-lockup";
 import { GroupedList, GroupedRow } from "@/components/grouped-list";
+import { GeneralSettings, NotificationSettings } from "@/components/notification-settings";
 import { BroadcastHeader, GlassPanel, LiveBackground } from "@/components/live-visuals";
 import { PrimaryButton } from "@/components/primary-button";
 import { Avatar } from "@/components/avatar";
@@ -433,6 +434,10 @@ function ProfileNative() {
           </GroupedList>
         ) : null}
 
+        <GeneralSettings />
+
+        <NotificationSettings />
+
         <SettingsSection />
 
         <GroupedList title={data.t("profile.account")}>
@@ -535,6 +540,8 @@ function SettingsPanel() {
   return (
     <GlassPanel>
       <PanelTitle icon="zap" title={t("settings.title")} hint={t("settings.appearanceHint")} />
+      <GeneralSettings />
+      <NotificationSettings />
       <MatchBuddyPicker />
       <View style={{ gap: spacing.xs }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary, fontSize: 15 }}>{t("settings.appearance")}</Text>

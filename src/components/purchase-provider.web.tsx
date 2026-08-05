@@ -13,7 +13,7 @@ type PurchaseContextValue = {
   startLeaguePurchase: (input: PrivateLeagueInput) => Promise<number>;
 };
 
-const unavailable = async (): Promise<number> => { throw new Error("Las compras están disponibles en la app Android."); };
+const unavailable = async (): Promise<number> => { throw new Error("Las compras están disponibles en la app móvil de MatchPoint."); };
 const PurchaseContext = createContext<PurchaseContextValue>({
   connected: false,
   products: [],

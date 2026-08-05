@@ -19,6 +19,15 @@ type ScreenShellProps = PropsWithChildren<{
   topSafe?: boolean;
   /** Recarga de datos al tirar hacia abajo (pull-to-refresh nativo). */
   onRefresh?: () => Promise<unknown> | void;
+  /**
+   * Ajuste automático de insets del teclado/scroll (default `true`, necesario
+   * en pantallas con formularios). Desactivarlo en pantallas SIN inputs y con
+   * SafeAreaView propio: la combinación de `automaticallyAdjustKeyboardInsets`
+   * + `contentInsetAdjustmentBehavior="automatic"` con insets ya resueltos por
+   * el contenedor puede corromper el contentOffset en iOS (la home se quedaba
+   * "caída" mostrando solo el fondo, sin poder subir).
+   */
+  keyboardAware?: boolean;
 }>;
 
 /**
@@ -35,7 +44,8 @@ export function ScreenShell({
   width = "base",
   bottomInset = 0,
   topSafe = false,
-  onRefresh
+  onRefresh,
+  keyboardAware = true
 }: ScreenShellProps) {
   const { isWide } = useBreakpoint();
   const tabPadding = useTabBarScrollPadding(bottomInset);
@@ -58,9 +68,11 @@ export function ScreenShell({
       // iOS no aparta el contenido al abrirse el teclado: sin esto, en las
       // pantallas con formulario (registrar dobles, anuncio de entrenador,
       // ligas privadas) el campo enfocado se quedaba debajo del teclado.
-      // Android ya lo resuelve con adjustResize.
-      automaticallyAdjustKeyboardInsets
-      contentInsetAdjustmentBehavior="automatic"
+      // Android ya lo resuelve con adjustResize. En pantallas sin inputs
+      // (home) se desactiva: doblar el ajuste automático con SafeAreaView
+      // corruptía el contentOffset y la pantalla se quedaba caída.
+      automaticallyAdjustKeyboardInsets={keyboardAware}
+      contentInsetAdjustmentBehavior={keyboardAware ? "automatic" : "never"}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
       nestedScrollEnabled

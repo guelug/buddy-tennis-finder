@@ -4,7 +4,7 @@ import * as Sharing from "expo-sharing";
 import type { PrivateLeague } from "@/types";
 
 export const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.matchpoint.clubs";
-export const WEB_APP_URL = process.env.EXPO_PUBLIC_APP_URL || "https://tenisbuddy-app.web.app";
+export const WEB_APP_URL = process.env.EXPO_PUBLIC_APP_URL || "https://tennisleagueapp.win";
 export const APP_STORE_URL = process.env.EXPO_PUBLIC_APP_STORE_URL || WEB_APP_URL;
 export type CommunityShareFormat = "story" | "reel" | "post" | "message";
 

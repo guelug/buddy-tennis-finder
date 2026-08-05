@@ -1,12 +1,20 @@
 # MatchPoint Tennis — relevo operativo
 
-Actualizado: 17 de julio de 2026 (Europe/Madrid).
+Actualizado: 2 de agosto de 2026 (Europe/Madrid).
+
+> **Aviso de vigencia (2 de agosto de 2026):** este relevo conserva el historial
+> de la v1.2.2/versionCode 9. La configuración local actual está en
+> `app.json` (v1.2.3/versionCode Android 20/build iOS 21); no uses las cifras de
+> las secciones históricas como confirmación de lo que está publicado.
 
 Este es el documento principal de relevo del proyecto. El siguiente agente debe leerlo antes de actuar. Distingue entre código implementado, comprobaciones realizadas y cambios todavía no desplegados. No asumir que un cambio local ya está en Firebase o Google Play.
 
 ## Resumen ejecutivo
 
-La versión local y publicada actual es **MatchPoint Tennis 1.2.2 (`versionCode 9`)**. Mantiene las correcciones de arranque de v8 y añade una revisión completa de rivales, formulario de partidos informales, márgenes inferiores y onboarding Android.
+El relevo histórico describe **MatchPoint Tennis 1.2.2 (`versionCode 9`)**. Esa
+versión mantiene las correcciones de arranque de v8 y añade una revisión completa
+de rivales, formulario de partidos informales, márgenes inferiores y onboarding
+Android; la configuración local actual está indicada arriba y en `app.json`.
 
 El AAB y el APK v9 están firmados, construidos y comprobados. La versión 9 está **activa con estado `completed` en el test cerrado `alpha` de Google Play**. Las reglas reforzadas de Firestore y la web 1.2.2 también están desplegadas. La v9 se instaló y recorrió en un emulador Android API 35 autenticado: búsqueda real, filtros, formulario de partido, niveles aceptados, cierre del panel y los tres pasos del onboarding. No hubo ANR, excepción fatal Android ni error fatal React Native. La comprobación pendiente más importante sigue siendo instalar la actualización distribuida por Play en el Samsung físico del usuario.
 
@@ -28,7 +36,7 @@ La aplicación Android es una app React Native/Expo nativa, no una web dentro de
 - Android package / iOS bundle ID: `com.matchpoint.clubs`.
 - Expo slug: `matchpoint-clubs`.
 - Firebase project: `tenisbuddy-app`.
-- Web de producción actual: <https://tenisbuddy-app.web.app>.
+- Web de producción: <https://tennisleagueapp.win> (Firebase Hosting; DNSSEC activo, DNS de Cloudflare configurado y certificado SSL de Firebase activo).
 - Google Play developer account ID: `6837138431813346298`.
 - Google Play app numeric ID: `4972257620336445237`.
 - Track de test cerrado usado por los scripts: `alpha`.
@@ -256,7 +264,10 @@ Android mantiene la monetización desactivada hasta implementar su verificación
 - `firebase deploy --only hosting`: despliegue web.
 - `cd workers/iap-verifier && npm run deploy`: despliegue del backend seguro.
 
-Atención al orden de builds: `npm run build:web` recrea `dist/` y elimina temporalmente `dist/android/`. Si se compila web después del AAB, volver a copiar las salidas de Gradle desde `android/app/build/outputs/{bundle,apk}/release/` antes de publicar. No recompilar es necesario si esas salidas siguen intactas; comprobar siempre el hash y `versionCode` del archivo final.
+La aplicación funcional no tiene `build:web`: es nativa para iOS y Android. La
+landing estática vive en `landing/` y se despliega por Firebase Hosting. Después
+de generar un AAB/APK, comprobar siempre el hash y `versionCode` del artefacto
+final antes de publicarlo.
 
 Este directorio es un repositorio Git conectado a GitHub. Verificar siempre el estado antes de preparar un commit para no mezclar cambios ajenos.
 

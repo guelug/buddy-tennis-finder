@@ -53,15 +53,17 @@ Cada envío debe aumentar `expo.android.versionCode` en `app.json`.
 
 ## Firebase
 
-Variables públicas de enlaces y acceso social (consulta `.env.example`):
+Variables públicas de enlaces y compras (consulta `.env.example`):
 
 ```bash
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=...
-EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID=... # opcional hasta configurar OAuth nativo
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=...     # opcional hasta configurar OAuth nativo
 EXPO_PUBLIC_APP_URL=...
 EXPO_PUBLIC_APP_STORE_URL=...
+EXPO_PUBLIC_SECURE_BACKEND_URL=...
+EXPO_PUBLIC_IOS_PURCHASES_ENABLED=true
 ```
+
+Los client IDs de Google Sign-In están versionados en
+`src/lib/google-oauth-config.ts`; no es necesario repetirlos en `.env`.
 
 Despliega las reglas antes de publicar una compilación que dependa de cambios del modelo:
 

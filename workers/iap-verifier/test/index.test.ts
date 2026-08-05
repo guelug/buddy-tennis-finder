@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accountTokenForUid, validatePurchaseBody } from "../src/index";
+import { accountTokenForUid, validatePurchaseBody, validateAndroidPurchaseBody } from "../src/index";
 
 describe("accountTokenForUid", () => {
   it("is stable and creates an RFC 4122 UUID", async () => {
@@ -48,6 +48,56 @@ describe("validatePurchaseBody", () => {
       kind: "coach",
       productId: "free_money",
       transactionId: "../victim",
+      appAccountToken: token,
+      adId: "ad"
+    })).toThrow();
+  });
+});
+
+describe("validateAndroidPurchaseBody", () => {
+  const token = "36e9b45d-5c9d-55a4-8f5c-94838c70f697";
+
+  it("accepts a bounded coach purchase with purchaseToken", () => {
+    expect(validateAndroidPurchaseBody({
+      kind: "coach",
+      productId: "coach_ad_7_days",
+      purchaseToken: "purchasedtoken-abc123-def456-ghi789-jkl012",
+      appAccountToken: token,
+      adId: "coach-ad"
+    })).toMatchObject({ kind: "coach", productId: "coach_ad_7_days" });
+  });
+
+  it("accepts and normalizes a league purchase with purchaseToken", () => {
+    expect(validateAndroidPurchaseBody({
+      kind: "league",
+      productId: "private_league_create",
+      purchaseToken: "purchasedtoken-abc123-def456-ghi789-jkl012",
+      appAccountToken: token,
+      league: {
+        name: "  Liga Barcelona  ",
+        description: " Amistosa ",
+        division: "c",
+        format: "singles",
+        maxMembers: 12
+      }
+    })).toMatchObject({ kind: "league", league: { name: "Liga Barcelona", maxMembers: 12 } });
+  });
+
+  it("rejects arbitrary product ids", () => {
+    expect(() => validateAndroidPurchaseBody({
+      kind: "coach",
+      productId: "free_money",
+      purchaseToken: "purchasedtoken-abc123",
+      appAccountToken: token,
+      adId: "ad"
+    })).toThrow();
+  });
+
+  it("rejects short purchase tokens", () => {
+    expect(() => validateAndroidPurchaseBody({
+      kind: "coach",
+      productId: "coach_ad_7_days",
+      purchaseToken: "short",
       appAccountToken: token,
       adId: "ad"
     })).toThrow();

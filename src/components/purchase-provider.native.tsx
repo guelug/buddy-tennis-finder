@@ -22,7 +22,7 @@ import {
 } from "@/lib/purchase-intents";
 import type { CoachAd, PrivateLeagueInput } from "@/types";
 import { iapAccountTokenForUid } from "@/lib/iap-account-token";
-import { verifyApplePurchase } from "@/lib/secure-backend";
+import { verifyApplePurchase, verifyAndroidPurchase } from "@/lib/secure-backend";
 
 export type { PurchaseOutcome } from "@/lib/purchase-intents";
 
@@ -109,20 +109,33 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
   }, []);
 
   const processRecoveredPurchase = useCallback(async (purchase: Purchase) => {
-    const transactionId = purchase.transactionId;
-    if (!transactionId || !user?.uid || processingTokens.current.has(transactionId)) return;
+    // En iOS el identificador de transacción es transactionId; en Android
+    // es purchaseToken. Usamos el que exista para deduplicar y para pasar
+    // al verificador correcto.
+    const dedupKey = purchase.transactionId ?? purchase.purchaseToken;
+    if (!dedupKey || !user?.uid || processingTokens.current.has(dedupKey)) return;
     const intent = intents.find((item) => item.ownerId === user.uid && item.productId === purchase.productId);
     if (!intent) return;
-    processingTokens.current.add(transactionId);
+    processingTokens.current.add(dedupKey);
     setOutcome({ kind: intent.kind, productId: intent.productId, status: "recovering", adId: intent.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
     try {
-      if (Platform.OS !== "ios") throw new Error("Las compras de Android todavía no están disponibles.");
-      const verified = await verifyApplePurchase(intent, transactionId);
-      await finishTransaction({ purchase, isConsumable: true });
-      await forgetIntent(intent.ownerId, intent.productId);
-      setOutcome(intent.kind === "coach"
-        ? { kind: "coach", productId: intent.productId, status: "verified", adId: intent.adId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() }
-        : { kind: "league", productId: intent.productId, status: "verified", leagueId: verified.leagueId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
+      if (Platform.OS === "ios") {
+        if (!purchase.transactionId) throw new Error("La transacción de App Store no es válida.");
+        const verified = await verifyApplePurchase(intent, purchase.transactionId);
+        await finishTransaction({ purchase, isConsumable: true });
+        await forgetIntent(intent.ownerId, intent.productId);
+        setOutcome(intent.kind === "coach"
+          ? { kind: "coach", productId: intent.productId, status: "verified", adId: intent.adId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() }
+          : { kind: "league", productId: intent.productId, status: "verified", leagueId: verified.leagueId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
+      } else {
+        if (!purchase.purchaseToken) throw new Error("La compra de Google Play no es válida.");
+        const verified = await verifyAndroidPurchase(intent, purchase.purchaseToken);
+        await finishTransaction({ purchase, isConsumable: true });
+        await forgetIntent(intent.ownerId, intent.productId);
+        setOutcome(intent.kind === "coach"
+          ? { kind: "coach", productId: intent.productId, status: "verified", adId: intent.adId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() }
+          : { kind: "league", productId: intent.productId, status: "verified", leagueId: verified.leagueId, intentCreatedAt: intent.createdAt, occurredAt: Date.now() });
+      }
       void getAvailablePurchases();
     } catch (error) {
       setOutcome({
@@ -135,15 +148,19 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
         occurredAt: Date.now()
       });
     } finally {
-      processingTokens.current.delete(transactionId);
+      processingTokens.current.delete(dedupKey);
     }
   }, [user?.uid, intents, finishTransaction, forgetIntent, getAvailablePurchases]);
 
   useEffect(() => {
     if (!intentsLoaded) return;
     const purchases = [...availablePurchases, ...(currentPurchase ? [currentPurchase] : [])];
+    // En iOS el identificador es transactionId; en Android es purchaseToken.
+    // Usamos el que exista para deduplicar. Si usamos solo purchaseToken,
+    // las compras de iOS (donde purchaseToken es undefined) se filtran y
+    // nunca se procesan — dejando transacciones pendientes en StoreKit.
     const unique = new Map(purchases.map((item) => [
-      item.purchaseToken,
+      item.transactionId ?? item.purchaseToken,
       item
     ]).filter((entry): entry is [string, typeof purchases[number]] => Boolean(entry[0])));
     unique.forEach((purchase) => { void processRecoveredPurchase(purchase); });
@@ -173,10 +190,11 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     setActiveProductId(intent.productId);
     setOutcome(null);
     try {
-      if (Platform.OS !== "ios") throw new Error("Las compras de Android todavía no están disponibles.");
       const appAccountToken = await iapAccountTokenForUid(intent.ownerId);
       await requestPurchase({
-        request: { apple: { sku: intent.productId, appAccountToken } },
+        request: Platform.OS === "ios"
+          ? { apple: { sku: intent.productId, appAccountToken } }
+          : { google: { skus: [intent.productId], obfuscatedAccountId: appAccountToken } },
         type: "in-app"
       });
     } catch (error) {

@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "Y6VZTXTFW8",
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "22",
+      "buildNumber": "24",
       "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
@@ -29,7 +29,7 @@
       }
     },
     "android": {
-      "versionCode": 22,
+      "versionCode": 24,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "blockedPermissions": [
@@ -97,7 +97,10 @@
         }
       ],
       "expo-iap",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-audio",
+      "expo-status-bar",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true

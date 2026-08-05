@@ -1,10 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Redirect, Tabs, usePathname } from "expo-router";
-import { Platform, Pressable, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { switchTab, tapBall, notifySound } from "@/lib/feedback";
+import { markNotificationRead, subscribeToMyNotifications, type AppNotification } from "@/lib/notifications";
+import { useNotificationPrefs } from "@/lib/notification-settings";
 import { Icon, type IconName } from "@/components/icon";
 import { BrandLockup } from "@/components/brand-lockup";
 import { TennisBall } from "@/components/tennis-ball";
@@ -31,6 +34,54 @@ function TabBarBlurBackground() {
     return <View style={[{ flex: 1, backgroundColor: isLight ? "rgba(249,252,247,0.94)" : "rgba(11,16,12,0.94)" }]} />;
   }
   return <BlurView intensity={isLight ? 34 : 28} tint={isLight ? "systemChromeMaterialLight" : "systemChromeMaterialDark"} style={{ flex: 1 }} />;
+}
+
+/**
+ * Listener global de avisos in-app. La primera instantánea solo establece el
+ * punto de partida para no bombardear con avisos históricos al abrir la app;
+ * las entradas posteriores respetan los toggles y suenan una sola vez.
+ */
+function InAppNotificationListener({ uid }: { uid?: string }) {
+  const { prefs } = useNotificationPrefs();
+  const { t } = useI18n();
+  const initialized = useRef(false);
+  const seenIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    initialized.current = false;
+    seenIds.current = new Set();
+    if (!uid) return;
+
+    return subscribeToMyNotifications(uid, (items) => {
+      if (!initialized.current) {
+        items.forEach((item) => seenIds.current.add(item.id));
+        initialized.current = true;
+        return;
+      }
+
+      const fresh = items.filter((item) => !item.read && !seenIds.current.has(item.id));
+      fresh.forEach((item) => seenIds.current.add(item.id));
+      const visible = fresh.find((item) => notificationEnabled(item, prefs));
+      if (!visible) return;
+
+      void notifySound();
+      void markNotificationRead(visible.id);
+      Alert.alert("MatchPoint", localizedNotificationMessage(visible, t));
+    });
+  }, [prefs, t, uid]);
+
+  return null;
+}
+
+function localizedNotificationMessage(item: AppNotification, t: (key: string) => string) {
+  const key = `notifications.toast.${item.type}`;
+  return t(key).replace("{name}", item.actorName);
+}
+
+function notificationEnabled(item: AppNotification, prefs: ReturnType<typeof useNotificationPrefs>["prefs"]) {
+  if (item.type === "team_seeking") return prefs.teamSeeking;
+  if (item.type === "auto_match") return prefs.autoMatch;
+  return prefs.matchInterest;
 }
 
 export default function TabsLayout() {
@@ -63,6 +114,7 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <InAppNotificationListener uid={user?.uid} />
       {isWeb && isDesktop ? <TopNav coachOnly={coachOnly} /> : null}
       <Tabs
         // La app arranca en Home (la pelota), no en Rivales.
@@ -209,7 +261,7 @@ function MobileTabItem({ item, state, navigation, inactive, label }: { item: (ty
       onPress={() => {
         const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
         if (!focused && !event.defaultPrevented) {
-          if (Platform.OS !== "web") void Haptics.selectionAsync();
+          if (Platform.OS !== "web") void switchTab();
           navigation.navigate(route.name);
         }
       }}
@@ -241,7 +293,7 @@ function CenterBallButton({ focused, onPress, bottomOffset }: { focused: boolean
       accessibilityLabel="Abrir inicio"
       accessibilityRole="button"
       onPress={() => {
-        if (Platform.OS !== "web") void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (Platform.OS !== "web") void tapBall();
         spin.value = withTiming(spin.value + 540, { duration: 680, easing: Easing.out(Easing.cubic) });
         onPress();
       }}

@@ -10,8 +10,17 @@ import { LiveBackground } from "@/components/live-visuals";
 import { COACH_PRODUCTS, createCoachAdDraft, subscribeToMyCoachAds } from "@/lib/community";
 import { useAuth } from "@/lib/firebase-auth";
 import { getPlayer } from "@/lib/firestore";
+import { CITIES_BY_COUNTRY, selectableCountries } from "@/data/seed";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { CoachAd, CoachAdPlan, Player } from "@/types";
+
+// Ciudades reales de la app (mismo catálogo que el onboarding): Guatemala solo
+// tiene "Ciudad de Guatemala", España "Barcelona"… Así nadie escribe ciudades
+// que no existen y el filtro por ciudad de los jugadores siempre encuentra el
+// anuncio.
+const CITY_OPTIONS = selectableCountries.flatMap((country) =>
+  CITIES_BY_COUNTRY[country].map((city) => ({ city, country }))
+);
 
 // Factory en render: `colors` se muta con el tema; hornearla dejaba el input
 // oscuro en modo claro.
@@ -97,7 +106,34 @@ export default function CoachAdScreen() {
             <FormSection title="Tu propuesta" icon="tennis">
               <Field label="Titular"><TextInput value={headline} onChangeText={setHeadline} placeholder="Ej. Mejora tu tenis con sesiones a medida" placeholderTextColor={colors.textTertiary as string} maxLength={90} style={inputStyle()} /></Field>
               <Field label="Preséntate"><TextInput value={bio} onChangeText={setBio} placeholder="Experiencia, metodología y a quién ayudas…" placeholderTextColor={colors.textTertiary as string} multiline maxLength={700} style={[inputStyle(), { minHeight: 130, textAlignVertical: "top" }]} /></Field>
-              <Field label="Ciudad"><TextInput value={city} onChangeText={setCity} placeholder="Ciudad" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
+              <Field label="Ciudad">
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+                  {CITY_OPTIONS.map((option) => {
+                    const active = city === option.city;
+                    return (
+                      <Pressable
+                        key={`${option.country}-${option.city}`}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: active }}
+                        onPress={() => setCity(option.city)}
+                        style={{
+                          backgroundColor: active ? colors.courtLight : colors.surfaceElevated,
+                          borderColor: active ? colors.neon : colors.border,
+                          borderRadius: radii.pill,
+                          borderWidth: 1,
+                          minHeight: 44,
+                          paddingHorizontal: spacing.md,
+                          justifyContent: "center"
+                        }}
+                      >
+                        <Text style={{ ...typography.footnote, color: active ? colors.neon : colors.textPrimary, fontWeight: active ? "800" : "500" }}>
+                          {option.city} · {option.country}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </Field>
               <Field label="Especialidades (separadas por comas)"><TextInput value={specialties} onChangeText={setSpecialties} placeholder="Iniciación, Técnica, Competición" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
               <Field label="Precio o llamada a la acción (opcional)"><TextInput value={priceNote} onChangeText={setPriceNote} placeholder="Desde 25 €/hora" placeholderTextColor={colors.textTertiary as string} style={inputStyle()} /></Field>
             </FormSection>

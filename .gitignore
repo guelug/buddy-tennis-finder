@@ -19,6 +19,7 @@ android/app/debug.keystore
 
 # Artefactos de build iOS (regenerables; nunca commitear)
 ios/build
+ios/ExportOptions-Local.plist
 ios/Pods
 ios/DerivedData
 ios/.xcode.env.local

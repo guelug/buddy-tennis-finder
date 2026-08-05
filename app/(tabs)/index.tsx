@@ -5,6 +5,8 @@ import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { getHomeData, createProposal, requestMatchJoin } from "@/lib/app-api";
 import { compatibilityPct, levelLabel, rankCandidates, rankOpenProposals } from "@/lib/matching";
+import { notifyTeamSeeking, sendNotification } from "@/lib/notifications";
+import { actionImpact } from "@/lib/feedback";
 import { Avatar } from "@/components/avatar";
 import { Card } from "@/components/card";
 import { Chip } from "@/components/chip";
@@ -230,6 +232,7 @@ function CandidateResults({ state }: { state: DiscoverState }) {
 
   return (
     <View style={{ gap: spacing.sm, opacity: state.searching ? 0.55 : 1 }}>
+      <SelfVisibilityCard player={state.currentPlayer} clubs={state.clubs} />
       {state.visibleCandidates.map((candidate, index) => (
         <PlayerCard
           key={candidate.player.id}
@@ -241,6 +244,79 @@ function CandidateResults({ state }: { state: DiscoverState }) {
       ))}
       {state.loaded && state.visibleCandidates.length === 0 ? <EmptyRivals query={state.nameQuery} /> : null}
     </View>
+  );
+}
+
+/**
+ * "Así te ven los demás": tras buscar, el jugador se ve a sí mismo tal y como
+ * aparece en la lista de rivales (avatar, nivel, clubes, disponibilidad de
+ * búsqueda de equipo). Así queda claro si su perfil está público y cómo lo ve
+ * un candidato antes de pedir partido.
+ */
+function SelfVisibilityCard({ player, clubs }: { player: Player | null; clubs: Club[] }) {
+  const { t } = useI18n();
+  const { isLight } = useThemeMode();
+  if (!player) return null;
+  const ownClubs = clubs.filter((club) => player.clubIds.includes(club.id));
+  const isPublic = player.profileComplete === true && player.isDemo !== true;
+  const seeking = player.seekingTeam === true;
+  return (
+    <Animated.View entering={FadeIn.springify().damping(18)}>
+      <Card
+        variant="interactive"
+        style={{
+          borderColor: `${colors.neon}66`,
+          backgroundColor: isLight ? "rgba(82,122,0,0.05)" : "rgba(198,241,53,0.05)"
+        }}
+      >
+        <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.md }}>
+          <Avatar name={player.name} photoURL={player.photoURL} size={56} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
+              <Text style={{ ...typography.subheadline, color: colors.textPrimary, flex: 1 }} numberOfLines={1}>
+                {player.name}
+              </Text>
+              <View style={{ backgroundColor: colors.courtLight, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 }}>
+                <Text style={{ ...typography.caption, color: colors.neon, fontWeight: "800" }}>{t("rivals.self.you")}</Text>
+              </View>
+            </View>
+            <Text style={{ ...typography.caption, color: colors.textSecondary, fontWeight: "500" }}>
+              {player.age} {t("rivals.self.years")} · {levelLabel(player.level)} · ★ {player.rating.toFixed(1)}
+            </Text>
+            {ownClubs.length ? (
+              <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.xs }}>
+                <Icon name="map-pin" size={12} color={colors.textTertiary as string} />
+                <Text style={{ ...typography.footnote, color: colors.textTertiary, flex: 1 }} numberOfLines={1}>
+                  {ownClubs.map((club) => club.name).join(" · ")}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+        <View
+          style={{
+            alignItems: "center",
+            backgroundColor: isPublic ? colors.successBg : colors.warningBg,
+            borderColor: isPublic ? `${colors.success}44` : `${colors.warning}44`,
+            borderRadius: radii.md,
+            borderWidth: 1,
+            flexDirection: "row",
+            gap: spacing.sm,
+            padding: spacing.sm
+          }}
+        >
+          <Icon name={isPublic ? "check-badge" : "clock"} size={16} color={(isPublic ? colors.success : colors.warning) as string} />
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, flex: 1 }}>
+            {isPublic ? t("rivals.self.public") : t("rivals.self.incomplete")}
+          </Text>
+          {seeking ? (
+            <View style={{ backgroundColor: colors.courtLight, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 2 }}>
+              <Text style={{ ...typography.caption, color: colors.neon, fontWeight: "700" }}>{t("rivals.self.seeking")}</Text>
+            </View>
+          ) : null}
+        </View>
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -774,6 +850,17 @@ function useDiscoverState() {
       setPublishOpen(false);
       if (process.env.EXPO_OS === "ios") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t("rivals.alert.published"), t("rivals.alert.publishedBody"));
+      // Avisos al publicar partido casual: fan-out a todos los compatibles de
+      // la misma ciudad (preferencia teamSeeking la filtra el receptor) y
+      // aviso directo de interés si ya había solicitudes pendientes. Nunca
+      // bloquea el flujo principal.
+      if (currentPlayer) {
+        void notifyTeamSeeking(
+          currentPlayer,
+          input.acceptedLevels,
+          t("notifications.toast.team_seeking").replace("{name}", currentPlayer.name)
+        );
+      }
       await loadCandidates();
     } catch (error) {
       Alert.alert(t("rivals.alert.publishFailed"), describeError(error));
@@ -787,6 +874,17 @@ function useDiscoverState() {
       setJoinRequests((current) => [...current.filter((item) => item.id !== request.id), request]);
       if (process.env.EXPO_OS === "ios") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(t("matches.join.sent"), t("rivals.alert.sentBody"));
+      // El organizador recibe el aviso de interés (preferencia matchInterest).
+      if (currentPlayer) {
+        void sendNotification({
+          recipientId: request.ownerId,
+          type: "match_interest",
+          actorId: currentPlayer.id,
+          actorName: currentPlayer.name,
+          message: t("notifications.toast.match_interest").replace("{name}", currentPlayer.name),
+          route: "/matches"
+        });
+      }
     } catch (error) {
       Alert.alert(t("matches.alert.requestFailed"), describeError(error));
     } finally {
