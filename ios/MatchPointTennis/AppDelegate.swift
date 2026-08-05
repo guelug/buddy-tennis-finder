@@ -1,5 +1,6 @@
 internal import Expo
 import FirebaseCore
+import FirebaseAppCheck
 import React
 import ReactAppDependencyProvider
 
@@ -23,14 +24,23 @@ class AppDelegate: ExpoAppDelegate {
 
 #if os(iOS) || os(tvOS)
     window = UIWindow(frame: UIScreen.main.bounds)
-// @generated begin @react-native-firebase/app-check - expo prebuild (DO NOT MODIFY) sync-cf2eb2cc4ab0c44de03d7c0dddc7165fa89d986f
-RNFBAppCheckModule.sharedInstance()
+#if targetEnvironment(simulator)
+    // Evita que Firebase cree el provider debug al configurar la app. En el
+    // simulador no existe un token App Check válido.
+    AppCheck.setAppCheckProviderFactory(nil)
+#endif
     FirebaseApp.configure()
-// @generated end @react-native-firebase/app-check
     factory.startReactNative(
       withModuleName: "main",
       in: window,
       launchOptions: launchOptions)
+#if targetEnvironment(simulator)
+    // React Native Firebase puede registrar su provider debug al montar el
+    // bridge, incluso cuando la app no solicita App Check. Lo desactivamos
+    // explícitamente en el simulador; los dispositivos físicos siguen usando
+    // la inicialización de `firebase.config.ts`.
+    AppCheck.setAppCheckProviderFactory(nil)
+#endif
 #endif
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

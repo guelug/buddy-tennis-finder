@@ -23,7 +23,6 @@ ios/ExportOptions-Local.plist
 ios/Pods
 ios/DerivedData
 ios/.xcode.env.local
-ios-native/build
 **/*.xcarchive
 **/DerivedData
 modules/*/android/build

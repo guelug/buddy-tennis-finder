@@ -1250,6 +1250,8 @@ PODS:
     - ExpoModulesCore
   - ExpoCrypto (57.0.1):
     - ExpoModulesCore
+  - ExpoDevice (57.0.1):
+    - ExpoModulesCore
   - ExpoDomWebView (57.0.1):
     - ExpoModulesCore
   - ExpoFileSystem (57.0.1):
@@ -1323,7 +1325,7 @@ PODS:
     - ExpoModulesCore
   - ExpoSystemUI (57.0.2):
     - ExpoModulesCore
-  - ExpoUI (57.0.8):
+  - ExpoUI (57.0.9):
     - ExpoModulesCore
     - ExpoModulesWorklets
     - React-RCTFabric
@@ -3973,6 +3975,7 @@ DEPENDENCIES:
   - ExpoAudio (from `../node_modules/expo-audio/ios`)
   - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
+  - ExpoDevice (from `../node_modules/expo-device/ios`)
   - "ExpoDomWebView (from `../node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
   - ExpoFont (from `../node_modules/expo-font/ios/ExpoFont.podspec`)
@@ -4144,6 +4147,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-blur/ios"
   ExpoCrypto:
     :path: "../node_modules/expo-crypto/ios"
+  ExpoDevice:
+    :path: "../node_modules/expo-device/ios"
   ExpoDomWebView:
     :path: "../node_modules/@expo/dom-webview/ios"
   ExpoFileSystem:
@@ -4390,6 +4395,7 @@ SPEC CHECKSUMS:
   ExpoAudio: b69f36525132edba8d87a715b3a20c678ef78b30
   ExpoBlur: 69e67b4fbfed6f7325377af2aefa8aa4f00cd2af
   ExpoCrypto: 366380ffafeb22cc9795438cddcbfa299e1aaf42
+  ExpoDevice: 93a72d7c2bd656a4f0c0d580523e390e9ee7fba5
   ExpoDomWebView: beaec034e51bd028428b98bb1f2633ab79c6d095
   ExpoFileSystem: e441dae0ae671fc451640517550973d9e024fdf0
   ExpoFont: 59e1faf66ba9bcd232ae1e2ce58d202a48b6f65e
@@ -4412,7 +4418,7 @@ SPEC CHECKSUMS:
   ExpoSplashScreen: 247464c0fe484f766892db0d66c3fe54f92a624e
   ExpoSymbols: 7c7c7bd3c52f0b6dcbba6e8af4088b0dc1ea7d29
   ExpoSystemUI: ff3142b323ae7b4d11dc0b1dc4acfa30d92be7dc
-  ExpoUI: 62ef3713d3cce9736b063fe4edf8cb9c611a36d5
+  ExpoUI: 9d39a0371d8abff2b79394c8d81239dce4ad3298
   FBLazyVector: 3c3be9a019176b5699455f7f66c5444b78a411c6
   Firebase: a8539b633d474fbeb654c7043f9c1649e274045b
   FirebaseAppCheck: 29d81a8b4a1bf0273c04a1ffe1532aceabc9e7a8

@@ -9,6 +9,8 @@ Actualizado: 2 de agosto de 2026 (Europe/Madrid).
 
 Este es el documento principal de relevo del proyecto. El siguiente agente debe leerlo antes de actuar. Distingue entre código implementado, comprobaciones realizadas y cambios todavía no desplegados. No asumir que un cambio local ya está en Firebase o Google Play.
 
+> **Arquitectura (agosto 2026):** MatchPoint Tennis es **solo app nativa iOS + Android**. La app web se eliminó por seguridad (no exponer el SDK/credenciales de Firebase en una web pública) — la web pública es únicamente la landing estática (`landing/`, Firebase Hosting). No añadir `web` a `platforms` en `app.json` ni instalar `react-native-web`. Las capturas de tienda (App Store / Google Play) se generan desde el **simulador de iOS**, no desde el navegador.
+
 ## Resumen ejecutivo
 
 El relevo histórico describe **MatchPoint Tennis 1.2.2 (`versionCode 9`)**. Esa
