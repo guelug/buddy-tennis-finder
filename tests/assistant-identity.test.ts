@@ -7,7 +7,7 @@ import es from "../i18n/es.json";
 const t = (key: string) => (es as Record<string, string>)[key] ?? key;
 
 const pedro = {
-  assistantName: "Mia",
+  assistantName: "Andrea",
   playerName: "Pedro Caparros",
   divisionLabel: "C",
   city: "Barcelona"
@@ -40,11 +40,11 @@ test("¿sabes quién soy? responde con el nombre del jugador, no del asistente",
 });
 
 test("¿quién eres? se presenta con el nombre del Match Buddy elegido", () => {
-  const mia = identityAnswerText("assistant", pedro, t);
-  assert.ok(mia.startsWith("Soy Mia"), mia);
+  const andrea = identityAnswerText("assistant", pedro, t);
+  assert.ok(andrea.startsWith("Soy Andrea"), andrea);
 
-  const mateo = identityAnswerText("assistant", { ...pedro, assistantName: "Mateo" }, t);
-  assert.ok(mateo.startsWith("Soy Mateo"), mateo);
+  const faker = identityAnswerText("assistant", { ...pedro, assistantName: "Faker" }, t);
+  assert.ok(faker.startsWith("Soy Faker"), faker);
 });
 
 test("la identidad del asistente nunca usa el nombre del jugador", () => {

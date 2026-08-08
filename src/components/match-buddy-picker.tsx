@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { colors, radii, shadows, spacing, typography } from "@/theme";
 
+// Los ids se mantienen estables para no romper la elección guardada en
+// instalaciones existentes. El nombre visible sí es parte de la experiencia.
 export type MatchBuddyId = "mia" | "mateo";
 
 const STORAGE_KEY = "matchpoint-match-buddy";
@@ -12,13 +15,14 @@ const buddyListeners = new Set<(buddy: MatchBuddyId) => void>();
 export const MATCH_BUDDIES = {
   mia: {
     id: "mia",
-    name: "Mia",
-    image: require("@/../assets/generated/match-buddy/mia.png")
+    name: "Andrea",
+    // Ruta relativa: Metro registra siempre estos assets locales en iOS y Android.
+    image: require("../../assets/generated/match-buddy/andrea.png")
   },
   mateo: {
     id: "mateo",
-    name: "Mateo",
-    image: require("@/../assets/generated/match-buddy/mateo.png")
+    name: "Faker",
+    image: require("../../assets/generated/match-buddy/faker.png")
   }
 } satisfies Record<MatchBuddyId, { id: MatchBuddyId; name: string; image: number }>;
 
@@ -47,7 +51,7 @@ export function MatchBuddyAvatar({ size = 46 }: { size?: number }) {
   const { buddy } = useMatchBuddy();
   return (
     <View style={{ borderColor: `${colors.neon}88`, borderRadius: size / 2, borderWidth: 2, boxShadow: shadows.courtGlow, height: size, overflow: "hidden", width: size }}>
-      <Image accessibilityLabel={`Match Buddy ${buddy.name}`} source={buddy.image} style={{ height: "100%", width: "100%" }} />
+      <Image accessibilityLabel={`Match Buddy ${buddy.name}`} contentFit="cover" source={buddy.image} style={{ height: "100%", width: "100%" }} />
     </View>
   );
 }
@@ -84,7 +88,12 @@ export function MatchBuddyPicker({ compact = false }: { compact?: boolean }) {
                 padding: spacing.sm
               }}
             >
-              <Image source={buddy.image} style={{ borderRadius: compact ? 34 : 42, height: compact ? 68 : 84, width: compact ? 68 : 84 }} />
+              <Image
+                accessibilityLabel={`${buddy.name}, Match Buddy`}
+                contentFit="cover"
+                source={buddy.image}
+                style={{ borderRadius: compact ? 34 : 42, height: compact ? 68 : 84, width: compact ? 68 : 84 }}
+              />
               <Text style={{ ...typography.bodyEmphasized, color: active ? colors.neon : colors.textPrimary }}>{buddy.name}</Text>
             </Pressable>
           );

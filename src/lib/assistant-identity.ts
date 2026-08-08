@@ -1,5 +1,5 @@
 /**
- * Identidad del chat: la personalidad del asistente (Mia/Mateo) y la identidad
+ * Identidad del chat: la personalidad del asistente (Andrea/Faker) y la identidad
  * del jugador son cosas distintas y nunca deben mezclarse.
  *
  * Las preguntas de identidad se responden aquí de forma determinista, sin pasar
@@ -35,7 +35,7 @@ export function fillTemplate(template: string, values: Record<string, string | n
 }
 
 export type IdentityParams = {
-  /** Nombre del Match Buddy elegido por el usuario (Mia o Mateo). */
+  /** Nombre del Match Buddy elegido por el usuario (Andrea o Faker). */
   assistantName: string;
   playerName: string;
   divisionLabel: string;
