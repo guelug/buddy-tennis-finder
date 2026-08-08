@@ -60,10 +60,17 @@ function describeRoom(room: MatchRoom, playerId: string, clubs: Club[]): Assista
 }
 
 export async function getAssistantContext(uid?: string): Promise<AssistantContext> {
-  const home = await getHomeData(undefined, uid);
+  // Las dos cargas son independientes cuando ya conocemos el uid, y antes
+  // iban en serie: primero las ~6 consultas de getHomeData y después las de
+  // getMatchRooms. Lanzándolas a la vez, abrir el asistente cuesta lo que
+  // tarde la más lenta en vez de la suma de ambas.
+  const [home, roomsIfKnown] = await Promise.all([
+    getHomeData(undefined, uid),
+    uid ? getMatchRooms(uid).catch(() => [] as MatchRoom[]) : Promise.resolve(null)
+  ]);
   const player = home.currentPlayer;
   const playerId = uid ?? player.id;
-  const rooms = await getMatchRooms(playerId).catch(() => [] as MatchRoom[]);
+  const rooms = roomsIfKnown ?? await getMatchRooms(playerId).catch(() => [] as MatchRoom[]);
 
   const acceptedMatches = home.proposals.filter((match) => match.status === "accepted");
   const upcomingMatches = acceptedMatches
@@ -111,13 +118,26 @@ export async function getAssistantContext(uid?: string): Promise<AssistantContex
   };
 }
 
-export async function getLocalAIAvailability(): Promise<LocalAIAvailability> {
-  if (!LocalAI) return { available: false, provider: "fallback", reason: "Modelo local no incluido en esta plataforma" };
-  try {
-    return await LocalAI.getAvailability();
-  } catch {
-    return { available: false, provider: "fallback", reason: "Modelo local no disponible" };
-  }
+/**
+ * La disponibilidad del modelo no cambia mientras la app está abierta, pero
+ * consultarla cruza el puente nativo y en iOS despierta la sesión de Apple
+ * Intelligence, que es lenta la primera vez. Se pedía en cada apertura del
+ * asistente y además en cada pregunta; ahora se resuelve una sola vez y se
+ * reutiliza la misma promesa.
+ */
+let availabilityCache: Promise<LocalAIAvailability> | null = null;
+
+export function getLocalAIAvailability(): Promise<LocalAIAvailability> {
+  if (availabilityCache) return availabilityCache;
+  availabilityCache = (async () => {
+    if (!LocalAI) return { available: false, provider: "fallback", reason: "Modelo local no incluido en esta plataforma" } as LocalAIAvailability;
+    try {
+      return await LocalAI.getAvailability();
+    } catch {
+      return { available: false, provider: "fallback", reason: "Modelo local no disponible" } as LocalAIAvailability;
+    }
+  })();
+  return availabilityCache;
 }
 
 /**

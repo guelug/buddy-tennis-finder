@@ -21,7 +21,7 @@ export function BrandLockup({ size = "md", stacked = true, light = false }: Bran
   const secondary = light ? colors.court : colors.neon;
 
   return (
-    <View accessibilityLabel="MatchPoint Tennis" style={{ alignItems: "flex-start", gap: d.gap }}>
+    <View accessibilityLabel="MP Tennis League App" style={{ alignItems: "flex-start", gap: d.gap }}>
       <View style={{ alignItems: "center", flexDirection: "row" }}>
         <BrandText color={primary} size={d.word}>MATCH</BrandText>
         <BrandText color={secondary} size={d.word}>P</BrandText>
@@ -36,12 +36,15 @@ export function BrandLockup({ size = "md", stacked = true, light = false }: Bran
             fontSize: d.clubs,
             fontStyle: "italic",
             fontWeight: "900",
-            letterSpacing: d.clubs * 0.55,
+            // El interletrado baja al añadir "LEAGUE APP": con 0.55 la línea
+            // se salía del ancho del wordmark en los tamaños grandes.
+            letterSpacing: d.clubs * 0.24,
             lineHeight: d.clubs + 2,
             marginLeft: d.word * 2.75
           }}
+          numberOfLines={1}
         >
-          TENNIS
+          TENNIS LEAGUE APP
         </Text>
       ) : null}
     </View>

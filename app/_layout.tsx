@@ -12,6 +12,8 @@ import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { AuthGate } from "@/components/auth-gate";
 import { PurchaseProvider } from "@/components/purchase-provider";
 import { initCrashReporting } from "@/lib/crash-reporting";
+import { primeFeedback } from "@/lib/feedback";
+import { getLocalAIAvailability } from "@/lib/matchpoint-assistant";
 import { useAppFonts } from "@/lib/use-app-fonts";
 import { colors, ThemeModeProvider, useThemeMode } from "@/theme";
 
@@ -29,6 +31,13 @@ export default function RootLayout() {
     void SplashScreen.hideAsync().catch((error: unknown) => {
       console.warn("[matchpoint] No se pudo cerrar el splash nativo", error);
     });
+    // Precarga el sonido de pelota fuera del camino crítico: si esperamos al
+    // primer toque, ese toque carga el audio y suena tarde.
+    void primeFeedback();
+    // Igual con el modelo local: resolver su disponibilidad despierta la
+    // sesión nativa y es lo que hacía que la primera apertura del asistente
+    // se quedase pensando. Se cachea, así que esto solo ocurre una vez.
+    void getLocalAIAvailability().catch(() => {});
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {

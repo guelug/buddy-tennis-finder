@@ -14,7 +14,16 @@ import { DEFAULT_NOTIFICATION_PREFS, loadNotificationPrefs } from "@/lib/notific
 
 const ballSound = require("@/../assets/sounds/tennis-ball-hit.wav");
 
-let soundLoaded: AudioPlayer | null = null;
+/**
+ * Piscina de reproductores. Con uno solo, dos golpes seguidos se cortaban
+ * entre ellos (había que parar, rebobinar y volver a lanzar el mismo). Con
+ * tres alternándose, los toques rápidos suenan superpuestos como en la vida
+ * real y ninguno se trunca.
+ */
+const POOL_SIZE = 3;
+const pool: AudioPlayer[] = [];
+let poolIndex = 0;
+let priming: Promise<void> | null = null;
 let soundPrefs = DEFAULT_NOTIFICATION_PREFS;
 
 // Preferencias en memoria: las leemos una vez al arrancar y se refrescan con
@@ -29,7 +38,7 @@ export function refreshFeedbackPrefs(prefs: typeof DEFAULT_NOTIFICATION_PREFS) {
 export function tapBall() {
   if (Platform.OS === "web") return;
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-  void playBallSound();
+  playBallSound();
 }
 
 /** Vibración de selección al cambiar entre pestañas. */
@@ -48,7 +57,7 @@ export function actionImpact() {
 export function notifySound() {
   if (Platform.OS === "web") return;
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  if (soundPrefs.sound) void playBallSound();
+  playBallSound();
 }
 
 /** Celebración de victoria: impacto fuerte (el confeti corre aparte). */
@@ -56,20 +65,49 @@ export function winCelebration() {
   if (Platform.OS === "web") return;
   void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
-  void playBallSound();
+  playBallSound();
 }
 
-async function playBallSound() {
-  if (!soundPrefs.sound) return;
-  try {
-    if (!soundLoaded) {
+/**
+ * Prepara el audio por adelantado. Antes el primer golpe cargaba el sonido y
+ * configuraba la sesión de audio en ese momento, así que llegaba tarde o
+ * directamente no se oía. Llamar a esto al arrancar deja el primer toque tan
+ * inmediato como el resto. Es idempotente y nunca lanza.
+ */
+export function primeFeedback(): Promise<void> {
+  if (Platform.OS === "web") return Promise.resolve();
+  if (priming) return priming;
+  priming = (async () => {
+    try {
       await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false });
-      soundLoaded = createAudioPlayer(ballSound, { keepAudioSessionActive: false });
-      soundLoaded.volume = 0.55;
+      for (let i = 0; i < POOL_SIZE; i += 1) {
+        const player = createAudioPlayer(ballSound, { keepAudioSessionActive: false });
+        // El archivo ya está grabado bajo (-20,8 dBFS RMS); a 0.55 apenas se
+        // oía sobre el ruido ambiente de una pista.
+        player.volume = 1;
+        pool.push(player);
+      }
+    } catch {
+      // Sin audio la app sigue igual de usable.
     }
-    soundLoaded.pause();
-    await soundLoaded.seekTo(0);
-    soundLoaded.play();
+  })();
+  return priming;
+}
+
+function playBallSound() {
+  if (!soundPrefs.sound || Platform.OS === "web") return;
+  if (pool.length === 0) {
+    // Aún no se ha precargado: lo preparamos y dejamos pasar este toque.
+    void primeFeedback();
+    return;
+  }
+  try {
+    const player = pool[poolIndex];
+    poolIndex = (poolIndex + 1) % pool.length;
+    // `seekTo` es asíncrono: esperarlo metía un salto perceptible entre el
+    // toque y el sonido. Lo lanzamos y reproducimos sin bloquear.
+    void player.seekTo(0).catch(() => {});
+    player.play();
   } catch {
     // El sonido es decorativo: jamás debe tumbar la interacción.
   }

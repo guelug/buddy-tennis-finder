@@ -11,7 +11,7 @@ export function CoachCheckout({ ad }: { ad: CoachAd; onActivated: () => void }) 
       <View style={{ flex: 1 }}>
         <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Termina la publicación desde Android</Text>
         <Text style={{ ...typography.body, color: colors.textSecondary }}>
-          El borrador está guardado. Abre MatchPoint Tennis en Android para pagar {COACH_PRODUCTS[ad.plan].fallbackPrice} mediante Google Play y activar el anuncio.
+          El borrador está guardado. Abre MP Tennis League App en Android para pagar {COACH_PRODUCTS[ad.plan].fallbackPrice} mediante Google Play y activar el anuncio.
         </Text>
       </View>
     </View>

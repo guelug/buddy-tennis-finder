@@ -57,9 +57,14 @@ export async function getClubs(): Promise<Club[]> {
 
   try {
     const snapshot = await getDocs(collection(db, "clubs"));
-    if (snapshot.empty) return seedClubs;
     const remote = snapshot.docs.map((d) => d.data() as Club);
-    const value = [...remote, ...seedClubs.filter((seed) => !remote.some((club) => club.id === seed.id))];
+    const value = snapshot.empty
+      ? seedClubs
+      : [...remote, ...seedClubs.filter((seed) => !remote.some((club) => club.id === seed.id))];
+    // La colección vacía también se cachea. Antes se devolvía sin guardar, y
+    // como hoy el catálogo vive en el seed, cada una de las once llamadas de
+    // la app repetía la lectura de la colección entera para no encontrar
+    // nada: puro gasto de la cuota gratuita en cada cambio de pantalla.
     clubsCache = { value, expiresAt: Date.now() + 10 * 60 * 1000 };
     return value;
   } catch (error) {

@@ -15,7 +15,7 @@ export const selectableCountries = ["Guatemala", "España"] as const satisfies r
 export const CITIES_BY_COUNTRY: Record<Country, string[]> = {
   Guatemala: ["Ciudad de Guatemala"],
   "El Salvador": ["San Salvador"],
-  España: ["Barcelona"]
+  España: ["Barcelona", "Formigal"]
 };
 
 export const clubs: Club[] = [
@@ -221,6 +221,74 @@ export const clubs: Club[] = [
     latitude: 41.3600,
     longitude: 2.1450,
     courts: 6
+  },
+  // Área metropolitana de Barcelona (AMB). Van con city "Barcelona" a
+  // propósito: en esta app `city` es el MERCADO en el que se busca rival, no
+  // el municipio, y el AMB funciona como una sola área. Si cada pueblo fuese
+  // su propia ciudad, quien viva en Pallejà no vería los partidos de
+  // Barcelona ni al revés, y con la base de usuarios actual eso deja la app
+  // vacía. El municipio real va en el nombre y en la dirección.
+  {
+    id: "ct-palleja-es",
+    name: "Club de Tennis Pallejà",
+    city: "Barcelona",
+    country: "España",
+    address: "Avinguda Onze de Setembre de 1714, 1, 08780 Pallejà",
+    latitude: 41.4222,
+    longitude: 1.9986,
+    courts: 4
+  },
+  {
+    id: "se-espiral-palleja-es",
+    name: "S.E. L'Espiral — Tennis Pallejà",
+    city: "Barcelona",
+    country: "España",
+    address: "Avinguda Fontpineda, 108, 08780 Pallejà",
+    latitude: 41.4090,
+    longitude: 1.9700,
+    courts: 4
+  },
+  {
+    id: "ct-andres-gimeno-es",
+    name: "Club de Tennis Andrés Gimeno",
+    city: "Barcelona",
+    country: "España",
+    address: "Castelldefels, Baix Llobregat",
+    latitude: 41.2800,
+    longitude: 1.9770,
+    courts: 12
+  },
+  {
+    id: "ct-castelldefels-es",
+    name: "Club Tennis Castelldefels",
+    city: "Barcelona",
+    country: "España",
+    address: "Castelldefels, Baix Llobregat",
+    latitude: 41.2830,
+    longitude: 1.9800,
+    courts: 8
+  },
+  // España · Valle de Tena (Huesca). Mercado propio: está a más de 300 km de
+  // Barcelona, así que aquí sí tiene sentido separarlo.
+  {
+    id: "escaladillo-sallent-es",
+    name: "Complex Esportiu El Escaladillo",
+    city: "Formigal",
+    country: "España",
+    address: "Paseo Fermín Arrudi s/n, Sallent de Gállego, Huesca",
+    latitude: 42.7710,
+    longitude: -0.3330,
+    courts: 1
+  },
+  {
+    id: "pistes-formigal-es",
+    name: "Pistes de tennis de Formigal",
+    city: "Formigal",
+    country: "España",
+    address: "Formigal, Sallent de Gállego, Huesca",
+    latitude: 42.7800,
+    longitude: -0.3900,
+    courts: 2
   }
 ];
 

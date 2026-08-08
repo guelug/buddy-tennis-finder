@@ -27,7 +27,7 @@ export function storeUrlForPlatform() {
 }
 
 export function buildAppInviteCopy(playerName: string) {
-  return `${playerName} te invita a unirte a MatchPoint Tennis 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.`;
+  return `${playerName} te invita a unirte a MP Tennis League App 🎾\n\nEncuentra gente de tu nivel, organiza partidos y descubre nuevos amigos dentro y fuera de la pista.`;
 }
 
 export function buildAppInviteMessage(playerName: string) {
@@ -39,7 +39,7 @@ export function buildLeagueInviteUrl(league: PrivateLeague) {
 }
 
 export async function shareAppInvite(playerName: string) {
-  const title = "Juega conmigo en MatchPoint Tennis";
+  const title = "Juega conmigo en MP Tennis League App";
   const url = storeUrlForPlatform();
   await Share.share(
     Platform.OS === "ios"
@@ -50,7 +50,7 @@ export async function shareAppInvite(playerName: string) {
 
 export async function shareMatchResultImage(uri: string, caption: string) {
   if (Platform.OS === "web" || !(await Sharing.isAvailableAsync())) {
-    return Share.share({ title: "Resultado en MatchPoint Tennis", message: `${caption}\n\n${WEB_APP_URL}`, url: WEB_APP_URL });
+    return Share.share({ title: "Resultado en MP Tennis League App", message: `${caption}\n\n${WEB_APP_URL}`, url: WEB_APP_URL });
   }
   await Sharing.shareAsync(uri, {
     mimeType: "image/png",
@@ -62,7 +62,7 @@ export async function shareMatchResultImage(uri: string, caption: string) {
 export async function shareLeagueInvite(league: PrivateLeague, playerName: string) {
   const url = buildLeagueInviteUrl(league);
   const title = `Únete a ${league.name}`;
-  const message = `${playerName} te invita a jugar en su liga privada “${league.name}” de MatchPoint Tennis 🎾\n\nCódigo: ${league.inviteCode}`;
+  const message = `${playerName} te invita a jugar en su liga privada “${league.name}” de MP Tennis League App 🎾\n\nCódigo: ${league.inviteCode}`;
   await Share.share(
     Platform.OS === "ios"
       ? { title, message, url }
@@ -79,7 +79,7 @@ export async function shareCommunityBanner(playerName: string, format: Community
   const uri = asset.localUri ?? asset.uri;
   await Sharing.shareAsync(uri, {
     mimeType: "image/png",
-    dialogTitle: `${playerName} te invita a MatchPoint Tennis`,
+    dialogTitle: `${playerName} te invita a MP Tennis League App`,
     UTI: "public.png"
   });
 }
