@@ -914,7 +914,7 @@ function useDiscoverState() {
     return rankCandidates(currentPlayer, allPlayers, {
       level: "any",
       formats: ["singles", "doubles", "mixed"],
-      ageMin: 13,
+      ageMin: 16,
       ageMax: 100,
       requireSharedAvailability: false
     }).filter((candidate) => normalizeSearchText(candidate.player.name).includes(query));

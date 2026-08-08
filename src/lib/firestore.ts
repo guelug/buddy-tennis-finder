@@ -129,7 +129,7 @@ export function normalizePlayerDocument(data: unknown, fallbackId?: string): Pla
     ...(raw as Player),
     id: raw.id ?? fallbackId ?? "",
     name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim().slice(0, 80) : "Jugador MatchPoint",
-    age: Math.min(100, Math.max(13, Math.round(finiteNumber(raw.age, 18)))),
+    age: Math.min(100, Math.max(16, Math.round(finiteNumber(raw.age, 18)))),
     gender,
     accountRole,
     clubIds,

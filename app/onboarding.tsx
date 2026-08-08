@@ -253,7 +253,7 @@ export default function OnboardingScreen() {
   const primaryClub = clubs.find((c) => c.id === clubIds[0]);
 
   const ageNum = Number(age);
-  const ageValid = age.trim() !== "" && Number.isFinite(ageNum) && ageNum >= 13 && ageNum <= 100;
+  const ageValid = age.trim() !== "" && Number.isFinite(ageNum) && ageNum >= 16 && ageNum <= 100;
 
   /** Validez de cada pregunta: solo bloquea el avance de su propia pantalla. */
   const answered: Record<QuestionKey, boolean> = {

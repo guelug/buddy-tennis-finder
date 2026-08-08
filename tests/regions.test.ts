@@ -37,7 +37,7 @@ function player(overrides: Partial<Player> = {}): Player {
 const preferences: SearchPreferences = {
   level: "any",
   formats: ["singles"],
-  ageMin: 13,
+  ageMin: 16,
   ageMax: 100,
   requireSharedAvailability: false
 };

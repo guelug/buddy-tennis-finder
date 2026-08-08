@@ -27,7 +27,7 @@ service cloud.firestore {
         && data.name.size() > 0
         && data.name.size() <= 80
         && data.age is int
-        && data.age >= 13
+        && data.age >= 16
         && data.age <= 100
         && data.gender in ["female", "male", "other"]
         && data.accountRole in ["player", "coach", "both"]

@@ -22,9 +22,8 @@ export function nativeAdUnitId(): string {
 export const ADS_SUPPORTED = Platform.OS === "ios" || Platform.OS === "android";
 
 /**
- * The app accepts users from age 13. We use the highest EEA digital-consent
- * threshold (16) as a conservative rule for mixed-country profiles. This
- * prevents the UMP form and personalised advertising for ages 13–15.
+ * The app accepts users from age 16. Legacy profiles below that threshold
+ * still receive the most restrictive Google treatment if encountered.
  */
 export function isUnderAgeOfConsent(age?: number): boolean {
   return typeof age !== "number" || age < 16;

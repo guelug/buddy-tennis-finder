@@ -11,7 +11,7 @@ La app trata datos de cuenta y autenticación; perfil deportivo; propuestas, par
 
 La app utiliza Google Mobile Ads (AdMob) y la plataforma de consentimiento UMP de Google. Según región, dispositivo y elecciones, Google y sus proveedores pueden tratar ubicación aproximada derivada de la IP, identificadores del dispositivo o publicitarios, interacciones con anuncios, datos publicitarios y diagnósticos para servir, limitar, proteger y medir anuncios.
 
-En regiones reguladas, UMP determina el modo permitido. Los usuarios de 13 a 15 años reciben tratamiento restringido por edad y no acceden a personalización publicitaria basada en consentimiento. Cuando la normativa exige mantener un acceso, las preferencias pueden reabrirse desde Perfil → Opciones de privacidad publicitaria.
+En regiones reguladas, UMP determina el modo permitido. La app está dirigida a personas de 16 años o más y no permite crear perfiles de menores de esa edad. Las preferencias pueden reabrirse desde Perfil → Opciones de privacidad publicitaria.
 
 ## Derechos y eliminación
 
