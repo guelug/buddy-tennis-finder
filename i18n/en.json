@@ -460,6 +460,7 @@
   "common.directions": "Directions",
   "common.court": "Court {court}",
   "common.retry": "Retry",
+  "ads.label": "Ad",
   "common.save": "Save",
   "common.cancel": "Cancel",
   "common.close": "Close",

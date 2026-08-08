@@ -48,6 +48,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-6613881091306161~9234565565</string>
+	<key>GADDelayAppMeasurementInit</key>
+	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSMinimumSystemVersion</key>
@@ -67,6 +71,8 @@
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
 	</array>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Usamos este permiso solo para mostrar anuncios más relevantes. Puedes rechazarlo y la app funciona igual.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>RCTRootViewBackgroundColor</key>

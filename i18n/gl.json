@@ -460,6 +460,7 @@
   "common.directions": "Cómo llegar",
   "common.court": "Cancha {court}",
   "common.retry": "Tentar de novo",
+  "ads.label": "Publicidade",
   "common.save": "Gardar",
   "common.cancel": "Cancelar",
   "common.close": "Pechar",

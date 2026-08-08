@@ -31,5 +31,7 @@
         <data android:scheme="matchpoint"/>
       </intent-filter>
     </activity>
-  </application>
+        <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-6613881091306161~8846004593"/>
+      <meta-data android:name="com.google.android.gms.ads.DELAY_APP_MEASUREMENT_INIT" android:value="true"/>
+</application>
 </manifest>

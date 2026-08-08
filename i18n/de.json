@@ -460,6 +460,7 @@
   "common.directions": "Route",
   "common.court": "Platz {court}",
   "common.retry": "Erneut versuchen",
+  "ads.label": "Anzeige",
   "common.save": "Speichern",
   "common.cancel": "Abbrechen",
   "common.close": "Schließen",

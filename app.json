@@ -100,7 +100,17 @@
       "expo-sharing",
       "expo-audio",
       "expo-status-bar",
-      "expo-image"
+      "expo-image",
+      "react-native-google-mobile-ads",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-6613881091306161~8846004593",
+          "iosAppId": "ca-app-pub-6613881091306161~9234565565",
+          "delayAppMeasurementInit": true,
+          "userTrackingUsageDescription": "Usamos este permiso solo para mostrar anuncios más relevantes. Puedes rechazarlo y la app funciona igual."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

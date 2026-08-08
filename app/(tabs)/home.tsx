@@ -11,6 +11,7 @@ import { Icon, type IconName } from "@/components/icon";
 import { LiveBackground } from "@/components/live-visuals";
 import { PrimaryButton } from "@/components/primary-button";
 import { MatchBuddyAvatar, useMatchBuddy } from "@/components/match-buddy-picker";
+import { NativeAdCard } from "@/components/native-ad-card";
 import { ScreenShell } from "@/components/screen-shell";
 import { WazeLogo } from "@/components/icons/waze-logo";
 import { getHomeData } from "@/lib/app-api";
@@ -117,6 +118,9 @@ export default function HomeScreen() {
         <SectionTitle title={t("home.tennisIn.title").replace("{country}", content.countryLabel)} subtitle={t("home.tennisIn.subtitle")} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
           {content.stories.map((story, index) => <StoryCard key={story.title} {...story} index={index} image={index ? communityImage : tournamentImage} desktop={isWebDesktop} />)}
+          {/* Va al final de la fila y solo aparece si hay anuncio: si no
+              carga, la parrilla queda exactamente como estaba. */}
+          <NativeAdCard desktop={isWebDesktop} />
         </View>
 
         <View style={{ gap: spacing.md }}>

@@ -460,6 +460,7 @@
   "common.directions": "Como chegar",
   "common.court": "Quadra {court}",
   "common.retry": "Tentar novamente",
+  "ads.label": "Publicidade",
   "common.save": "Salvar",
   "common.cancel": "Cancelar",
   "common.close": "Fechar",

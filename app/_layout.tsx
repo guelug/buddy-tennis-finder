@@ -14,6 +14,7 @@ import { PurchaseProvider } from "@/components/purchase-provider";
 import { initCrashReporting } from "@/lib/crash-reporting";
 import { primeFeedback } from "@/lib/feedback";
 import { getLocalAIAvailability } from "@/lib/matchpoint-assistant";
+import { startAds } from "@/lib/ads";
 import { useAppFonts } from "@/lib/use-app-fonts";
 import { colors, ThemeModeProvider, useThemeMode } from "@/theme";
 
@@ -38,6 +39,9 @@ export default function RootLayout() {
     // sesión nativa y es lo que hacía que la primera apertura del asistente
     // se quedase pensando. Se cachea, así que esto solo ocurre una vez.
     void getLocalAIAvailability().catch(() => {});
+    // Pide el consentimiento (obligatorio en el EEE) y solo después inicia el
+    // SDK. Si el usuario no consiente, se sirven anuncios no personalizados.
+    void startAds().catch(() => {});
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
