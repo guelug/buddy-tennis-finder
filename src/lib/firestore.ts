@@ -23,7 +23,7 @@ import { AccountRole, Club, DoublesRankingResult, Gender, MatchFormat, Player, P
 // Clubs (catálogo público). En el futuro vendrán de Firestore;
 // mientras tanto usamos el seed local como fallback.
 // ----------------------------------------------------------------------------
-import { clubs as seedClubs, players as seedPlayers } from "@/data/seed";
+import { citiesForSearch, clubs as seedClubs, players as seedPlayers } from "@/data/seed";
 
 let clubsCache: { value: Club[]; expiresAt: number } | null = null;
 let playersCache: { value: Player[]; expiresAt: number } | null = null;
@@ -313,15 +313,23 @@ export async function getAllPlayers(): Promise<Player[]> {
  * La ciudad se filtra en Firestore para que abrir una pantalla no lea el
  * directorio mundial completo. El límite es además una defensa de cuota.
  */
-export async function getPlayersForArea(city: string, division?: Player["level"]): Promise<Player[]> {
+export async function getPlayersForArea(
+  city: string,
+  division?: Player["level"],
+  /** Abre la búsqueda a toda la comunidad autónoma en vez de solo al municipio. */
+  wholeRegion = true
+): Promise<Player[]> {
+  const cities = citiesForSearch(city, wholeRegion);
   if (!isFirebaseConfigured) {
     return withDemoPlayers(seedPlayers.map((player) => ({ ...player, profileComplete: true, isDemo: player.id !== "me" })))
-      .filter((player) => !city || player.city === city)
+      .filter((player) => cities.length === 0 || cities.includes(player.city))
       .filter((player) => !division || player.level === division);
   }
   const constraints: QueryConstraint[] = [
     where("profileComplete", "==", true),
-    where("city", "==", city)
+    // `in` en vez de `==` para poder mirar toda la región de una sola consulta;
+    // con una por ciudad se multiplicarían las lecturas de la cuota gratuita.
+    cities.length > 1 ? where("city", "in", cities) : where("city", "==", city)
   ];
   if (division) constraints.push(where("level", "==", division));
   constraints.push(limit(100));

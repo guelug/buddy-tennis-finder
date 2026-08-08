@@ -62,16 +62,40 @@ export const initialLeagues: ClubLeague[] = [
  * que alguien de Barcelona compita en la misma tabla que alguien de Ciudad de
  * Guatemala, porque nunca van a poder jugar el partido.
  */
-export const LEAGUE_CITIES: Record<string, string> = {
-  "Ciudad de Guatemala": "guatemala",
-  "San Salvador": "san-salvador",
-  Barcelona: "barcelona"
+/**
+ * Área de liga de cada ciudad. Varias ciudades comparten área a propósito: la
+ * liga pública es por COMUNIDAD, no por municipio. Si cada pueblo tuviera la
+ * suya, quien vive en Pallejà competiría solo contra su pueblo y la liga
+ * nacería con un inscrito.
+ *
+ * El `slug` de Catalunya sigue siendo "barcelona" para no invalidar las
+ * inscripciones ya guardadas ni los ids que replica firestore.rules; lo que
+ * cambia es la etiqueta que se muestra.
+ */
+export const LEAGUE_AREAS: Record<string, { slug: string; label: string }> = {
+  "Ciudad de Guatemala": { slug: "guatemala", label: "Ciudad de Guatemala" },
+  "San Salvador": { slug: "san-salvador", label: "San Salvador" },
+  Barcelona: { slug: "barcelona", label: "Catalunya" },
+  "Pallejà": { slug: "barcelona", label: "Catalunya" },
+  Castelldefels: { slug: "barcelona", label: "Catalunya" },
+  Formigal: { slug: "aragon", label: "Aragón" }
 };
 
-/** Sufijo estable de ciudad para construir el id de liga. */
+/** Slugs únicos: varias ciudades comparten uno. */
+export const LEAGUE_SLUGS: string[] = Array.from(
+  new Set(Object.values(LEAGUE_AREAS).map((area) => area.slug))
+);
+
+/** Sufijo estable de área para construir el id de liga. */
 export function citySlug(city: string | undefined | null): string | null {
   if (!city) return null;
-  return LEAGUE_CITIES[city] ?? null;
+  return LEAGUE_AREAS[city]?.slug ?? null;
+}
+
+/** Etiqueta del área a la que pertenece una ciudad. */
+export function areaLabel(city: string | undefined | null): string | null {
+  if (!city) return null;
+  return LEAGUE_AREAS[city]?.label ?? null;
 }
 
 /**
@@ -88,7 +112,7 @@ export function publicLeagueForDivision(division: Division, city?: string | null
     ?? initialLeagues.find((league) => league.division === division)!;
   const slug = citySlug(city);
   if (!slug) return base;
-  return { ...base, id: `${base.id}-${slug}`, name: `${base.name} · ${city}` };
+  return { ...base, id: `${base.id}-${slug}`, name: `${base.name} · ${areaLabel(city) ?? city}` };
 }
 
 /**
@@ -110,11 +134,11 @@ export function findPublicLeague(id: string | undefined): ClubLeague | null {
   if (!id) return null;
   const exact = initialLeagues.find((league) => league.id === id);
   if (exact) return exact;
-  for (const [city, slug] of Object.entries(LEAGUE_CITIES)) {
-    const suffix = `-${slug}`;
+  for (const [city, area] of Object.entries(LEAGUE_AREAS)) {
+    const suffix = `-${area.slug}`;
     if (!id.endsWith(suffix)) continue;
     const base = initialLeagues.find((league) => league.id === id.slice(0, -suffix.length));
-    if (base) return { ...base, id, name: `${base.name} · ${city}` };
+    if (base) return { ...base, id, name: `${base.name} · ${area.label ?? city}` };
   }
   return null;
 }
@@ -125,15 +149,15 @@ export function allPublicLeagueIds(): string[] {
   for (const league of initialLeagues) {
     if (league.format !== "individual") continue;
     ids.push(league.id);
-    for (const slug of Object.values(LEAGUE_CITIES)) ids.push(`${league.id}-${slug}`);
+    for (const slug of LEAGUE_SLUGS) ids.push(`${league.id}-${slug}`);
   }
   return ids;
 }
 
 export const tournaments: IndividualTournament[] = [
-  { id: "tr-novato", name: "Open MatchPoint · Novato", division: "novato", status: "registration", entrants: 0, capacity: 16, demoEntrants: 8, round: "Inscripción abierta" },
-  { id: "tr-d", name: "Open MatchPoint · D", division: "d", status: "registration", entrants: 0, capacity: 24, demoEntrants: 12, round: "Inscripción abierta" },
-  { id: "tr-c", name: "Open MatchPoint · C", division: "c", status: "registration", entrants: 0, capacity: 32, demoEntrants: 18, round: "Inscripción abierta" },
-  { id: "tr-b", name: "Open MatchPoint · B", division: "b", status: "registration", entrants: 0, capacity: 24, demoEntrants: 12, round: "Inscripción abierta" },
-  { id: "tr-a", name: "Open MatchPoint · A", division: "a", status: "registration", entrants: 0, capacity: 16, demoEntrants: 8, round: "Inscripción abierta" }
+  { id: "tr-novato", name: "Open MP · Novato", division: "novato", status: "registration", entrants: 0, capacity: 16, demoEntrants: 8, round: "Inscripción abierta" },
+  { id: "tr-d", name: "Open MP · D", division: "d", status: "registration", entrants: 0, capacity: 24, demoEntrants: 12, round: "Inscripción abierta" },
+  { id: "tr-c", name: "Open MP · C", division: "c", status: "registration", entrants: 0, capacity: 32, demoEntrants: 18, round: "Inscripción abierta" },
+  { id: "tr-b", name: "Open MP · B", division: "b", status: "registration", entrants: 0, capacity: 24, demoEntrants: 12, round: "Inscripción abierta" },
+  { id: "tr-a", name: "Open MP · A", division: "a", status: "registration", entrants: 0, capacity: 16, demoEntrants: 8, round: "Inscripción abierta" }
 ];

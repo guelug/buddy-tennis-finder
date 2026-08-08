@@ -92,6 +92,7 @@
   "onboarding.field.gender": "Kendini nasıl tanımlıyorsun?",
   "onboarding.field.country": "Hangi ülkedensin?",
   "onboarding.field.city": "Hangi şehirde oynuyorsun?",
+  "onboarding.field.cityRegionHint": "Bölgenin geri kalanındaki maçları da görürsün; böylece küçük bir kasabada bile rakip bulabilirsin.",
   "onboarding.field.clubs": "Genelde nerede oynuyorsun?",
   "onboarding.field.clubsHint": "Seçmek veya kaldırmak için dokun. Seçili bir kulübü birincil ★ yapmak için uzun bas.",
   "onboarding.clubs.empty": "{city}, {country} bölgesinde henüz kulüp yok. Şimdilik profilin için bu şehri kullanacağız ve haritayı yakında genişleteceğiz.",

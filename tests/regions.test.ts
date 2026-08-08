@@ -98,12 +98,27 @@ test("el ranking global no se filtra cuando no hay región conocida", () => {
   assert.equal(scopeRankingToArea(entries, undefined, undefined).length, 2);
 });
 
-test("las ligas públicas están separadas por ciudad", () => {
+test("las ligas públicas están separadas por área, no por municipio", () => {
   const barcelona = publicLeagueForDivision("c", "Barcelona");
   const guatemala = publicLeagueForDivision("c", "Ciudad de Guatemala");
   assert.notEqual(barcelona.id, guatemala.id);
+  // El id se mantiene para no invalidar las inscripciones ya guardadas.
   assert.equal(barcelona.id, "l-c-individual-barcelona");
-  assert.match(barcelona.name, /Barcelona/);
+  assert.match(barcelona.name, /Catalunya/);
+});
+
+test("los municipios del área metropolitana comparten la liga de Barcelona", () => {
+  // Si cada pueblo tuviera la suya, nacerían con un solo inscrito.
+  const barcelona = publicLeagueForDivision("c", "Barcelona");
+  for (const city of ["Pallejà", "Castelldefels"]) {
+    assert.equal(publicLeagueForDivision("c", city).id, barcelona.id, `${city} debería compartir liga`);
+  }
+});
+
+test("Formigal juega en la liga de Aragón, no en la de Catalunya", () => {
+  const formigal = publicLeagueForDivision("c", "Formigal");
+  assert.equal(formigal.id, "l-c-individual-aragon");
+  assert.notEqual(formigal.id, publicLeagueForDivision("c", "Barcelona").id);
 });
 
 test("una ciudad sin liga propia cae en la liga histórica sin sufijo", () => {

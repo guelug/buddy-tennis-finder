@@ -20,6 +20,7 @@ import {
   where
 } from "@react-native-firebase/firestore";
 import { getClubs, getPlayersForArea, getPlayer, normalizePlayerDocument } from "./firestore";
+import { citiesForSearch } from "@/data/seed";
 import { isLevelCompatible, rankCandidates } from "./matching";
 
 export type HomeData = {
@@ -145,6 +146,8 @@ export async function getHomeData(
     throw new Error("Perfil no encontrado. Completa el onboarding.");
   }
 
+  const searchCities = citiesForSearch(currentPlayer.city, true);
+
   const [clubs, allPlayers, mineSnap, acceptedSnap, openSnap, joinRequests] = await withVerifiedIdentityHint(withTimeout(Promise.all([
     getClubs(),
     getPlayersForArea(currentPlayer.city),
@@ -155,7 +158,12 @@ export async function getHomeData(
         collection(db, "matches"),
         where("acceptedByPlayerId", "==", null),
         where("status", "==", "proposed"),
-        where("city", "==", currentPlayer.city)
+        // Toda la comunidad, no solo el municipio: en el área metropolitana
+        // la gente cruza media provincia para jugar, y filtrar por ciudad
+        // dejaba a los pueblos pequeños sin un solo partido a la vista.
+        searchCities.length > 1
+          ? where("city", "in", searchCities)
+          : where("city", "==", currentPlayer.city)
       )
     ),
     getJoinRequests(uid)
@@ -177,15 +185,17 @@ export async function getHomeData(
   }
   // La consulta de propuestas abiertas no está acotada por región, así que
   // llegaban partidos de cualquier país. Resolvemos la ciudad a partir del
-  // club de la reserva: un partido solo es jugable si es en tu ciudad.
+  // club de la reserva y la contrastamos contra las ciudades de la comunidad,
+  // no solo contra el municipio: si no, un partido en Castelldefels quedaba
+  // invisible para alguien de Barcelona aunque estén a media hora.
   const cityOfClub = new Map(clubs.map((club) => [club.id, normalizeArea(club.city)]));
-  const myCity = normalizeArea(currentPlayer.city);
+  const nearbyCities = new Set(searchCities.map(normalizeArea));
   const isNearby = (proposal: MatchProposal) => {
     const proposalCity = cityOfClub.get(proposal.clubId);
     // Sin ciudad conocida (club retirado del catálogo) no ocultamos el partido:
     // el creador y quien lo aceptó siempre deben poder verlo.
-    if (!proposalCity || !myCity) return true;
-    return proposalCity === myCity;
+    if (!proposalCity || nearbyCities.size === 0) return true;
+    return nearbyCities.has(proposalCity);
   };
 
   const visibleProposals = proposals.filter((proposal) =>

@@ -92,6 +92,7 @@
   "onboarding.field.gender": "Wie identifizierst du dich?",
   "onboarding.field.country": "Aus welchem Land kommst du?",
   "onboarding.field.city": "In welcher Stadt spielst du?",
+  "onboarding.field.cityRegionHint": "Du siehst auch Matches aus dem Rest deiner Region — so findest du auch aus einem kleinen Ort einen Gegner.",
   "onboarding.field.clubs": "Wo spielst du normalerweise?",
   "onboarding.field.clubsHint": "Tippe zum Auswählen oder Entfernen. Lange drücken, um einen ausgewählten Verein als Hauptverein ★ festzulegen.",
   "onboarding.clubs.empty": "In {city}, {country} gibt es noch keine Vereine. Wir verwenden diese Stadt für dein Profil und erweitern die Karte bald.",

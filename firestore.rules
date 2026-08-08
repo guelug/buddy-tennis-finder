@@ -241,7 +241,8 @@ service cloud.firestore {
               "l-c-individual-guatemala", "l-c-individual-san-salvador", "l-c-individual-barcelona",
               "l-b-individual", "l-b-individual-guatemala", "l-b-individual-san-salvador",
               "l-b-individual-barcelona", "l-a-individual", "l-a-individual-guatemala",
-              "l-a-individual-san-salvador", "l-a-individual-barcelona"
+              "l-a-individual-san-salvador", "l-a-individual-barcelona",
+              "l-novato-individual-aragon", "l-d-individual-aragon", "l-c-individual-aragon", "l-b-individual-aragon", "l-a-individual-aragon"
             ])
           )
           ||

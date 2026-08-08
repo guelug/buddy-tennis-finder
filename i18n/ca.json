@@ -92,6 +92,7 @@
   "onboarding.field.gender": "Com t'identifiques?",
   "onboarding.field.country": "De quin país ets?",
   "onboarding.field.city": "A quina ciutat jugues?",
+  "onboarding.field.cityRegionHint": "També veuràs partits de la resta de la teva comunitat, així trobes rival encara que el teu poble sigui petit.",
   "onboarding.field.clubs": "On jugues habitualment?",
   "onboarding.field.clubsHint": "Toca per seleccionar o eliminar. Mantén premut un club seleccionat per fer-lo principal ★.",
   "onboarding.clubs.empty": "Encara no hi ha clubs a {city}, {country}. Farem servir aquesta ciutat al teu perfil i aviat ampliarem el mapa.",

@@ -92,6 +92,7 @@
   "onboarding.field.gender": "你的性别是？",
   "onboarding.field.country": "你来自哪个国家？",
   "onboarding.field.city": "你在哪个城市打球？",
+  "onboarding.field.cityRegionHint": "你还会看到本地区其他城市的比赛，即使在小城镇也能找到对手。",
   "onboarding.field.clubs": "你通常在哪里打球？",
   "onboarding.field.clubsHint": "点击选择或取消。长按已选俱乐部可将其设为主俱乐部 ★。",
   "onboarding.clubs.empty": "{city}，{country} 暂时还没有俱乐部。我们会先用这个城市来展示你的资料，地图覆盖范围很快会扩大。",

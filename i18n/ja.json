@@ -92,6 +92,7 @@
   "onboarding.field.gender": "性別を教えてください",
   "onboarding.field.country": "出身国はどちらですか？",
   "onboarding.field.city": "プレーする都市はどこですか？",
+  "onboarding.field.cityRegionHint": "同じ地域の他の街の試合も表示されるので、小さな町でも対戦相手が見つかります。",
   "onboarding.field.clubs": "普段プレーする場所は？",
   "onboarding.field.clubsHint": "タップして選択・解除できます。選択したクラブを長押しするとメインクラブ（★）に設定できます。",
   "onboarding.clubs.empty": "{city}（{country}）にはまだ登録クラブがありません。プロフィールにはこの都市を使用し、今後マップを拡大していきます。",

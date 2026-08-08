@@ -92,6 +92,7 @@
   "onboarding.field.gender": "Nola identifikatzen zara?",
   "onboarding.field.country": "Zein herrialdetakoa zara?",
   "onboarding.field.city": "Zein hiritan jokatzen duzu?",
+  "onboarding.field.cityRegionHint": "Zure erkidegoko gainerako partidak ere ikusiko dituzu, hala aurkaria aurkituko duzu zure herria txikia izanda ere.",
   "onboarding.field.clubs": "Non jokatzen duzu normalean?",
   "onboarding.field.clubsHint": "Sakatu hautatzeko edo kentzeko. Sakatu luze hautatutako klub bat nagusi ★ gisa ezartzeko.",
   "onboarding.clubs.empty": "Oraindik ez dago klubik {city}, {country} herrialdean. Hiri hau erabiliko dugu zure profilerako eta laster zabalduko dugu mapa.",

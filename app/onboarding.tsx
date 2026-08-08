@@ -33,7 +33,7 @@ import { getClubs, getPlayer, savePlayerProfile } from "@/lib/firestore";
 import { openInWaze } from "@/lib/waze";
 import { colors, contentWidth, spacing, statusBarTopInset, typography, radii, shadows, useThemeMode } from "@/theme";
 import { AccountRole, Club, Gender, MatchFormat, PlayerProfileInput, PlayerSkills, SkillLevel } from "@/types";
-import { CITIES_BY_COUNTRY, selectableCountries, Country } from "@/data/seed";
+import { CITIES_BY_COUNTRY, CITIES_BY_REGION, REGIONS_BY_COUNTRY, selectableCountries, Country } from "@/data/seed";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 
 const LEVELS: Array<{ label: string; labelKey?: string; value: SkillLevel; icon: IconName }> = [
@@ -588,6 +588,18 @@ function QuestionCard(props: QuestionCardProps) {
   const { question } = props;
 
   const cityOptions = useMemo(() => (props.country ? CITIES_BY_COUNTRY[props.country] : []), [props.country]);
+  /**
+   * Ciudades agrupadas por comunidad. Con una sola región no se muestra el
+   * encabezado: en Guatemala sería ruido. En España, en cambio, deja claro
+   * que Pallejà o Castelldefels son Catalunya y que hay más de una zona.
+   */
+  const cityGroups = useMemo(() => {
+    if (!props.country) return [];
+    const regions = REGIONS_BY_COUNTRY[props.country] ?? [];
+    return regions
+      .map((region) => ({ region, cities: CITIES_BY_REGION[region] ?? [] }))
+      .filter((group) => group.cities.length > 0);
+  }, [props.country]);
   const filteredClubs = useMemo(() => {
     if (!props.country || !props.city) return [];
     return props.clubs.filter((c) => c.country === props.country && c.city === props.city);
@@ -744,19 +756,33 @@ function QuestionCard(props: QuestionCardProps) {
         </Field>
         {props.country ? (
           <Field label={t("onboarding.field.city")} required>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
-              {cityOptions.map((c) => (
-                <Chip
-                  key={c}
-                  active={props.city === c}
-                  label={c}
-                  onPress={() => {
-                    props.setCity(c);
-                    props.setClubIds([]);
-                  }}
-                />
+            <View style={{ gap: spacing.sm }}>
+              {cityGroups.map((group) => (
+                <View key={group.region} style={{ gap: spacing.xs }}>
+                  {cityGroups.length > 1 ? (
+                    <Text style={{ ...typography.footnote, color: colors.textTertiary, fontWeight: "800", letterSpacing: 0.4, textTransform: "uppercase" }}>
+                      {group.region}
+                    </Text>
+                  ) : null}
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>
+                    {group.cities.map((c) => (
+                      <Chip
+                        key={c}
+                        active={props.city === c}
+                        label={c}
+                        onPress={() => {
+                          props.setCity(c);
+                          props.setClubIds([]);
+                        }}
+                      />
+                    ))}
+                  </View>
+                </View>
               ))}
             </View>
+            <Text style={{ ...typography.footnote, color: colors.textTertiary, marginTop: spacing.xs }}>
+              {t("onboarding.field.cityRegionHint")}
+            </Text>
           </Field>
         ) : null}
       </View>

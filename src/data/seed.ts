@@ -12,11 +12,65 @@ export type Country = (typeof countries)[number];
  */
 export const selectableCountries = ["Guatemala", "España"] as const satisfies readonly Country[];
 
-export const CITIES_BY_COUNTRY: Record<Country, string[]> = {
-  Guatemala: ["Ciudad de Guatemala"],
+/**
+ * Comunidades / regiones dentro de cada país. Sirven para dos cosas: agrupar
+ * las ciudades en el onboarding y permitir buscar rival en TODA la región en
+ * vez de solo en el propio municipio.
+ *
+ * Eso último importa más de lo que parece: cada ciudad por separado parte la
+ * comunidad en trozos diminutos, y en el área metropolitana de Barcelona la
+ * gente se cruza media provincia para jugar. Con la región, quien vive en
+ * Pallejà puede ver los partidos de Barcelona sin que su ciudad deje de ser
+ * Pallejà.
+ */
+export const REGIONS_BY_COUNTRY: Record<Country, string[]> = {
+  Guatemala: ["Guatemala"],
   "El Salvador": ["San Salvador"],
-  España: ["Barcelona", "Formigal"]
+  España: ["Catalunya", "Aragón"]
 };
+
+/** Ciudades con pistas dadas de alta, agrupadas por región. */
+export const CITIES_BY_REGION: Record<string, string[]> = {
+  // Guatemala
+  Guatemala: ["Ciudad de Guatemala"],
+  "San Salvador": ["San Salvador"],
+  // España · Catalunya (Barcelona y área metropolitana)
+  Catalunya: ["Barcelona", "Castelldefels", "Pallejà"],
+  // España · Aragón (Pirineo, Valle de Tena)
+  Aragón: ["Formigal"]
+};
+
+/** Región a la que pertenece cada ciudad. */
+export const REGION_BY_CITY: Record<string, string> = Object.entries(CITIES_BY_REGION)
+  .reduce<Record<string, string>>((acc, [region, cities]) => {
+    cities.forEach((city) => { acc[city] = region; });
+    return acc;
+  }, {});
+
+export const CITIES_BY_COUNTRY: Record<Country, string[]> = {
+  Guatemala: REGIONS_BY_COUNTRY.Guatemala.flatMap((r) => CITIES_BY_REGION[r] ?? []),
+  "El Salvador": REGIONS_BY_COUNTRY["El Salvador"].flatMap((r) => CITIES_BY_REGION[r] ?? []),
+  España: REGIONS_BY_COUNTRY["España"].flatMap((r) => CITIES_BY_REGION[r] ?? [])
+};
+
+
+/**
+ * Ciudades a consultar al buscar rival. Con `wholeRegion` se abre a toda la
+ * comunidad; si no, solo el municipio. Devuelve siempre al menos la ciudad
+ * de origen para no dejar la consulta vacía.
+ *
+ * Se usa en consultas `where("city","in",...)`, que en Firestore admiten
+ * hasta 30 valores: por eso se recorta, y de ahí que convenga no inflar una
+ * región con municipios sin pistas.
+ */
+export function citiesForSearch(city: string | undefined, wholeRegion: boolean): string[] {
+  if (!city) return [];
+  if (!wholeRegion) return [city];
+  const region = REGION_BY_CITY[city];
+  const cities = region ? CITIES_BY_REGION[region] ?? [] : [];
+  const unique = Array.from(new Set([city, ...cities]));
+  return unique.slice(0, 30);
+}
 
 export const clubs: Club[] = [
   // Guatemala · Ciudad de Guatemala
@@ -222,16 +276,13 @@ export const clubs: Club[] = [
     longitude: 2.1450,
     courts: 6
   },
-  // Área metropolitana de Barcelona (AMB). Van con city "Barcelona" a
-  // propósito: en esta app `city` es el MERCADO en el que se busca rival, no
-  // el municipio, y el AMB funciona como una sola área. Si cada pueblo fuese
-  // su propia ciudad, quien viva en Pallejà no vería los partidos de
-  // Barcelona ni al revés, y con la base de usuarios actual eso deja la app
-  // vacía. El municipio real va en el nombre y en la dirección.
+  // Área metropolitana de Barcelona. Cada club lleva su municipio real; para
+  // que la gente de un pueblo no se quede sin rivales, la búsqueda permite
+  // abrirse a toda la comunidad (ver REGIONS_BY_COUNTRY).
   {
     id: "ct-palleja-es",
     name: "Club de Tennis Pallejà",
-    city: "Barcelona",
+    city: "Pallejà",
     country: "España",
     address: "Avinguda Onze de Setembre de 1714, 1, 08780 Pallejà",
     latitude: 41.4222,
@@ -241,7 +292,7 @@ export const clubs: Club[] = [
   {
     id: "se-espiral-palleja-es",
     name: "S.E. L'Espiral — Tennis Pallejà",
-    city: "Barcelona",
+    city: "Pallejà",
     country: "España",
     address: "Avinguda Fontpineda, 108, 08780 Pallejà",
     latitude: 41.4090,
@@ -251,9 +302,9 @@ export const clubs: Club[] = [
   {
     id: "ct-andres-gimeno-es",
     name: "Club de Tennis Andrés Gimeno",
-    city: "Barcelona",
+    city: "Castelldefels",
     country: "España",
-    address: "Castelldefels, Baix Llobregat",
+    address: "Castelldefels, Baix Llobregat, Barcelona",
     latitude: 41.2800,
     longitude: 1.9770,
     courts: 12
@@ -261,9 +312,9 @@ export const clubs: Club[] = [
   {
     id: "ct-castelldefels-es",
     name: "Club Tennis Castelldefels",
-    city: "Barcelona",
+    city: "Castelldefels",
     country: "España",
-    address: "Castelldefels, Baix Llobregat",
+    address: "Castelldefels, Baix Llobregat, Barcelona",
     latitude: 41.2830,
     longitude: 1.9800,
     courts: 8
