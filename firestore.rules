@@ -204,9 +204,17 @@ service cloud.firestore {
       allow get: if request.auth != null
         && (request.auth.uid == uid || hasVerifiedIdentity());
       allow list: if request.auth != null
-        && hasVerifiedIdentity()
-        && request.query.limit != null
-        && request.query.limit <= 100;
+        && (
+          // Un listener sobre players/{uid} puede llegar como una operación
+          // list en el SDK nativo. El dueño solo escucha su documento; no se
+          // abre el listado para cuentas sin identidad verificada.
+          request.auth.uid == uid
+          || (
+            hasVerifiedIdentity()
+            && request.query.limit != null
+            && request.query.limit <= 100
+          )
+        );
       // Las métricas competitivas no son editables desde el cliente. Al crear
       // un perfil arrancan en valores neutrales; un backend de resultados
       // validado será quien pueda modificarlas en una fase posterior.

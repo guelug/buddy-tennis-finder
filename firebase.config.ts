@@ -38,7 +38,9 @@ export const appCheckReady: Promise<AppCheck | null> = isRealDevice
       const provider = new ReactNativeFirebaseAppCheckProvider();
       provider.configure({
         android: { provider: __DEV__ ? "debug" : "playIntegrity" },
-        apple: { provider: __DEV__ ? "debug" : "appAttest" }
+        // App Attest cuando está disponible; DeviceCheck mantiene el acceso
+        // en dispositivos donde App Attest no puede emitir una atestación.
+        apple: { provider: __DEV__ ? "debug" : "appAttestWithDeviceCheckFallback" }
       });
       return initializeAppCheck(app, {
         provider,

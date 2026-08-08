@@ -51,6 +51,10 @@ function mapFirebaseUser(user: FirebaseUser | null): AuthUser | null {
 }
 
 async function syncPrivateIdentity(user: FirebaseUser) {
+  // El listener de Auth puede dispararse antes de que App Check haya
+  // terminado de instalar su provider nativo. Esperamos aquí para que la
+  // primera escritura privada no salga sin atestación en una release.
+  await ensureAppCheckReady();
   const email = user.email?.trim().toLowerCase() ?? null;
   // La huella del dispositivo permite que las reglas rechacen una valoración
   // entre dos cuentas del mismo móvil. Es opcional: si no se puede calcular,

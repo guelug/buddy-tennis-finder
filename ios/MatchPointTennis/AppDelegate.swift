@@ -28,6 +28,12 @@ class AppDelegate: ExpoAppDelegate {
     // Evita que Firebase cree el provider debug al configurar la app. En el
     // simulador no existe un token App Check válido.
     AppCheck.setAppCheckProviderFactory(nil)
+#else
+    // App Check debe registrar su factory antes de FirebaseApp.configure().
+    // Si se deja únicamente para JS, las primeras lecturas de Firestore del
+    // perfil salen sin atestación en TestFlight y Firebase responde
+    // permission-denied cuando la protección está en modo enforcement.
+    RNFBAppCheckModule.sharedInstance()
 #endif
     FirebaseApp.configure()
     factory.startReactNative(

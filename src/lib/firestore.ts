@@ -16,7 +16,7 @@ import {
   type QueryConstraint,
   type Unsubscribe
 } from "@react-native-firebase/firestore";
-import { db, isFirebaseConfigured } from "@/../firebase.config";
+import { db, ensureAppCheckReady, isFirebaseConfigured } from "@/../firebase.config";
 import { AccountRole, Club, DoublesRankingResult, Gender, MatchFormat, Player, PlayerProfileInput, SkillLevel, ValidatedRankingResult } from "@/types";
 
 // ----------------------------------------------------------------------------
@@ -277,9 +277,23 @@ export function subscribeToPlayer(uid: string, onNext: (player: Player | null) =
     onNext(null);
     return () => {};
   }
-  return onSnapshot(doc(db, PLAYERS_COLLECTION, uid), (snap) => {
-    onNext(snap.exists() ? normalizePlayerDocument(snap.data(), snap.id) : null);
-  }, (error) => onError?.(error));
+  let active = true;
+  let unsubscribe: Unsubscribe = () => {};
+  void ensureAppCheckReady()
+    .then(() => {
+      if (!active) return;
+      unsubscribe = onSnapshot(doc(db, PLAYERS_COLLECTION, uid), (snap) => {
+        onNext(snap.exists() ? normalizePlayerDocument(snap.data(), snap.id) : null);
+      }, (error) => onError?.(error));
+    })
+    .catch((error: unknown) => {
+      if (!active) return;
+      onError?.(error instanceof Error ? error : new Error("No se pudo inicializar la protección de Firebase."));
+    });
+  return () => {
+    active = false;
+    unsubscribe();
+  };
 }
 
 /**
