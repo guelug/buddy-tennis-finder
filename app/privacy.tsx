@@ -1,10 +1,10 @@
-import { Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { Card } from "@/components/card";
 import { ScreenShell } from "@/components/screen-shell";
 import { useI18n } from "@/lib/i18n";
 import { colors, spacing, typography } from "@/theme";
 
-const sectionKeys = ["data", "purpose", "location", "providers", "visibility", "retention", "contact"] as const;
+const sectionKeys = ["data", "purpose", "location", "providers", "ads", "visibility", "retention", "contact"] as const;
 
 export default function PrivacyScreen() {
   const { t } = useI18n();
@@ -21,6 +21,9 @@ export default function PrivacyScreen() {
           <Text selectable style={{ ...typography.body, color: colors.textSecondary, fontSize: 15, lineHeight: 22 }}>{t(`privacy.${section}.body`)}</Text>
         </Card>
       ))}
+      <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://tennisleagueapp.win/privacy/")}>
+        <Text style={{ ...typography.body, color: colors.neon, textAlign: "center" }}>{t("privacy.fullPolicy")}</Text>
+      </Pressable>
       <View style={{ height: spacing.lg }} />
     </ScreenShell>
   );

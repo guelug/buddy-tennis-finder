@@ -12,3 +12,6 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# Google UMP consent SDK (required for release builds using R8/ProGuard).
+-keep class com.google.android.gms.internal.consent_sdk.** { *; }

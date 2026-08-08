@@ -7,7 +7,7 @@ import { google } from "googleapis";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packageName = "com.matchpoint.clubs";
 const language = "es-419";
-const title = "MatchPoint Tennis";
+const title = "MP Tennis League App";
 const keyFile = path.join(rootDir, "credentials/google-play-service-account.json");
 
 if (!process.argv.includes("--confirm")) {

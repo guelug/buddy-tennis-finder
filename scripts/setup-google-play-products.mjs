@@ -15,19 +15,19 @@ const products = [
     sku: "coach_ad_7_days",
     priceMicros: "4990000",
     title: "Anuncio de entrenador · 7 días",
-    description: "Publica tu perfil profesional en el muro de entrenadores de MatchPoint Tennis durante 7 días."
+    description: "Publica tu perfil profesional en el muro de entrenadores de MP Tennis League App durante 7 días."
   },
   {
     sku: "coach_ad_30_days",
     priceMicros: "12990000",
     title: "Anuncio de entrenador · 30 días",
-    description: "Publica tu perfil profesional en el muro de entrenadores de MatchPoint Tennis durante 30 días."
+    description: "Publica tu perfil profesional en el muro de entrenadores de MP Tennis League App durante 30 días."
   },
   {
     sku: "private_league_create",
     priceMicros: "6990000",
     title: "Crear una liga privada",
-    description: "Crea una liga privada permanente e invita a tus amigos a competir en MatchPoint Tennis."
+    description: "Crea una liga privada permanente e invita a tus amigos a competir en MP Tennis League App."
   }
 ];
 

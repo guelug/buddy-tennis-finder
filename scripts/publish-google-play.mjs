@@ -106,7 +106,7 @@ try {
         releases: [
           ...existingReleases.filter((release) => !(release.versionCodes ?? []).includes(versionCode)),
           {
-            name: `MatchPoint Tennis (${versionCode})`,
+            name: `MP Tennis League App (${versionCode})`,
             versionCodes: [versionCode],
             status,
             releaseNotes: [{ language: 'es-419', text: notes }],

@@ -597,7 +597,7 @@ export default function LoginScreen() {
               <TennisBall size={48} />
             </View>
             <Text style={{ ...typography.title, color: textPrimary, textAlign: "center", fontSize: 20 }}>
-              MatchPoint Tennis
+              MP Tennis League App
             </Text>
             <Text
               style={{

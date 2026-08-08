@@ -12,6 +12,7 @@ import { GeneralSettings, NotificationSettings } from "@/components/notification
 import { BroadcastHeader, GlassPanel, LiveBackground } from "@/components/live-visuals";
 import { PrimaryButton } from "@/components/primary-button";
 import { Avatar } from "@/components/avatar";
+import { AdPrivacyRow } from "@/components/ad-privacy-row";
 import { ScreenShell } from "@/components/screen-shell";
 import { averageReviewSkills, SkillRadar, skillsFromRating } from "@/components/skill-radar";
 import { StarRating } from "@/components/star-rating";
@@ -241,7 +242,7 @@ function ProfileWeb() {
 
         <View style={{ alignItems: "center", gap: spacing.xs, paddingTop: spacing.md }}>
           <BrandLockup size="sm" />
-          <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{`MatchPoint Tennis · v${APP_VERSION}`}</Text>
+          <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{`MP Tennis League App · v${APP_VERSION}`}</Text>
         </View>
       </WebShell>
     </LiveBackground>
@@ -258,7 +259,7 @@ function AndroidBetaBanner({ name, userId, email }: { name: string; userId?: str
         </View>
         <View style={{ flex: 1, gap: 3, minWidth: 260 }}>
           <Text style={{ ...broadcast.jersey, color: colors.neon, fontSize: 11, letterSpacing: 1.5 }}>BETA ANDROID ABIERTA</Text>
-          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>MatchPoint Tennis ya está lista para probarse en Android</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>MP Tennis League App ya está lista para probarse en Android</Text>
           <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14 }}>Solicita acceso y te añadiremos al grupo de testers. Después podrás instalarla desde Google Play.</Text>
         </View>
         <View style={{ gap: spacing.sm, minWidth: 210 }}>
@@ -466,6 +467,7 @@ function ProfileNative() {
             <GroupedRow label={data.t("profile.signOut")} icon="sign-out" onPress={data.handleSignOut} />
           ) : null}
           <GroupedRow label={data.t("profile.privacy")} icon="globe" onPress={() => router.push("/privacy")} />
+          <AdPrivacyRow age={data.player.age} />
           <GroupedRow label={data.t("profile.terms")} icon="check-badge" onPress={() => router.push("/terms" as never)} />
           <GroupedRow label={data.t("profile.support")} icon="users" onPress={() => router.push("/support" as never)} />
           <GroupedRow label={data.t("profile.deleteAccount")} value={data.t("profile.deleteAccountHint")} icon="sign-out" iconColor={colors.danger as string} onPress={() => router.push("/delete-account" as never)} last />
@@ -473,7 +475,7 @@ function ProfileNative() {
 
         <View style={{ alignItems: "center", gap: spacing.xs, paddingVertical: spacing.md }}>
           <BrandLockup size="sm" />
-          <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{`MatchPoint Tennis · v${APP_VERSION}`}</Text>
+          <Text style={{ ...typography.footnote, color: colors.textTertiary }}>{`MP Tennis League App · v${APP_VERSION}`}</Text>
         </View>
       </ScreenShell>
     </LiveBackground>

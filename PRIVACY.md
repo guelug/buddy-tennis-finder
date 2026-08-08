@@ -1,40 +1,18 @@
-# Política de privacidad
+# Política de privacidad — MP Tennis League App
 
-**Última actualización:** 4 de julio de 2026
+**Última actualización:** 8 de agosto de 2026
+**Versión pública canónica:** https://tennisleagueapp.win/privacy/
 
-MatchPoint Tennis es una app para encontrar jugadores y equipos de tenis cercanos, organizar partidos y consultar rankings. Esta política describe qué datos tratamos, con qué finalidad y con quién se comparten.
+El responsable del tratamiento es **Pedro Caparrós Torres**. Para privacidad, soporte o ejercicio de derechos: **support@puchica.uk**.
 
-## Datos que tratamos
+La app trata datos de cuenta y autenticación; perfil deportivo; propuestas, partidos, resultados, reseñas e inscripciones; y datos técnicos necesarios para seguridad, diagnóstico y publicidad. Las finalidades, bases jurídicas, destinatarios, transferencias, conservación y derechos se describen íntegramente en la versión pública enlazada arriba.
 
-- **Cuenta y autenticación**: gestionada por Firebase Authentication (Google). Recibimos tu nombre, email e imagen de perfil del proveedor que elijas.
-- **Perfil deportivo**: nombre, edad, género, club, ciudad, país, nivel, formatos preferidos, idiomas, biografía y disponibilidad. Estos datos son visibles para otros usuarios autenticados para permitir el matching y la propuesta de partidos.
-- **Ubicación aproximada**: se solicita solo cuando tocas el botón "Ubicación". Sirve para ordenar rivales por cercanía. No almacenamos tu ubicación GPS; solo guardamos las coordenadas del club que eliges en tu perfil.
-- **Partidos y propuestas**: jugador invitado, club, horario, formato, mensaje y estado (pendiente / aceptado / declinado). En la Fase 4 añadiremos resultados y validación.
-- **Datos técnicos**: Firebase registra métricas anónimas de uso (Analytics) y de rendimiento necesarias para operar el servicio.
+## Publicidad y consentimiento
 
-## Proveedores de servicios
+La app utiliza Google Mobile Ads (AdMob) y la plataforma de consentimiento UMP de Google. Según región, dispositivo y elecciones, Google y sus proveedores pueden tratar ubicación aproximada derivada de la IP, identificadores del dispositivo o publicitarios, interacciones con anuncios, datos publicitarios y diagnósticos para servir, limitar, proteger y medir anuncios.
 
-- **Firebase** (Google LLC, EE. UU.): autenticación, base de datos Firestore y analítica. Sus términos: https://firebase.google.com/support/privacy
-- **Apple Sign In**: opcional en iOS; Apple no comparte tu email real salvo que lo elijas.
-- **Google Sign In**: Google comparte nombre, email e imagen de perfil.
+En regiones reguladas, UMP determina el modo permitido. Los usuarios de 13 a 15 años reciben tratamiento restringido por edad y no acceden a personalización publicitaria basada en consentimiento. Cuando la normativa exige mantener un acceso, las preferencias pueden reabrirse desde Perfil → Opciones de privacidad publicitaria.
 
-No vendemos datos ni los compartimos con fines publicitarios.
+## Derechos y eliminación
 
-## Tus derechos
-
-Puedes:
-
-- Editar o completar tu perfil en cualquier momento desde "Mi perfil → Editar perfil".
-- Solicitar la eliminación de tu cuenta escribiendo al correo de soporte. Se borrarán tus datos en `players` y `users`. Los partidos en los que participes podrán conservarse agregados/anonimizados con fines de ranking.
-
-## Retención
-
-Mantienes los datos mientras tu cuenta esté activa. Las cuentas inactivas durante más de 24 meses podrán ser eliminadas automáticamente.
-
-## Cambios
-
-Te avisaremos desde la app y actualizaremos la fecha "Última actualización" cuando esta política cambie de forma relevante.
-
-## Contacto
-
-Correo de soporte: **[A DEFINIR ANTES DE PUBLICAR EN STORES]** — Google Play y App Store exigen una URL pública a esta política y un correo de contacto válido.
+Puedes solicitar acceso, rectificación, supresión, portabilidad, limitación u oposición, y retirar el consentimiento, escribiendo a support@puchica.uk. También puedes eliminar la cuenta desde la app. Si resides en España, puedes reclamar ante la Agencia Española de Protección de Datos.

@@ -1,4 +1,4 @@
-import { getCrashlytics, log, recordError as recordCrashlyticsError, setUserId } from "@react-native-firebase/crashlytics";
+import { getCrashlytics, log, recordError as recordCrashlyticsError } from "@react-native-firebase/crashlytics";
 
 const crashlytics = getCrashlytics();
 
@@ -36,6 +36,7 @@ export function recordError(error: unknown, context?: string) {
   recordCrashlyticsError(crashlytics, normalized);
 }
 
-export function setCrashReportingUser(uid: string | null) {
-  setUserId(crashlytics, uid ?? "").catch(() => {});
+export function setCrashReportingUser(_uid: string | null) {
+  // Deliberately keep crash reports detached from the Firebase account UID.
+  // Installation diagnostics are enough to investigate stability issues.
 }

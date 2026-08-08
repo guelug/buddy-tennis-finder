@@ -120,7 +120,7 @@ export default function HomeScreen() {
           {content.stories.map((story, index) => <StoryCard key={story.title} {...story} index={index} image={index ? communityImage : tournamentImage} desktop={isWebDesktop} />)}
           {/* Va al final de la fila y solo aparece si hay anuncio: si no
               carga, la parrilla queda exactamente como estaba. */}
-          <NativeAdCard desktop={isWebDesktop} />
+          <NativeAdCard desktop={isWebDesktop} age={player?.age} />
         </View>
 
         <View style={{ gap: spacing.md }}>

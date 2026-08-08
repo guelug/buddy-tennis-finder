@@ -35,6 +35,7 @@ import { colors, contentWidth, spacing, statusBarTopInset, typography, radii, sh
 import { AccountRole, Club, Gender, MatchFormat, PlayerProfileInput, PlayerSkills, SkillLevel } from "@/types";
 import { CITIES_BY_COUNTRY, CITIES_BY_REGION, REGIONS_BY_COUNTRY, selectableCountries, Country } from "@/data/seed";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
+import { startAds } from "@/lib/ads";
 
 const LEVELS: Array<{ label: string; labelKey?: string; value: SkillLevel; icon: IconName }> = [
   { label: "Novato", labelKey: "onboarding.level.novato", value: "novato", icon: "tennis" },
@@ -97,6 +98,7 @@ type QuestionKey =
   | "role"
   | "name"
   | "age"
+  | "privacy"
   | "gender"
   | "location"
   | "clubs"
@@ -113,6 +115,7 @@ const QUESTIONS: Array<{ key: QuestionKey; eyebrowKey: string; titleKey: string;
   { key: "role", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.role.title", subtitleKey: "onboarding.q.role.subtitle" },
   { key: "name", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.name.title", subtitleKey: "onboarding.q.name.subtitle" },
   { key: "age", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.age.title", subtitleKey: "onboarding.q.age.subtitle" },
+  { key: "privacy", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "privacy.ads.title", subtitleKey: "privacy.ads.body" },
   { key: "gender", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.gender.title", subtitleKey: "onboarding.q.gender.subtitle" },
   { key: "location", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.location.title", subtitleKey: "onboarding.q.location.subtitle" },
   { key: "clubs", eyebrowKey: "onboarding.step1.eyebrow", titleKey: "onboarding.q.clubs.title", subtitleKey: "onboarding.q.clubs.subtitle" },
@@ -259,6 +262,7 @@ export default function OnboardingScreen() {
     role: true,
     name: name.trim().length > 1,
     age: ageValid,
+    privacy: true,
     gender: gender !== null,
     location: country !== null && city !== null,
     clubs: clubIds.length > 0,
@@ -294,11 +298,15 @@ export default function OnboardingScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
-  function goNext() {
+  async function goNext() {
     setTouched(true);
     setSaveMessage(null);
     if (!currentValid) return;
     if (Platform.OS !== "web") void Haptics.selectionAsync();
+    // The explanation is part of our native onboarding; the legally binding
+    // choices remain in Google's certified UMP form, opened only after age is
+    // known so the correct minor treatment can be applied.
+    if (question.key === "privacy") await startAds(ageNum);
     if (step < LAST_STEP) goToStep(step + 1);
   }
 
@@ -336,7 +344,7 @@ export default function OnboardingScreen() {
       level,
       preferredFormats: formats,
       availability: slots.length > 0 ? slots : [{ day: "Sábado", ranges: ["09:00-12:00"] }],
-      bio: bio.trim() || "Jugador de MatchPoint Tennis.",
+      bio: bio.trim() || "Jugador de MP Tennis League App.",
       languages,
       skills,
       photoURL,
@@ -714,6 +722,25 @@ function QuestionCard(props: QuestionCardProps) {
             <Text style={{ ...typography.footnote, color: colors.danger, marginTop: spacing.xs }}>{t("onboarding.field.ageError")}</Text>
           ) : null}
         </Field>
+      </View>
+    );
+  }
+
+  if (question === "privacy") {
+    return (
+      <View style={[cardWrapper(), { gap: spacing.md }]}>
+        <View style={{ alignItems: "center", backgroundColor: colors.courtLight, borderColor: colors.borderStrong, borderRadius: radii.xl, borderWidth: 1, flexDirection: "row", gap: spacing.md, padding: spacing.lg }}>
+          <View style={{ alignItems: "center", backgroundColor: colors.accentFill, borderRadius: radii.pill, height: 48, justifyContent: "center", width: 48 }}>
+            <Icon name="globe" size={24} color={colors.onAccentFill as string} />
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("privacy.ads.title")}</Text>
+            <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("ads.privacy.hint")}</Text>
+          </View>
+        </View>
+        <View style={{ backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.lg, borderWidth: 1, padding: spacing.md }}>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary, lineHeight: 20 }}>{t("privacy.ads.body")}</Text>
+        </View>
       </View>
     );
   }
