@@ -489,16 +489,20 @@ export default function OnboardingScreen() {
       <View pointerEvents="box-none" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
         <View
           pointerEvents="auto"
-          style={{
-            backgroundColor: isLight ? "rgba(244,247,241,0.92)" : "rgba(7,12,8,0.92)",
-            borderTopColor: isLight ? "rgba(27,55,36,0.12)" : colors.borderStrong,
-            borderTopWidth: 1,
-            paddingBottom: Math.max(insets.bottom, spacing.md),
-            paddingHorizontal: spacing.base,
-            paddingTop: spacing.md,
-            boxShadow: isLight ? "0 -10px 30px rgba(27,55,36,0.08)" : "0 -10px 32px rgba(0,0,0,0.45)",
-            backdropFilter: Platform.OS === "web" ? "blur(14px)" : undefined
-          }}
+          style={[
+            {
+              backgroundColor: isLight ? "rgba(244,247,241,0.92)" : "rgba(7,12,8,0.92)",
+              borderTopColor: isLight ? "rgba(27,55,36,0.12)" : colors.borderStrong,
+              borderTopWidth: 1,
+              paddingBottom: Math.max(insets.bottom, spacing.md),
+              paddingHorizontal: spacing.base,
+              paddingTop: spacing.md,
+              boxShadow: isLight ? "0 -10px 30px rgba(27,55,36,0.08)" : "0 -10px 32px rgba(0,0,0,0.45)"
+            },
+            Platform.OS === "web"
+              ? ({ backdropFilter: "blur(14px)" } as ViewStyle & { backdropFilter: string })
+              : undefined
+          ]}
         >
           <View style={{ alignSelf: "center", gap: spacing.sm, maxWidth: contentWidth.narrow + 80, width: "100%" }}>
             <View style={{ flexDirection: "row", gap: spacing.sm }}>

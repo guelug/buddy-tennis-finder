@@ -18,6 +18,8 @@ type SectionTitleProps = {
 };
 
 export function SectionTitle({ title, actionLabel, onAction, live }: SectionTitleProps) {
+  const [hovered, setHovered] = React.useState(false);
+
   return (
     <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm }}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
@@ -25,17 +27,21 @@ export function SectionTitle({ title, actionLabel, onAction, live }: SectionTitl
         <Text style={{ ...typography.headline, color: colors.textPrimary, fontSize: 18 }}>{title}</Text>
       </View>
       {actionLabel && onAction ? (
-        <Pressable onPress={onAction} style={({ pressed, hovered }) => ({
-          alignItems: "center",
-          flexDirection: "row",
-          gap: 4,
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-          borderRadius: 8,
-          backgroundColor: hovered ? "rgba(11,94,58,0.08)" : "transparent",
-          transform: pressed ? [{ scale: 0.98 }] : undefined,
-          transition: "background-color 0.15s ease"
-        })}>
+        <Pressable
+          onHoverIn={() => setHovered(true)}
+          onHoverOut={() => setHovered(false)}
+          onPress={onAction}
+          style={({ pressed }) => ({
+            alignItems: "center",
+            backgroundColor: hovered ? "rgba(11,94,58,0.08)" : "transparent",
+            borderRadius: 8,
+            flexDirection: "row",
+            gap: 4,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            transform: pressed ? [{ scale: 0.98 }] : undefined
+          })}
+        >
           <Text style={{ ...typography.caption, color: colors.court, fontWeight: "700" }}>{actionLabel}</Text>
           <Icon name="chevron-right" size={12} color={colors.court as string} />
         </Pressable>

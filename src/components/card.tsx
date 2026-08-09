@@ -65,7 +65,7 @@ export function Card({ children, variant = "elevated", style, pad = "base", gap 
           style={[
             baseStyle,
             glassStyle,
-            { backdropFilter: "blur(18px)" as const },
+            { backdropFilter: "blur(18px)" } as ViewStyle & { backdropFilter: string },
             style
           ]}
         >

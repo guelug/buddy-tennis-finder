@@ -82,14 +82,18 @@ export function LiveBackground({
       />
       <View
         pointerEvents="none"
-        style={{
-          backgroundImage: vignette,
-          bottom: 0,
-          left: 0,
-          position: "absolute",
-          right: 0,
-          top: 0
-        }}
+        style={[
+          {
+            bottom: 0,
+            left: 0,
+            position: "absolute",
+            right: 0,
+            top: 0
+          },
+          Platform.OS === "web"
+            ? ({ backgroundImage: vignette } as ViewStyle & { backgroundImage: string })
+            : undefined
+        ]}
       />
       {children}
     </ImageBackground>
@@ -160,9 +164,11 @@ export function GlassPanel({
           borderColor: isLight ? "rgba(27,55,36,0.14)" : "rgba(234,243,228,0.10)",
           boxShadow: isLight
             ? "0 16px 42px rgba(27,55,36,0.12), 0 2px 8px rgba(27,55,36,0.04)"
-            : "0 22px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)",
-          backdropFilter: Platform.OS === "web" ? "blur(18px)" : undefined
+            : "0 22px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04)"
         },
+        ...(Platform.OS === "web"
+          ? [({ backdropFilter: "blur(18px)" } as ViewStyle & { backdropFilter: string })]
+          : []),
         ...extraStyle
       ]}
     >

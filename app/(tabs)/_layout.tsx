@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Redirect, Tabs, usePathname } from "expo-router";
-import { Alert, Platform, Pressable, Text, View } from "react-native";
+import { Alert, Platform, Pressable, Text, View, type ViewStyle } from "react-native";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -343,18 +343,22 @@ function TopNav({ compact = false, coachOnly = false }: { compact?: boolean; coa
 
   return (
     <View
-      style={{
-        alignItems: "center",
-        backgroundColor: isLight ? "rgba(249,252,247,.90)" : "rgba(10,15,11,.90)",
-        backdropFilter: "blur(20px)" as const,
-        borderBottomColor: colors.border,
-        borderBottomWidth: 1,
-        boxShadow: shadows.subtle,
-        paddingHorizontal: compact ? spacing.base : spacing.xl,
-        position: "sticky" as "relative",
-        top: 0,
-        zIndex: 20
-      }}
+      style={[
+        {
+          alignItems: "center",
+          backgroundColor: isLight ? "rgba(249,252,247,.90)" : "rgba(10,15,11,.90)",
+          borderBottomColor: colors.border,
+          borderBottomWidth: 1,
+          boxShadow: shadows.subtle,
+          paddingHorizontal: compact ? spacing.base : spacing.xl,
+          position: "sticky" as "relative",
+          top: 0,
+          zIndex: 20
+        },
+        Platform.OS === "web"
+          ? ({ backdropFilter: "blur(20px)" } as ViewStyle & { backdropFilter: string })
+          : undefined
+      ]}
     >
       <View
         style={{
