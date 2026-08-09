@@ -7,7 +7,10 @@ import { colors, spacing, typography } from "@/theme";
 const sectionKeys = ["data", "purpose", "location", "providers", "ads", "visibility", "retention", "contact"] as const;
 
 export default function PrivacyScreen() {
-  const { t } = useI18n();
+  const { lang, t } = useI18n();
+  const policyUrl = lang === "ko"
+    ? "https://tennisleagueapp.win/ko/privacy/"
+    : "https://tennisleagueapp.win/privacy/";
   return (
     <ScreenShell bottomInset={32}>
       <Card pad="lg">
@@ -21,7 +24,7 @@ export default function PrivacyScreen() {
           <Text selectable style={{ ...typography.body, color: colors.textSecondary, fontSize: 15, lineHeight: 22 }}>{t(`privacy.${section}.body`)}</Text>
         </Card>
       ))}
-      <Pressable accessibilityRole="link" onPress={() => void Linking.openURL("https://tennisleagueapp.win/privacy/")}>
+      <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(policyUrl)}>
         <Text style={{ ...typography.body, color: colors.neon, textAlign: "center" }}>{t("privacy.fullPolicy")}</Text>
       </Pressable>
       <View style={{ height: spacing.lg }} />

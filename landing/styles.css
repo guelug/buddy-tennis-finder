@@ -107,6 +107,7 @@ body.has-racket .racket { opacity: 1; }
 .nav-links a { text-decoration: none; transition: color .2s ease; }
 .nav-links a:hover { color: var(--ink); }
 .nav-right { display: flex; align-items: center; gap: 14px; }
+#share-btn { flex-shrink: 0; white-space: nowrap; }
 
 .lang-select {
   display: flex;
