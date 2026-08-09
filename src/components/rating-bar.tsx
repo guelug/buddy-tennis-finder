@@ -48,7 +48,7 @@ export function RatingBar({ value, showValue = true, size = "md" }: RatingBarPro
         <Animated.View
           style={[
             {
-              backgroundColor: colors.court,
+              backgroundColor: colors.accentFill,
               borderRadius: radii.pill,
               height: "100%"
             },

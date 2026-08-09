@@ -162,6 +162,24 @@ test("las consultas exactas de Matches pueden listar solo documentos autorizados
   )));
 });
 
+test("cada jugador puede abrir su propio perfil aunque aún esté incompleto", async () => {
+  const uid = "profile-owner";
+  const outsiderId = "profile-outsider";
+  const owner = environment.authenticatedContext(uid, { email_verified: false }).firestore();
+  const outsider = environment.authenticatedContext(outsiderId, { email_verified: false }).firestore();
+
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "players", uid), {
+      ...player(uid, "Perfil incompleto", "c"),
+      verified: false,
+      profileComplete: false
+    });
+  });
+
+  await assertSucceeds(getDoc(doc(owner, "players", uid)));
+  await assertFails(getDoc(doc(outsider, "players", uid)));
+});
+
 test("solicitud, rechazo, reenvío y aceptación respetan identidades y niveles", async () => {
   const ownerId = "owner";
   const requesterId = "requester";

@@ -44,8 +44,8 @@ export function Scoreboard({
   accent = "court",
   delay = 0
 }: ScoreboardProps) {
-  const bg = accent === "spotlight" ? colors.spotlight : colors.courtDeep;
-  const fg = accent === "spotlight" ? colors.textOnBall : colors.textOnCourt;
+  const bg = accent === "spotlight" ? colors.accentFill : colors.courtDeep;
+  const fg = accent === "spotlight" ? colors.onAccentFill : colors.textOnCourt;
 
   const fontSize = size === "lg" ? 56 : 40;
   const padding = size === "lg" ? spacing.md : spacing.sm + 2;

@@ -720,8 +720,8 @@ function FormStreakStrip({ form }: { form: Array<"W" | "L"> }) {
               <View
                 style={{
                   alignItems: "center",
-                  backgroundColor: result === "W" ? colors.neon : "rgba(255,107,90,0.18)",
-                  borderColor: result === "W" ? colors.neon : `${colors.danger}55`,
+                  backgroundColor: result === "W" ? colors.accentFill : "rgba(255,107,90,0.18)",
+                  borderColor: result === "W" ? colors.accentFill : `${colors.danger}55`,
                   borderRadius: radii.sm,
                   borderWidth: 1,
                   boxShadow: result === "W" ? shadows.courtGlow : undefined,
@@ -733,7 +733,7 @@ function FormStreakStrip({ form }: { form: Array<"W" | "L"> }) {
                 <Text
                   style={{
                     ...broadcast.stat,
-                    color: result === "W" ? colors.textOnBall : colors.danger,
+                    color: result === "W" ? colors.onAccentFill : colors.danger,
                     fontSize: 16
                   }}
                 >

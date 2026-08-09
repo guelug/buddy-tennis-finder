@@ -1094,8 +1094,8 @@ function SkillAxisInput({ label, value, onChange }: { label: string; value: numb
                 onChange(n);
               }}
               style={{
-                backgroundColor: active ? colors.court : colors.surfaceElevated,
-                borderColor: active ? colors.court : colors.borderStrong,
+                backgroundColor: active ? colors.accentFill : colors.surfaceElevated,
+                borderColor: active ? colors.accentFill : colors.borderStrong,
                 borderRadius: 6,
                 borderWidth: 1,
                 flex: 1,

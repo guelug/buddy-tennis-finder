@@ -83,7 +83,7 @@ export function SegmentedTabs<T extends string>({ tabs, value, onChange }: Segme
             {tab.count !== undefined && tab.count > 0 ? (
               <View
                 style={{
-                  backgroundColor: active ? colors.court : colors.courtLight,
+                  backgroundColor: active ? colors.accentFill : colors.courtLight,
                   borderRadius: radii.pill,
                   minWidth: 20,
                   paddingHorizontal: 6,
@@ -94,7 +94,7 @@ export function SegmentedTabs<T extends string>({ tabs, value, onChange }: Segme
                 <Text
                   style={{
                     ...typography.footnote,
-                    color: active ? colors.textOnBrand : colors.court,
+                    color: active ? colors.onAccentFill : colors.court,
                     fontSize: 11,
                     fontWeight: "800",
                     textAlign: "center"

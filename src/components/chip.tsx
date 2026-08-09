@@ -79,8 +79,8 @@ export function Chip({
           alignItems: "center",
           flexDirection: "row",
           gap: spacing.xs,
-          backgroundColor: active ? colors.court : colors.surface,
-          borderColor: active ? colors.court : hovered && !disabled ? colors.neon : colors.borderStrong,
+          backgroundColor: active ? colors.accentFill : colors.surface,
+          borderColor: active ? colors.accentFill : hovered && !disabled ? colors.neon : colors.borderStrong,
           borderRadius: radii.pill,
           borderWidth: 1,
           borderCurve: "continuous",
@@ -100,7 +100,7 @@ export function Chip({
       <Text
         style={{
           ...typography.caption,
-          color: active ? colors.textOnBrand : colors.textPrimary,
+          color: active ? colors.onAccentFill : colors.textPrimary,
           letterSpacing: 0.1,
           fontWeight: active ? "700" : "500"
         }}

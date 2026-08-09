@@ -25,6 +25,10 @@ npm run typecheck
 npm run build:android-bundle
 ```
 
+El entorno local de Tennis usa Metro en el puerto `8081`. Arena es otro
+proyecto y usa `8082`; no arranques ambos con el puerto por defecto porque una
+development build puede cargar el bundle JavaScript de la otra aplicación.
+
 La landing vive en `landing/` y se publica gratuitamente con:
 
 ```bash

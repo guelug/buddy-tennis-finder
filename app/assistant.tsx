@@ -158,8 +158,8 @@ export default function AssistantScreen() {
 
           {messages.map((message) => (
             <View key={message.id} style={{ alignSelf: message.role === "user" ? "flex-end" : "flex-start", gap: spacing.xs, maxWidth: "92%" }}>
-              <View style={{ alignSelf: message.role === "user" ? "flex-end" : "flex-start", backgroundColor: message.role === "user" ? colors.neon : colors.surface, borderColor: message.role === "user" ? colors.neon : colors.border, borderRadius: radii.lg, borderWidth: 1, padding: spacing.md }}>
-                <Text selectable style={{ ...typography.body, color: message.role === "user" ? colors.textOnBall : colors.textPrimary }}>{message.text}</Text>
+              <View style={{ alignSelf: message.role === "user" ? "flex-end" : "flex-start", backgroundColor: message.role === "user" ? colors.accentFill : colors.surface, borderColor: message.role === "user" ? colors.accentFill : colors.border, borderRadius: radii.lg, borderWidth: 1, padding: spacing.md }}>
+                <Text selectable style={{ ...typography.body, color: message.role === "user" ? colors.onAccentFill : colors.textPrimary }}>{message.text}</Text>
               </View>
               {message.actions?.length ? (
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs }}>

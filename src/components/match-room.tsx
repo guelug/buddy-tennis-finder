@@ -517,8 +517,8 @@ function ResultEditor({
                 }}
                 style={{
                   alignItems: "center",
-                  backgroundColor: active ? colors.court : colors.surfaceElevated,
-                  borderColor: active ? colors.court : colors.borderStrong,
+                  backgroundColor: active ? colors.accentFill : colors.surfaceElevated,
+                  borderColor: active ? colors.accentFill : colors.borderStrong,
                   borderRadius: radii.md,
                   borderWidth: 1.5,
                   flex: 1,
@@ -530,11 +530,11 @@ function ResultEditor({
                   boxShadow: active ? shadows.courtGlow : undefined
                 }}
               >
-                <Icon name="trophy" size={14} color={(active ? colors.textOnBall : colors.textTertiary) as string} />
+                <Icon name="trophy" size={14} color={(active ? colors.onAccentFill : colors.textTertiary) as string} />
                 <Text
                   style={{
                     ...typography.caption,
-                    color: active ? colors.textOnBall : colors.textSecondary,
+                    color: active ? colors.onAccentFill : colors.textSecondary,
                     fontWeight: "800"
                   }}
                   numberOfLines={1}

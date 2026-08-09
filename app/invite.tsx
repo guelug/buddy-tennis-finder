@@ -40,9 +40,9 @@ export default function InviteScreen() {
               accessibilityRole="button"
               accessibilityState={{ selected: format === item.id }}
               onPress={() => setFormat(item.id)}
-              style={{ backgroundColor: format === item.id ? colors.neon : colors.surface, borderColor: format === item.id ? colors.neon : colors.border, borderRadius: radii.pill, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
+              style={{ backgroundColor: format === item.id ? colors.accentFill : colors.surface, borderColor: format === item.id ? colors.accentFill : colors.border, borderRadius: radii.pill, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
             >
-              <Text style={{ ...typography.caption, color: format === item.id ? colors.textOnBall : colors.textPrimary, fontWeight: "800" }}>{item.label}</Text>
+              <Text style={{ ...typography.caption, color: format === item.id ? colors.onAccentFill : colors.textPrimary, fontWeight: "800" }}>{item.label}</Text>
             </Pressable>
           ))}
         </View>
