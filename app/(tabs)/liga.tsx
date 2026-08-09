@@ -634,7 +634,9 @@ function LigaContent({
       <ConceptHero
         kicker={t("ranking.hero.kicker").replace("{circuit}", divisionMeta.circuit)}
         title={t("ranking.hero.title").replace("{division}", DIVISION_LABELS[division])}
-        body={t("ranking.hero.body").replace("{motto}", divisionMeta.motto).replace("{proof}", divisionMeta.proof)}
+        body={t("ranking.hero.body")
+          .replace("{motto}", t("ranking.provisional.title"))
+          .replace("{proof}", t("ranking.featured.note"))}
         centerLabel={`#${you?.rank ?? "-"}`}
         metrics={[
           { icon: "trophy", label: t("ranking.metric.position"), value: `#${you?.rank ?? "-"}` },
@@ -747,7 +749,9 @@ function RankingWebDashboard({
       <BroadcastHeader
         kicker={t("ranking.hero.kicker").replace("{circuit}", divisionMeta.circuit)}
         title={t("ranking.hero.title").replace("{division}", DIVISION_LABELS[division])}
-        subtitle={t("ranking.web.subtitle").replace("{motto}", divisionMeta.motto).replace("{proof}", divisionMeta.proof)}
+        subtitle={t("ranking.web.subtitle")
+          .replace("{motto}", t("ranking.provisional.title"))
+          .replace("{proof}", t("ranking.featured.note"))}
         trailing={
           <View style={{ alignItems: "flex-end", gap: spacing.sm }}>
           <DivisionIdentity division={division} />

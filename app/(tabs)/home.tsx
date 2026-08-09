@@ -20,7 +20,6 @@ import { useAuth } from "@/lib/firebase-auth";
 import { PURCHASES_ENABLED } from "@/lib/features";
 import { shareAppInvite } from "@/lib/share";
 import { openInWaze } from "@/lib/waze";
-import { getHomeCountryContent } from "@/data/home-content";
 import { useI18n } from "@/lib/i18n";
 import { broadcast, colors, radii, shadows, spacing, typography, usePlatformLayout, useThemeMode } from "@/theme";
 import { Club, CoachAd, CoachInterest, MatchProposal, Player } from "@/types";
@@ -78,13 +77,37 @@ export default function HomeScreen() {
 
   const nextMatch = useMemo(() => proposals.filter((proposal) => proposal.status === "accepted" && new Date(proposal.startsAt).getTime() > Date.now()).sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0], [proposals]);
   const nextClub = clubs.find((club) => club.id === nextMatch?.clubId);
-  const content = getHomeCountryContent(player?.country ?? "Guatemala");
+  const countryLabel = player?.country ?? "Guatemala";
+  const stories = [
+    {
+      tag: t("ranking.mode.tournaments").toUpperCase(),
+      title: t("ranking.tournaments.title"),
+      body: t("ranking.tournaments.subtitle")
+    },
+    {
+      tag: t("home.community.title").toUpperCase(),
+      title: t("home.community.title"),
+      body: t("home.tennisIn.subtitle")
+    }
+  ];
+  const commerce = [
+    {
+      name: t("home.quick.rivals"),
+      detail: t("home.quick.rivalsDetail"),
+      priceLabel: t("ranking.comingSoon")
+    },
+    {
+      name: t("home.quick.publish"),
+      detail: t("home.quick.publishDetail"),
+      priceLabel: t("ranking.comingSoon")
+    }
+  ];
 
   return (
     <LiveBackground overlay={0.58}>
       <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
       <ScreenShell width={isWebDesktop ? "wide" : "base"} bottomInset={isWebDesktop ? 64 : 8} onRefresh={loadHome} keyboardAware={false}>
-        <HomeHeader player={player} intro={content.intro} isDesktop={isWebDesktop} isLight={isLight} />
+        <HomeHeader player={player} intro={t("home.tennisIn.subtitle")} isDesktop={isWebDesktop} isLight={isLight} />
 
         {error ? (
           <Card style={{ backgroundColor: colors.warningBg, borderColor: `${colors.warning}55` }}>
@@ -115,9 +138,9 @@ export default function HomeScreen() {
 
         <InviteFriendsCard playerName={player?.name} desktop={isWebDesktop} />
 
-        <SectionTitle title={t("home.tennisIn.title").replace("{country}", content.countryLabel)} subtitle={t("home.tennisIn.subtitle")} />
+        <SectionTitle title={t("home.tennisIn.title").replace("{country}", countryLabel)} subtitle={t("home.tennisIn.subtitle")} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
-          {content.stories.map((story, index) => <StoryCard key={story.title} {...story} index={index} image={index ? communityImage : tournamentImage} desktop={isWebDesktop} />)}
+          {stories.map((story, index) => <StoryCard key={story.title} {...story} index={index} image={index ? communityImage : tournamentImage} desktop={isWebDesktop} />)}
           {/* Va al final de la fila y solo aparece si hay anuncio: si no
               carga, la parrilla queda exactamente como estaba. */}
           <NativeAdCard desktop={isWebDesktop} age={player?.age} />
@@ -195,7 +218,7 @@ export default function HomeScreen() {
 
         <SectionTitle title={t("home.selection.title")} subtitle={t("home.selection.subtitle")} trailing={t("home.sponsored")} />
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: isWebDesktop ? spacing.lg : spacing.sm }}>
-          {content.commerce.map((item, index) => <CommerceCard key={item.name} {...item} image={index ? productTwo : productOne} desktop={isWebDesktop} />)}
+          {commerce.map((item, index) => <CommerceCard key={item.name} {...item} image={index ? productTwo : productOne} desktop={isWebDesktop} />)}
         </View>
 
         <Card pad={isWebDesktop ? "xl" : "lg"} style={isWebDesktop ? { backgroundColor: isLight ? "rgba(255,255,255,.94)" : "rgba(10,19,13,.86)", borderColor: isLight ? colors.border : `${colors.neon}33` } : undefined}>

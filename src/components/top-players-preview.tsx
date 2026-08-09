@@ -6,6 +6,7 @@ import { Avatar } from "@/components/avatar";
 import { RankBadge } from "@/components/rank-badge";
 import { SectionTitle } from "@/components/section-title";
 import { TIER_META } from "@/data/rankings";
+import { useI18n } from "@/lib/i18n";
 import { RankingEntry } from "@/types";
 import { colors, spacing, typography } from "@/theme";
 
@@ -16,11 +17,12 @@ type TopPlayersPreviewProps = {
 
 /** Teaser del ranking — estilo TopPlayers de Betguate. */
 export function TopPlayersPreview({ entries, divisionLabel }: TopPlayersPreviewProps) {
+  const { t } = useI18n();
   const top = entries.slice(0, 3);
 
   return (
     <Animated.View entering={FadeIn.delay(120).springify()}>
-      <SectionTitle title={`Top ${divisionLabel}`} actionLabel="Ver liga" onAction={() => router.push("/liga")} />
+      <SectionTitle title={`Top ${divisionLabel}`} actionLabel={t("tabs.ranking")} onAction={() => router.push("/liga")} />
       <Card style={{ overflow: "hidden", padding: 0 }}>
         {top.map((entry, index) => (
           <Animated.View
@@ -28,7 +30,7 @@ export function TopPlayersPreview({ entries, divisionLabel }: TopPlayersPreviewP
             entering={FadeInRight.delay(80 + index * 60).springify().damping(18)}
           >
             <Pressable
-              accessibilityLabel={`Ver perfil de ${entry.playerName}`}
+              accessibilityLabel={`${t("tabs.profile")}: ${entry.playerName}`}
               onPress={() => router.push(`/player/${entry.playerId}` as never)}
               style={{
                 alignItems: "center",

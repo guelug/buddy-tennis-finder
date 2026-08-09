@@ -250,6 +250,7 @@ function ProfileWeb() {
 }
 
 function AndroidBetaBanner({ name, userId, email }: { name: string; userId?: string; email: string | null }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   return (
     <GlassPanel style={{ borderColor: `${colors.neon}66` }}>
@@ -258,13 +259,13 @@ function AndroidBetaBanner({ name, userId, email }: { name: string; userId?: str
           <Icon name="zap" size={25} color={colors.neon as string} />
         </View>
         <View style={{ flex: 1, gap: 3, minWidth: 260 }}>
-          <Text style={{ ...broadcast.jersey, color: colors.neon, fontSize: 11, letterSpacing: 1.5 }}>BETA ANDROID ABIERTA</Text>
-          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>MP Tennis League App ya está lista para probarse en Android</Text>
-          <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14 }}>Solicita acceso y te añadiremos al grupo de testers. Después podrás instalarla desde Google Play.</Text>
+          <Text style={{ ...broadcast.jersey, color: colors.neon, fontSize: 11, letterSpacing: 1.5 }}>{t("profile.beta.kicker")}</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("profile.beta.title")}</Text>
+          <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14 }}>{t("profile.beta.body")}</Text>
         </View>
         <View style={{ gap: spacing.sm, minWidth: 210 }}>
           <PrimaryButton
-            label={status === "sent" ? "Petición enviada" : status === "sending" ? "Enviando..." : "Solicitar acceso a la beta"}
+            label={status === "sent" ? t("profile.beta.sent") : status === "sending" ? t("profile.beta.sending") : t("profile.beta.request")}
             disabled={!userId || status !== "idle"}
             fullWidth={false}
             onPress={async () => {
@@ -275,11 +276,11 @@ function AndroidBetaBanner({ name, userId, email }: { name: string; userId?: str
                 setStatus("sent");
               } catch (error) {
                 setStatus("idle");
-                Alert.alert("No se pudo enviar", describeError(error, "Inténtalo de nuevo."));
+                Alert.alert(t("profile.beta.failed"), describeError(error, t("profile.beta.failed")));
               }
             }}
           />
-          <PrimaryButton label="Ver en Google Play" variant="outline" fullWidth={false} onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.matchpoint.clubs")} />
+          <PrimaryButton label={t("profile.beta.viewPlay")} variant="outline" fullWidth={false} onPress={() => void Linking.openURL("https://play.google.com/store/apps/details?id=com.matchpoint.clubs")} />
         </View>
       </View>
     </GlassPanel>

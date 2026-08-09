@@ -1181,15 +1181,18 @@ function FormInput({
 }
 
 function EmptyRivals({ query = "" }: { query?: string }) {
+  const { t } = useI18n();
   return (
     <Card variant="glass">
       <View style={{ alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg }}>
         <Icon name="search" size={32} color={colors.textTertiary as string} />
         <Text style={{ ...typography.subheadline, color: colors.textPrimary, textAlign: "center" }}>
-          Sin rivales con estos filtros
+          {t("rivals.empty.title")}
         </Text>
         <Text style={{ ...typography.body, color: colors.textSecondary, fontSize: 14, textAlign: "center" }}>
-          {query.trim() ? `No encontramos a “${query.trim()}”. Prueba con nombre o apellido.` : "Prueba con otro nivel o formato."}
+          {query.trim()
+            ? t("rivals.empty.query").replace("{query}", query.trim())
+            : t("rivals.empty.hint")}
         </Text>
       </View>
     </Card>
@@ -1197,24 +1200,25 @@ function EmptyRivals({ query = "" }: { query?: string }) {
 }
 
 function CandidateNameSearch({ value, onChange, compact = false }: { value: string; onChange: (value: string) => void; compact?: boolean }) {
+  const { t } = useI18n();
   return (
     <View style={{ marginBottom: compact ? spacing.md : 0, gap: spacing.xs }}>
-      {!compact ? <Text style={{ ...typography.caption, color: colors.textSecondary }}>Buscar jugador por nombre</Text> : null}
+      {!compact ? <Text style={{ ...typography.caption, color: colors.textSecondary }}>{t("rivals.search.label")}</Text> : null}
       <View style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: value ? `${colors.neon}66` : colors.borderStrong, borderRadius: radii.pill, borderWidth: 1, flexDirection: "row", gap: spacing.sm, minHeight: 48, paddingHorizontal: spacing.md }}>
         <Icon name="search" size={18} color={(value ? colors.neon : colors.textTertiary) as string} />
         <TextInput
-          accessibilityLabel="Buscar jugador por nombre"
+          accessibilityLabel={t("rivals.search.label")}
           autoCapitalize="words"
           autoCorrect={false}
           onChangeText={onChange}
-          placeholder="Nombre o apellido"
+          placeholder={t("rivals.search.placeholder")}
           placeholderTextColor={colors.textTertiary as string}
           returnKeyType="search"
           style={{ ...typography.body, color: colors.textPrimary, flex: 1, minWidth: 0, paddingVertical: 10 }}
           value={value}
         />
         {value ? (
-          <Pressable accessibilityLabel="Limpiar búsqueda" hitSlop={8} onPress={() => onChange("")}>
+          <Pressable accessibilityLabel={t("rivals.search.clear")} hitSlop={8} onPress={() => onChange("")}>
             <Icon name="close" size={17} color={colors.textSecondary as string} />
           </Pressable>
         ) : null}
@@ -1224,12 +1228,13 @@ function CandidateNameSearch({ value, onChange, compact = false }: { value: stri
 }
 
 function DiscoverLoadError({ message, onRetry }: { message: string; onRetry: () => Promise<void> }) {
+  const { t } = useI18n();
   return (
     <Card style={{ backgroundColor: colors.warningBg, borderColor: `${colors.warning}55` }}>
       <View style={{ alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
         <Icon name="clock" size={20} color={colors.warning as string} />
         <Text selectable style={{ ...typography.body, color: colors.textPrimary, flex: 1, minWidth: 180 }}>{message}</Text>
-        <PrimaryButton label="Reintentar" variant="outline" fullWidth={false} onPress={() => void onRetry()} />
+        <PrimaryButton label={t("common.retry")} variant="outline" fullWidth={false} onPress={() => void onRetry()} />
       </View>
     </Card>
   );
