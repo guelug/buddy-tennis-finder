@@ -7,12 +7,13 @@ set -eu
 
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
-# Use a Cloud-only build number so TestFlight never collides with a local
-# archive. CI_BUILD_NUMBER is monotonically increasing for the Cloud product.
+# Keep the project metadata aligned with Xcode Cloud's authoritative build
+# number. App Store Connect replaces CFBundleVersion with CI_BUILD_NUMBER
+# during distribution, so adding an offset here would only create a mismatch.
 if [ -n "${CI_BUILD_NUMBER:-}" ]; then
-  CLOUD_BUILD_NUMBER=$((100 + CI_BUILD_NUMBER))
+  CLOUD_BUILD_NUMBER="$CI_BUILD_NUMBER"
 else
-  CLOUD_BUILD_NUMBER=100
+  CLOUD_BUILD_NUMBER=29
 fi
 
 python3 - "$CLOUD_BUILD_NUMBER" <<'PY'
