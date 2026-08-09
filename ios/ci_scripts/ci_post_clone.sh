@@ -40,9 +40,13 @@ project.write_text(contents)
 print(f"Xcode Cloud build number: {build_number}")
 PY
 
-if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
-  brew install node
+if ! brew list node@22 >/dev/null 2>&1; then
+  brew install node@22
 fi
+export PATH="$(brew --prefix node@22)/bin:$PATH"
+
+echo "Node: $(node --version)"
+echo "npm: $(npm --version)"
 
 npm ci --include=dev
 npx expo install --check
