@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { accountTokenForUid, validatePurchaseBody, validateAndroidPurchaseBody } from "../src/index";
+import {
+  accountTokenForUid,
+  hasRecentAuthentication,
+  validateAccountDeletionBody,
+  validateAndroidPurchaseBody,
+  validatePurchaseBody
+} from "../src/index";
 
 describe("accountTokenForUid", () => {
   it("is stable and creates an RFC 4122 UUID", async () => {
@@ -101,5 +107,22 @@ describe("validateAndroidPurchaseBody", () => {
       appAccountToken: token,
       adId: "ad"
     })).toThrow();
+  });
+});
+
+describe("account deletion validation", () => {
+  it("requires the exact destructive-action confirmation", () => {
+    expect(() => validateAccountDeletionBody({ confirmation: "DELETE_ACCOUNT" })).not.toThrow();
+    expect(() => validateAccountDeletionBody({ confirmation: "delete_account" })).toThrow();
+    expect(() => validateAccountDeletionBody(null)).toThrow();
+  });
+
+  it("requires a recent sign-in and rejects implausible future tokens", () => {
+    const now = Date.parse("2026-08-12T12:00:00Z");
+    expect(hasRecentAuthentication(now / 1000 - 599, now)).toBe(true);
+    expect(hasRecentAuthentication(now / 1000 - 601, now)).toBe(false);
+    expect(hasRecentAuthentication(now / 1000 + 299, now)).toBe(true);
+    expect(hasRecentAuthentication(now / 1000 + 301, now)).toBe(false);
+    expect(hasRecentAuthentication(0, now)).toBe(false);
   });
 });

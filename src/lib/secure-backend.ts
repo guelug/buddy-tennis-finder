@@ -11,6 +11,7 @@ const SECURE_BACKEND_URL = (
   ?? "https://matchpoint-iap-verifier.guelug.workers.dev"
 ).replace(/\/+$/, "");
 const REQUEST_TIMEOUT_MS = 25_000;
+const ACCOUNT_DELETION_TIMEOUT_MS = 60_000;
 
 type VerifyPurchaseResult = {
   verified: true;
@@ -27,7 +28,7 @@ function backendUrl(path: string): string {
   return `${SECURE_BACKEND_URL}${path}`;
 }
 
-async function authenticatedPost<T>(path: string, body: unknown): Promise<T> {
+async function authenticatedPost<T>(path: string, body: unknown, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
   const user = auth.currentUser;
   if (!user) throw new Error("La sesión ha caducado.");
   await ensureAppCheckReady();
@@ -39,7 +40,7 @@ async function authenticatedPost<T>(path: string, body: unknown): Promise<T> {
     getToken(appCheck)
   ]);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(backendUrl(path), {
       method: "POST",
@@ -58,7 +59,7 @@ async function authenticatedPost<T>(path: string, body: unknown): Promise<T> {
     return result as T;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("La verificación está tardando demasiado. Vuelve a intentarlo.");
+      throw new Error("La operación está tardando demasiado. Vuelve a intentarlo.");
     }
     throw error;
   } finally {
@@ -103,4 +104,10 @@ export async function joinPrivateLeagueSecure(leagueId: string, inviteCode: stri
     leagueId,
     inviteCode: inviteCode.trim().toUpperCase()
   });
+}
+
+export async function deleteAccountSecure(): Promise<void> {
+  await authenticatedPost<{ deleted: true }>("/v1/account/delete", {
+    confirmation: "DELETE_ACCOUNT"
+  }, ACCOUNT_DELETION_TIMEOUT_MS);
 }

@@ -226,8 +226,40 @@ const rooms: MatchRoom[] = [
 // Lectura
 // ---------------------------------------------------------------------------
 
-export async function getMatchRooms(playerId?: string): Promise<MatchRoom[]> {
-  if (isFirebaseConfigured) return getFirebaseMatchRooms(playerId ?? auth.currentUser?.uid);
+/**
+ * Caché corta de las salas del jugador.
+ *
+ * Cargar las salas es, con diferencia, la lectura más cara de la app: tres
+ * consultas a `matches`, más el perfil de cada participante y las reseñas de
+ * cada partido. Perfil, progreso, partidos y el asistente la piden por
+ * separado, así que sin caché una sola vuelta por la app multiplica las
+ * lecturas — y en el plan gratuito de Firestore agotar la cuota diaria no
+ * degrada nada: devuelve error y la app parece rota.
+ *
+ * El TTL es deliberadamente corto y cualquier mutación del flujo lo invalida,
+ * de modo que un resultado recién validado nunca se lee de la copia vieja.
+ */
+let roomsCache: { playerId: string; value: MatchRoom[]; expiresAt: number } | null = null;
+const ROOMS_CACHE_TTL_MS = 45_000;
+
+function invalidateRoomsCache() {
+  roomsCache = null;
+}
+
+export async function getMatchRooms(
+  playerId?: string,
+  options?: { fresh?: boolean }
+): Promise<MatchRoom[]> {
+  if (isFirebaseConfigured) {
+    const uid = playerId ?? auth.currentUser?.uid;
+    if (!uid) return [];
+    if (!options?.fresh && roomsCache?.playerId === uid && roomsCache.expiresAt > Date.now()) {
+      return roomsCache.value.map(cloneRoom);
+    }
+    const value = await getFirebaseMatchRooms(uid);
+    roomsCache = { playerId: uid, value, expiresAt: Date.now() + ROOMS_CACHE_TTL_MS };
+    return value.map(cloneRoom);
+  }
   await wait();
   const sorted = [...rooms].sort((a, b) => (a.playedAt > b.playedAt ? -1 : 1));
   if (!playerId) return sorted.map(cloneRoom);
@@ -276,6 +308,7 @@ export async function reportResult(
       },
       updatedAt: serverTimestamp()
     });
+    invalidateRoomsCache();
     return getFirebaseRoom(roomId);
   }
   await wait();
@@ -346,6 +379,7 @@ export async function validateResult(roomId: string, playerId: string): Promise<
         createdAt: serverTimestamp()
       });
     });
+    invalidateRoomsCache();
     return getFirebaseRoom(roomId);
   }
   await wait();
@@ -370,6 +404,7 @@ export async function disputeResult(roomId: string, playerId: string): Promise<M
       resultStatus: "disputed",
       updatedAt: serverTimestamp()
     });
+    invalidateRoomsCache();
     return getFirebaseRoom(roomId);
   }
   await wait();
@@ -421,6 +456,7 @@ export async function submitReview(
       createdAt: existing.data()?.createdAt ?? serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+    invalidateRoomsCache();
     return getFirebaseRoom(roomId);
   }
   await wait();

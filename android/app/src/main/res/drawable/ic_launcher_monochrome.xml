@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Máscara monocroma para los iconos temáticos de Android 13+. -->
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M54,10A44,44 0,1 1,53.99 10ZM14,35C31,40 42,27 46,11L55,10C52,34 36,53 15,46ZM94,73C77,68 66,81 62,97L53,98C56,74 72,55 93,62Z" />
+</vector>

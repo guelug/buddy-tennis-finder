@@ -22,5 +22,27 @@ allprojects {
   }
 }
 
+// Google Mobile Ads 25.4.0 is published with Kotlin 2.3 metadata while its
+// documented minimum Kotlin version is 2.1. Expo SDK 57 currently compiles
+// Android modules with Kotlin 2.1, so allow that compiler to consume the SDK's
+// forward-compatible metadata until Expo moves its toolchain to Kotlin 2.3.
+subprojects { subproject ->
+  if (subproject.name == "react-native-google-mobile-ads") {
+    subproject.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+      kotlinOptions {
+        freeCompilerArgs += ["-Xskip-metadata-version-check"]
+      }
+    }
+  }
+  if (subproject.name in ["react-native-reanimated", "react-native-worklets"]) {
+    // AGP lint crashes while parsing these dependencies' Kotlin Gradle scripts
+    // ("Cannot find a KaModule for the VirtualFile"). Keep application lint
+    // usable while leaving compilation and all other module checks intact.
+    subproject.tasks.matching { it.name.startsWith("lintAnalyze") }.configureEach {
+      enabled = false
+    }
+  }
+}
+
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"

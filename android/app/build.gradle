@@ -85,8 +85,11 @@ def uploadKeystorePath = System.getenv("MATCHPOINT_UPLOAD_KEYSTORE") ?: "${proje
 def uploadStorePassword = System.getenv("MATCHPOINT_UPLOAD_STORE_PASSWORD") ?: ""
 def uploadKeyAlias = System.getenv("MATCHPOINT_UPLOAD_KEY_ALIAS") ?: "matchpoint-upload"
 def uploadKeyPassword = System.getenv("MATCHPOINT_UPLOAD_KEY_PASSWORD") ?: uploadStorePassword
-def configuredVersionCode = Integer.parseInt(System.getenv("MATCHPOINT_VERSION_CODE") ?: "23")
-def configuredVersionName = System.getenv("MATCHPOINT_VERSION_NAME") ?: "1.2.3"
+def expoAppConfig = new groovy.json.JsonSlurper().parse(file("${projectRoot}/app.json"))
+def configuredVersionCode = Integer.parseInt(
+    System.getenv("MATCHPOINT_VERSION_CODE") ?: expoAppConfig.expo.android.versionCode.toString()
+)
+def configuredVersionName = System.getenv("MATCHPOINT_VERSION_NAME") ?: expoAppConfig.expo.version
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -164,8 +167,6 @@ android {
 }
 
 dependencies {
-    implementation "com.google.android.gms:play-services-base:18.1.0"
-    implementation "com.android.billingclient:billing-ktx:7.0.0"
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 

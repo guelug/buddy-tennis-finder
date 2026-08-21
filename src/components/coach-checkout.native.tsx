@@ -4,6 +4,7 @@ import { Icon } from "@/components/icon";
 import { PrimaryButton } from "@/components/primary-button";
 import { usePurchases } from "@/components/purchase-provider";
 import { COACH_PRODUCTS } from "@/lib/community";
+import { useI18n } from "@/lib/i18n";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { CoachAd } from "@/types";
 
@@ -12,6 +13,7 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
   const handledOutcome = useRef(0);
   const productId = COACH_PRODUCTS[ad.plan].id;
   const { connected, products, outcome, startCoachPurchase } = usePurchases();
+  const { t } = useI18n();
   const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
 
   useEffect(() => {
@@ -23,12 +25,15 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
     }
     setProcessing(false);
     if (outcome.status === "verified") {
-      Alert.alert("Anuncio publicado", `Tu perfil estará destacado durante ${COACH_PRODUCTS[ad.plan].days} días.`);
+      Alert.alert(
+        t("coachCheckout.publishedTitle"),
+        t("coachCheckout.publishedBody").replace("{days}", String(COACH_PRODUCTS[ad.plan].days))
+      );
       onActivated();
-    } else if (outcome.message !== "Compra cancelada.") {
-      Alert.alert("Pago pendiente", outcome.message || "La verificación sigue en curso.");
+    } else if (outcome.status !== "cancelled") {
+      Alert.alert(t("coachCheckout.pendingTitle"), outcome.message || t("coachCheckout.pendingBody"));
     }
-  }, [outcome, ad.id, ad.plan, onActivated]);
+  }, [outcome, ad.id, ad.plan, onActivated, t]);
 
   const product = useMemo(() => products.find((item) => item.id === productId), [productId, products]);
   const price = product?.displayPrice ?? COACH_PRODUCTS[ad.plan].fallbackPrice;
@@ -36,11 +41,14 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
   const buy = async () => {
     setProcessing(true);
     try {
-      if (!connected) throw new Error(`${storeName} no está disponible en este momento.`);
+      if (!connected) throw new Error(t("coachCheckout.unavailable").replace("{store}", storeName));
       await startCoachPurchase(ad);
     } catch (error) {
       setProcessing(false);
-      Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
+      Alert.alert(
+        t("coachCheckout.cantOpen").replace("{store}", storeName),
+        error instanceof Error ? error.message : t("coachCheckout.retry")
+      );
     }
   };
 
@@ -49,14 +57,20 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
       <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
         <Icon name="check-badge" size={22} color={colors.neon as string} />
         <View style={{ flex: 1 }}>
-          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Anuncio listo para publicar</Text>
-          <Text style={{ ...typography.footnote, color: colors.textSecondary }}>Pago único · sin renovación automática</Text>
+          <Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("coachCheckout.title")}</Text>
+          <Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("coachCheckout.subtitle")}</Text>
         </View>
         <Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text>
       </View>
-      <PrimaryButton label={processing ? "Verificando…" : `Publicar ${COACH_PRODUCTS[ad.plan].days} días`} disabled={processing} onPress={() => void buy()} />
+      <PrimaryButton
+        label={processing
+          ? t("coachCheckout.verifying")
+          : t("coachCheckout.buy").replace("{days}", String(COACH_PRODUCTS[ad.plan].days))}
+        disabled={processing}
+        onPress={() => void buy()}
+      />
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
-        Compra procesada por {storeName}. El anuncio se activa tras validar el pago.
+        {t("coachCheckout.footnote").replace("{store}", storeName)}
       </Text>
     </View>
   );

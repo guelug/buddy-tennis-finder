@@ -1,4 +1,8 @@
 import { Platform } from "react-native";
+import {
+  getTrackingPermissionsAsync,
+  requestTrackingPermissionsAsync
+} from "expo-tracking-transparency";
 import mobileAds, {
   AgeRestrictedTreatment,
   AdsConsent,
@@ -63,6 +67,16 @@ async function initializeAds(age?: number): Promise<boolean> {
 
   const consent = await AdsConsent.getConsentInfo().catch(() => null);
   if (!consent?.canRequestAds) return false;
+
+  // Apple requires ATT before an advertising SDK can access data used for
+  // cross-app tracking. UMP establishes the regional consent choice first;
+  // ATT is then requested immediately before the Mobile Ads SDK starts.
+  if (Platform.OS === "ios" && !underAge) {
+    const tracking = await getTrackingPermissionsAsync().catch(() => null);
+    if (tracking?.status === "undetermined") {
+      await requestTrackingPermissionsAsync().catch(() => null);
+    }
+  }
 
   await mobileAds().setRequestConfiguration({
     maxAdContentRating: MaxAdContentRating.T,

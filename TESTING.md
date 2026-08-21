@@ -16,6 +16,7 @@ npm run typecheck
 npm test
 npm run i18n:validate
 npm run build:android-bundle
+npm --prefix workers/iap-verifier run types:check
 npm --prefix workers/iap-verifier run typecheck
 npm --prefix workers/iap-verifier test
 ```
@@ -26,7 +27,7 @@ ejecútalo cuando vuelva a estar disponible.
 
 ### Reglas de Firestore
 
-La prueba de integración necesita Java, Firebase CLI y el emulador local:
+La prueba de integración necesita JDK 21 o posterior, Firebase CLI y el emulador local:
 
 ```bash
 firebase emulators:start --only firestore --project tenisbuddy-app-rules-test
@@ -60,6 +61,9 @@ distribuye como web.
 - Abrir una conversación, enviar/recibir mensajes y comprobar estados de carga y
   error.
 - Probar Google/Apple/email según las credenciales configuradas.
+- Con una cuenta de prueba desechable y una sesión recién iniciada, eliminar la
+  cuenta desde Ajustes y confirmar que se cierra la sesión, no permite volver a
+  entrar y no deja el perfil visible en búsquedas ni rankings.
 - Validar compra/restauración en los entornos sandbox de App Store y Play antes de
   publicar.
 

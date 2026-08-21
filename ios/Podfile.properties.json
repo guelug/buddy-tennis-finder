@@ -4,6 +4,7 @@
   "expo.inlineModules.watchedDirectories": "[]",
   "expo.inlineModules.xcodeProjectTargets": "{\"mainTarget\":\"MatchPointTennis\",\"targets\":[]}",
   "ios.deploymentTarget": "16.4",
+  "ios.buildReactNativeFromSource": "true",
   "ios.useFrameworks": "static",
   "ios.forceStaticLinking": "[]",
   "apple.privacyManifestAggregationEnabled": "true",

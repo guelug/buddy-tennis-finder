@@ -24,7 +24,12 @@ export type PurchaseIntent = CoachPurchaseIntent | LeaguePurchaseIntent;
 export type PurchaseOutcome = {
   kind: "coach" | "league";
   productId: string;
-  status: "verified" | "error" | "recovering";
+  /**
+   * `cancelled` es su propio estado porque el usuario cerrando la hoja de pago
+   * no es un fallo: sin él, distinguirlo obligaba a comparar el texto del
+   * mensaje, que deja de funcionar en cuanto se traduce.
+   */
+  status: "verified" | "error" | "recovering" | "cancelled";
   adId?: string;
   leagueId?: string;
   intentCreatedAt?: number;

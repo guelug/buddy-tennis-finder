@@ -180,7 +180,16 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     }
     const kind = productId === PRIVATE_LEAGUE_PRODUCT.id ? "league" : "coach";
     void forgetIntent(user.uid, productId);
-    setOutcome({ kind, productId, status: "error", adId: intent?.kind === "coach" ? intent.adId : undefined, intentCreatedAt: intent?.createdAt, message: currentPurchaseError.code === ErrorCode.UserCancelled ? "Compra cancelada." : currentPurchaseError.message, occurredAt: Date.now() });
+    const cancelled = currentPurchaseError.code === ErrorCode.UserCancelled;
+    setOutcome({
+      kind,
+      productId,
+      status: cancelled ? "cancelled" : "error",
+      adId: intent?.kind === "coach" ? intent.adId : undefined,
+      intentCreatedAt: intent?.createdAt,
+      message: cancelled ? undefined : currentPurchaseError.message,
+      occurredAt: Date.now()
+    });
   }, [currentPurchaseError, activeProductId, user?.uid, intents, forgetIntent, getAvailablePurchases]);
 
   const start = useCallback(async (intent: PurchaseIntent) => {

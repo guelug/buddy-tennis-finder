@@ -21,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.3</string>
+	<string>1.2.4</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -270,6 +270,8 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Permite acceder a tus fotos para elegir una imagen de perfil.</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Tu permiso permite mostrar anuncios más relevantes y medir su rendimiento. Puedes rechazarlo y seguir usando la app.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
