@@ -50,7 +50,10 @@ echo "Node: $(node --version)"
 echo "npm: $(npm --version)"
 
 npm ci --include=dev
-npx expo install --check
+# Validate against this installed SDK's bundled compatibility map. Fetching
+# today's recommendation would reject an unchanged, locked release whenever
+# Expo publishes another patch between local validation and cloud execution.
+EXPO_OFFLINE=1 npx expo install --check
 npm run typecheck
 npm run i18n:validate
 npm test
