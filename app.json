@@ -7,7 +7,7 @@
       "android"
     ],
     "scheme": "matchpoint",
-    "version": "1.2.4",
+    "version": "1.2.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,7 @@
       "usesAppleSignIn": true,
       "appleTeamId": "Y6VZTXTFW8",
       "bundleIdentifier": "com.matchpoint.clubs",
-      "buildNumber": "30",
+      "buildNumber": "31",
       "googleServicesFile": "./GoogleService-Info.plist",
       "entitlements": {
         "com.apple.developer.devicecheck.appattest-environment": "production"
@@ -30,7 +30,7 @@
       }
     },
     "android": {
-      "versionCode": 30,
+      "versionCode": 31,
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "permissions": [

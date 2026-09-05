@@ -40,21 +40,35 @@ export default function PublicPlayerProfile() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [reviews, setReviews] = useState<MatchReview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [reviewsFailed, setReviewsFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    setPlayer(null);
+    setClubs([]);
+    setReviews([]);
+    setFailed(false);
+    setReviewsFailed(false);
+    setLoading(Boolean(id));
     if (!id) return;
-    // Antes se descargaba la colección entera de jugadores para quedarse con
-    // uno: N lecturas de Firestore por cada visita a un perfil. Ahora se lee
-    // solo el documento pedido.
-    Promise.all([getPlayer(id), getClubs(), getReviewsForPlayer(id)])
-      .then(([remotePlayer, nextClubs, nextReviews]) => {
-        setPlayer(remotePlayer ?? findLocalPlayer(id));
-        setClubs(nextClubs);
-        setReviews(nextReviews);
-      })
-      .catch(() => setPlayer(findLocalPlayer(id)))
-      .finally(() => setLoading(false));
-  }, [id]);
+    const local = findLocalPlayer(id);
+    void Promise.allSettled([
+      local ? Promise.resolve(local) : getPlayer(id),
+      getClubs(),
+      local ? Promise.resolve([] as MatchReview[]) : getReviewsForPlayer(id)
+    ]).then(([profileResult, clubsResult, reviewsResult]) => {
+      if (!active) return;
+      setPlayer(profileResult.status === "fulfilled" ? profileResult.value : null);
+      setFailed(profileResult.status === "rejected" || clubsResult.status === "rejected" || reviewsResult.status === "rejected");
+      setReviewsFailed(reviewsResult.status === "rejected");
+      if (clubsResult.status === "fulfilled") setClubs(clubsResult.value);
+      if (reviewsResult.status === "fulfilled") setReviews(reviewsResult.value);
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [id, attempt]);
 
   const skillSummary = useMemo(
     () => averageReviewSkills(
@@ -72,7 +86,8 @@ export default function PublicPlayerProfile() {
           <BackButton />
           <GlassPanel>
             <Text style={{ ...typography.title, color: colors.textPrimary }}>{t("player.unavailable.title")}</Text>
-            <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("player.unavailable.body")}</Text>
+            <Text style={{ ...typography.body, color: colors.textSecondary }}>{t(failed ? "matches.error.fallback" : "player.unavailable.body")}</Text>
+            {failed ? <PrimaryButton label={t("common.retry")} onPress={() => setAttempt((value) => value + 1)} /> : null}
           </GlassPanel>
         </ScreenShell>
       </LiveBackground>
@@ -84,6 +99,10 @@ export default function PublicPlayerProfile() {
     <LiveBackground overlay={0.54}>
       <ScreenShell width="base" topSafe bottomInset={16}>
         <BackButton />
+        {failed ? <GlassPanel>
+          <Text accessibilityRole="alert" style={{ ...typography.body, color: colors.textSecondary }}>{t("matches.error.fallback")}</Text>
+          <PrimaryButton label={t("common.retry")} onPress={() => setAttempt((value) => value + 1)} />
+        </GlassPanel> : null}
         <Animated.View entering={FadeInUp.springify().damping(20)}>
           <GlassPanel>
             <View style={{ alignItems: "center", gap: spacing.sm }}>
@@ -96,13 +115,13 @@ export default function PublicPlayerProfile() {
               </View>
               <Text style={{ ...typography.body, color: colors.textSecondary }}>{t("player.yearsLevel", { age: player.age, level: levelLabel(player.level), rating: player.rating.toFixed(1) })}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, justifyContent: "center" }}>
-                {player.preferredFormats.map((format) => <Chip key={format} label={formatLabel(format)} active />)}
+                {player.preferredFormats.map((format) => <Chip key={format} label={t(`onboarding.format.${format}`)} active />)}
               </View>
               {player.bio ? <Text style={{ ...typography.body, color: colors.textSecondary, lineHeight: 21, textAlign: "center" }}>{player.bio}</Text> : null}
             </View>
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
               <Stat value={`${player.responseRate}%`} label={t("player.response")} />
-              <Stat value={`${reviews.length}`} label={t("player.reviews")} />
+              <Stat value={reviewsFailed ? "—" : `${reviews.length}`} label={t("player.reviews")} />
               <Stat value={levelLabel(player.level)} label={t("player.category")} />
             </View>
           </GlassPanel>
@@ -141,11 +160,12 @@ export default function PublicPlayerProfile() {
 }
 
 function BackButton() {
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
       hitSlop={10}
-      onPress={() => router.back()}
+      onPress={() => router.canGoBack() ? router.back() : router.replace("/")}
       style={{
         alignItems: "center",
         alignSelf: "flex-start",
@@ -161,15 +181,11 @@ function BackButton() {
       }}
     >
       <Text style={{ color: colors.neon, fontSize: 20 }}>‹</Text>
-      <Text style={{ ...typography.caption, color: colors.textPrimary }}>Volver</Text>
+      <Text style={{ ...typography.caption, color: colors.textPrimary }}>{t("common.back")}</Text>
     </Pressable>
   );
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
   return <View style={{ alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.md, borderWidth: 1, flex: 1, padding: spacing.sm }}><Text style={{ ...typography.headline, color: colors.neon, fontSize: 20 }}>{value}</Text><Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>{label}</Text></View>;
-}
-
-function formatLabel(format: Player["preferredFormats"][number]) {
-  return format === "singles" ? "Singles" : format === "doubles" ? "Dobles" : "Mixto";
 }

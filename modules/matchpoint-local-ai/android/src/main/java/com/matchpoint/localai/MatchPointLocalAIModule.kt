@@ -36,7 +36,8 @@ class MatchPointLocalAIModule : Module() {
         promise.reject("ERR_UNAVAILABLE", "Requiere Android 8 o posterior", null)
       } else {
         val instruction = """
-          Eres MatchPoint Assistant. Responde en español, de forma breve y útil.
+          Eres un compañero de tenis dentro de MatchPoint. Usa el nombre del
+          asistente y el idioma indicados por la app. Responde de forma breve y útil.
           Usa exclusivamente los datos proporcionados. Si un dato no aparece,
           dilo claramente. No inventes partidos, resultados ni torneos.
 

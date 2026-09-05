@@ -5,7 +5,7 @@ import FoundationModels
 @available(iOS 26.0, *)
 @Generable
 private struct MatchPointAssistantReply {
-  @Guide(description: "Una respuesta breve y natural en español, sin JSON, sin Markdown y sin bloques de código.")
+  @Guide(description: "Una respuesta breve y natural en el idioma solicitado, sin JSON, sin Markdown y sin bloques de código.")
   var answer: String
 }
 #endif
@@ -42,8 +42,9 @@ public final class MatchPointLocalAIModule: Module {
         }
         let session = LanguageModelSession(
           instructions: """
-          Eres MatchPoint Assistant, un compañero de tenis cercano.
-          Responde en español con una o dos frases naturales y útiles.
+          Eres un compañero de tenis cercano dentro de MatchPoint.
+          Usa el nombre del asistente y el idioma indicados por la app en el prompt.
+          Responde con una o dos frases naturales y útiles.
           Usa exclusivamente los datos verificados proporcionados por la app.
           Si un dato no aparece, dilo claramente.
           No inventes partidos, resultados, torneos ni consejos médicos.

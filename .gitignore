@@ -16,6 +16,7 @@ outputs/
 .firebase/
 .claude/
 android/app/debug.keystore
+android/.kotlin/
 
 # Artefactos de build iOS (regenerables; nunca commitear)
 ios/build
