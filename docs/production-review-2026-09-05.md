@@ -1,5 +1,13 @@
 # Revisión de preparación para producción — 2026-09-05
 
+## Actualización verificada — 2026-09-11
+
+- iOS 1.2.5 (33), commit `f3b0d92`, está publicada: App Store Connect confirma READY_FOR_DISTRIBUTION, downloadable=true y releaseType=AFTER_APPROVAL. No requiere una liberación manual adicional.
+- La ficha pública de Apple devuelve 1.2.5 en España y Guatemala, con fecha de publicación 2026-09-05T23:44:07Z. La consulta de Estados Unidos no devuelve ficha; no se modificaron territorios.
+- Envío `23b012aa-68b6-4a35-89aa-49b5e2f4e866`, versión `79f05280-e40b-4144-8eb5-395c2fdaf9e8`, build `cc48ce15-6617-4a41-822a-280866f56f18`. Xcode Cloud 33 superó el fallo previo y entregó la build aprobada.
+- Revalidación local: 100/100 pruebas y TypeScript correctos, sin nuevos defectos detectados por estas comprobaciones. No sustituye pruebas exhaustivas de uso o pagos reales.
+- Los apartados siguientes conservan la evidencia histórica del 5 de septiembre. El bloqueo de distribución iOS descrito al final está resuelto; Android no se ha vuelto a verificar en esta comprobación.
+
 ## Correcciones y evidencia
 
 - Objetivos semanales: una lectura tardía ya no sustituye la elección reciente. Una sola restauración, escrituras serializadas y snapshots compartidos; los errores de almacenamiento no bloquean cambios posteriores. Archivos: `src/lib/weekly-goals.ts`, `src/lib/weekly-goals-store.ts`; cinco pruebas en `tests/weekly-goals-store.test.ts`.
