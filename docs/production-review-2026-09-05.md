@@ -2,6 +2,8 @@
 
 ## Actualización verificada — 2026-09-11
 
+- Android: subida 1.2.5 (31) al canal alpha de Google Play el 11 de septiembre. Edición confirmada y release completed. No confundirlo con producción pública, cuyo canal sigue sin releases en la comprobación inicial de esta sesión.
+- AAB definitivo del 5 de septiembre, 21:28: SHA-256 `0232cc6430f647f2b8acef85419449d954750c120c562582603cf7a26c5c9bfa`. APK asociado 1.2.5/31, SDK objetivo 36 y firma verificados. Revalidación: 100 pruebas, TypeScript e i18n correctos; auditoría producción sin avisos. Sin modificaciones nuevas al binario.
 - iOS 1.2.5 (33), commit `f3b0d92`, está publicada: App Store Connect confirma READY_FOR_DISTRIBUTION, downloadable=true y releaseType=AFTER_APPROVAL. No requiere una liberación manual adicional.
 - La ficha pública de Apple devuelve 1.2.5 en España y Guatemala, con fecha de publicación 2026-09-05T23:44:07Z. La consulta de Estados Unidos no devuelve ficha; no se modificaron territorios.
 - Envío `23b012aa-68b6-4a35-89aa-49b5e2f4e866`, versión `79f05280-e40b-4144-8eb5-395c2fdaf9e8`, build `cc48ce15-6617-4a41-822a-280866f56f18`. Xcode Cloud 33 superó el fallo previo y entregó la build aprobada.
