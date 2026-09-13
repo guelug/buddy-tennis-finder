@@ -55,3 +55,6 @@ Debug simulator build **succeeded** on Pedros-MBP with Xcode 27.0 / iPhone 17 Pr
 
 ## Cloud note (2026-09-13)
 Xcode Cloud currently archives MatchPoint with **Xcode 26.6** (App Store–eligible). The iOS 27 `presentOfferCodeRedeemSheet(from:options:)` VerificationResult path does not compile on that SDK and ExpoModulesJSI scripts fail on Xcode 27 RC with the locked Expo 57.0.11 set, so Cloud ships the StoreKit 16 `in:` redeem sheet (coach/league checkout buttons remain). Revisit VerificationResult when Expo+Cloud Xcode 27 is App Store–eligible.
+
+## Version note (2026-09-13)
+Bumped marketing version to **1.2.6** because Cloud archive still exported CFBundleShortVersionString 1.2.3 (closed train / below approved 1.2.5).

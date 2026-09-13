@@ -488,7 +488,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.4;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.2.6;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -523,7 +523,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.4;
-				MARKETING_VERSION = 1.2.3;
+				MARKETING_VERSION = 1.2.6;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

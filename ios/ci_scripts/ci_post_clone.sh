@@ -17,6 +17,7 @@ else
 fi
 
 python3 - "$CLOUD_BUILD_NUMBER" <<'PY'
+import json
 import re
 import sys
 from pathlib import Path
@@ -24,10 +25,12 @@ from pathlib import Path
 build_number = sys.argv[1]
 
 app_json = Path("app.json")
-contents = app_json.read_text()
-contents = re.sub(r'"buildNumber": "\d+"', f'"buildNumber": "{build_number}"', contents)
-contents = re.sub(r'"versionCode": \d+', f'"versionCode": {build_number}', contents)
-app_json.write_text(contents)
+config = json.loads(app_json.read_text())
+marketing = str(config.get("expo", {}).get("version") or "1.2.6")
+config.setdefault("expo", {}).setdefault("ios", {})["buildNumber"] = str(build_number)
+config.setdefault("expo", {}).setdefault("android", {})["versionCode"] = int(build_number)
+app_json.write_text(json.dumps(config, indent=2) + "
+")
 
 project = Path("ios/MatchPointTennis.xcodeproj/project.pbxproj")
 contents = project.read_text()
@@ -36,9 +39,14 @@ contents = re.sub(
     f"CURRENT_PROJECT_VERSION = {build_number};",
     contents,
 )
+contents = re.sub(
+    r"MARKETING_VERSION = [^;]+;",
+    f"MARKETING_VERSION = {marketing};",
+    contents,
+)
 project.write_text(contents)
 
-print(f"Xcode Cloud build number: {build_number}")
+print(f"Xcode Cloud build number: {build_number}; marketing: {marketing}")
 PY
 
 if ! brew list node@22 >/dev/null 2>&1; then
