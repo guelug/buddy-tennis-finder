@@ -52,3 +52,6 @@ Do not ship an App Store archive from this Xcode-beta until stable Xcode 27 is i
 ## Smoke build
 
 Debug simulator build **succeeded** on Pedros-MBP with Xcode 27.0 / iPhone 17 Pro (iOS 27.0 SDK), `CODE_SIGNING_ALLOWED=NO`. `MatchPointLocalAIModule.swift` compiled into the app. No archive. Do not run `pod update` for this change.
+
+## Cloud note (2026-09-13)
+Xcode Cloud currently archives MatchPoint with **Xcode 26.6** (App Store–eligible). The iOS 27 `presentOfferCodeRedeemSheet(from:options:)` VerificationResult path does not compile on that SDK and ExpoModulesJSI scripts fail on Xcode 27 RC with the locked Expo 57.0.11 set, so Cloud ships the StoreKit 16 `in:` redeem sheet (coach/league checkout buttons remain). Revisit VerificationResult when Expo+Cloud Xcode 27 is App Store–eligible.

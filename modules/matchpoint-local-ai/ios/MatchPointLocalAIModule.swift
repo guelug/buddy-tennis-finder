@@ -74,26 +74,14 @@ private enum LocalAIError: Error {
 
 
 enum OfferCodeRedemption {
+  /// Present the system offer-code sheet.
+  /// Uses the StoreKit 16+ `in:` API so Xcode Cloud (Xcode 26 / App Store–eligible)
+  /// can archive. The iOS 27 `from:options:` VerificationResult overload requires
+  /// an App Store–eligible Xcode 27 toolchain; re-enable when Cloud ships that.
   @MainActor
   static func present() async throws -> [String: Any] {
     guard let scene = activeWindowScene() else {
       throw OfferCodeError.noScene
-    }
-    if #available(iOS 27.0, *) {
-      guard let presenter = topViewController(in: scene) else {
-        throw OfferCodeError.noScene
-      }
-      let result = try await AppStore.presentOfferCodeRedeemSheet(from: presenter, options: [])
-      switch result {
-      case .verified(let transaction):
-        return [
-          "verified": true,
-          "productId": transaction.productID,
-          "transactionId": String(transaction.id)
-        ]
-      case .unverified(_, let error):
-        throw error
-      }
     }
     try await AppStore.presentOfferCodeRedeemSheet(in: scene)
     return ["verified": false, "presented": true]
@@ -102,15 +90,6 @@ enum OfferCodeRedemption {
   private static func activeWindowScene() -> UIWindowScene? {
     let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
     return scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
-  }
-
-  private static func topViewController(in scene: UIWindowScene) -> UIViewController? {
-    let window = scene.windows.first { $0.isKeyWindow } ?? scene.windows.first
-    var current = window?.rootViewController
-    while let presented = current?.presentedViewController {
-      current = presented
-    }
-    return current
   }
 }
 
