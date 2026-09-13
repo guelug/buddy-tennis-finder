@@ -23,6 +23,7 @@ import {
 import type { CoachAd, PrivateLeagueInput } from "@/types";
 import { iapAccountTokenForUid } from "@/lib/iap-account-token";
 import { verifyApplePurchase, verifyAndroidPurchase } from "@/lib/secure-backend";
+import { canPresentOfferCode, presentOfferCodeRedeemSheet } from "@/lib/offer-code";
 
 export type { PurchaseOutcome } from "@/lib/purchase-intents";
 
@@ -32,6 +33,8 @@ type PurchaseContextValue = {
   outcome: PurchaseOutcome | null;
   startCoachPurchase: (ad: CoachAd) => Promise<number>;
   startLeaguePurchase: (input: PrivateLeagueInput) => Promise<number>;
+  redeemCoachOfferCode: (ad: CoachAd) => Promise<number>;
+  redeemLeagueOfferCode: (input: PrivateLeagueInput) => Promise<number>;
 };
 
 const PurchaseContext = createContext<PurchaseContextValue | null>(null);
@@ -60,7 +63,7 @@ const purchasesUnavailable = async (): Promise<number> => {
 function UnavailablePurchaseProvider({ children }: PropsWithChildren) {
   return (
     <PurchaseContext.Provider
-      value={{ connected: false, products: [], outcome: null, startCoachPurchase: purchasesUnavailable, startLeaguePurchase: purchasesUnavailable }}
+      value={{ connected: false, products: [], outcome: null, startCoachPurchase: purchasesUnavailable, startLeaguePurchase: purchasesUnavailable, redeemCoachOfferCode: purchasesUnavailable, redeemLeagueOfferCode: purchasesUnavailable }}
     >
       {children}
     </PurchaseContext.Provider>
@@ -220,7 +223,36 @@ function ConnectedPurchaseProvider({ children }: PropsWithChildren) {
     return start({ kind: "league", ownerId: user.uid, productId: PRIVATE_LEAGUE_PRODUCT.id, input, createdAt: Date.now() });
   }, [user?.uid, start]);
 
-  const value = useMemo<PurchaseContextValue>(() => ({ connected, products, outcome, startCoachPurchase, startLeaguePurchase }), [connected, products, outcome, startCoachPurchase, startLeaguePurchase]);
+  const redeemWithIntent = useCallback(async (intent: PurchaseIntent) => {
+    if (!canPresentOfferCode()) {
+      throw new Error("Los códigos promocionales de App Store solo están disponibles en iOS.");
+    }
+    await savePurchaseIntent(intent);
+    setIntents((current) => [...current.filter((item) => item.productId !== intent.productId), intent]);
+    setActiveProductId(intent.productId);
+    setOutcome(null);
+    try {
+      await presentOfferCodeRedeemSheet();
+      void getAvailablePurchases();
+    } catch (error) {
+      await forgetIntent(intent.ownerId, intent.productId);
+      throw error;
+    }
+    return intent.createdAt;
+  }, [forgetIntent, getAvailablePurchases]);
+
+  const redeemCoachOfferCode = useCallback(async (ad: CoachAd) => {
+    if (!user?.uid || ad.ownerId !== user.uid) throw new Error("La sesión no coincide con el anuncio.");
+    const productId = COACH_PRODUCTS[ad.plan].id;
+    return redeemWithIntent({ kind: "coach", ownerId: user.uid, productId, adId: ad.id, plan: ad.plan, createdAt: Date.now() });
+  }, [user?.uid, redeemWithIntent]);
+
+  const redeemLeagueOfferCode = useCallback(async (input: PrivateLeagueInput) => {
+    if (!user?.uid) throw new Error("Inicia sesión para crear la liga.");
+    return redeemWithIntent({ kind: "league", ownerId: user.uid, productId: PRIVATE_LEAGUE_PRODUCT.id, input, createdAt: Date.now() });
+  }, [user?.uid, redeemWithIntent]);
+
+  const value = useMemo<PurchaseContextValue>(() => ({ connected, products, outcome, startCoachPurchase, startLeaguePurchase, redeemCoachOfferCode, redeemLeagueOfferCode }), [connected, products, outcome, startCoachPurchase, startLeaguePurchase, redeemCoachOfferCode, redeemLeagueOfferCode]);
   return <PurchaseContext.Provider value={value}>{children}</PurchaseContext.Provider>;
 }
 
