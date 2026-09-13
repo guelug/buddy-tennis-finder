@@ -11,7 +11,7 @@ export function LeagueCheckout({ input, onCreated }: { input: PrivateLeagueInput
   const [processing, setProcessing] = useState(false);
   const [attemptId, setAttemptId] = useState<number | null>(null);
   const handledOutcome = useRef(0);
-  const { connected, products, outcome, startLeaguePurchase } = usePurchases();
+  const { connected, products, outcome, startLeaguePurchase, redeemLeagueOfferCode } = usePurchases();
   const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
   useEffect(() => {
     if (!outcome || outcome.kind !== "league" || outcome.intentCreatedAt !== attemptId || handledOutcome.current === outcome.occurredAt) return;
@@ -40,5 +40,15 @@ export function LeagueCheckout({ input, onCreated }: { input: PrivateLeagueInput
       Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
     }
   };
-  return <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}><View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}><Icon name="trophy" size={24} color={colors.neon as string} /><View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Liga privada lista</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>Pago único · liga permanente</Text></View><Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text></View><PrimaryButton label={processing ? "Verificando…" : "Crear liga privada"} disabled={processing} onPress={() => void buy()} /></View>;
+  const redeem = async () => {
+    if (Platform.OS !== "ios") return;
+    setProcessing(true);
+    try {
+      setAttemptId(await redeemLeagueOfferCode(input));
+    } catch (error) {
+      setProcessing(false);
+      Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
+    }
+  };
+  return <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}><View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}><Icon name="trophy" size={24} color={colors.neon as string} /><View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>Liga privada lista</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>Pago único · liga permanente</Text></View><Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text></View><PrimaryButton label={processing ? "Verificando…" : "Crear liga privada"} disabled={processing} onPress={() => void buy()} />{Platform.OS === "ios" ? <PrimaryButton variant="glass" label="Canjear código promocional" disabled={processing} onPress={() => void redeem()} /> : null}</View>;
 }

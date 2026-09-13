@@ -1,4 +1,6 @@
 import ExpoModulesCore
+import StoreKit
+import UIKit
 #if canImport(FoundationModels)
 import FoundationModels
 
@@ -34,6 +36,10 @@ public final class MatchPointLocalAIModule: Module {
       return ["available": false, "provider": "fallback", "reason": "Requiere Apple Intelligence"]
     }
 
+    AsyncFunction("presentOfferCodeRedeemSheet") { () async throws -> [String: Any] in
+      try await OfferCodeRedemption.present()
+    }
+
     AsyncFunction("generate") { (prompt: String) async throws -> String in
       #if canImport(FoundationModels)
       if #available(iOS 26.0, *) {
@@ -64,4 +70,51 @@ public final class MatchPointLocalAIModule: Module {
 
 private enum LocalAIError: Error {
   case unavailable
+}
+
+
+enum OfferCodeRedemption {
+  @MainActor
+  static func present() async throws -> [String: Any] {
+    guard let scene = activeWindowScene() else {
+      throw OfferCodeError.noScene
+    }
+    if #available(iOS 27.0, *) {
+      guard let presenter = topViewController(in: scene) else {
+        throw OfferCodeError.noScene
+      }
+      let result = try await AppStore.presentOfferCodeRedeemSheet(from: presenter, options: [])
+      switch result {
+      case .verified(let transaction):
+        return [
+          "verified": true,
+          "productId": transaction.productID,
+          "transactionId": String(transaction.id)
+        ]
+      case .unverified(_, let error):
+        throw error
+      }
+    }
+    try await AppStore.presentOfferCodeRedeemSheet(in: scene)
+    return ["verified": false, "presented": true]
+  }
+
+  private static func activeWindowScene() -> UIWindowScene? {
+    let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+    return scenes.first { $0.activationState == .foregroundActive } ?? scenes.first
+  }
+
+  private static func topViewController(in scene: UIWindowScene) -> UIViewController? {
+    let window = scene.windows.first { $0.isKeyWindow } ?? scene.windows.first
+    var current = window?.rootViewController
+    while let presented = current?.presentedViewController {
+      current = presented
+    }
+    return current
+  }
+}
+
+private enum OfferCodeError: Error, LocalizedError {
+  case noScene
+  var errorDescription: String? { "No se pudo presentar el cupón de App Store." }
 }

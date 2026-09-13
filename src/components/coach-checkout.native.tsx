@@ -11,7 +11,7 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
   const [processing, setProcessing] = useState(false);
   const handledOutcome = useRef(0);
   const productId = COACH_PRODUCTS[ad.plan].id;
-  const { connected, products, outcome, startCoachPurchase } = usePurchases();
+  const { connected, products, outcome, startCoachPurchase, redeemCoachOfferCode } = usePurchases();
   const storeName = Platform.OS === "ios" ? "App Store" : "Google Play";
 
   useEffect(() => {
@@ -44,6 +44,17 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
     }
   };
 
+  const redeem = async () => {
+    if (Platform.OS !== "ios") return;
+    setProcessing(true);
+    try {
+      await redeemCoachOfferCode(ad);
+    } catch (error) {
+      setProcessing(false);
+      Alert.alert(`No se pudo abrir ${storeName}`, error instanceof Error ? error.message : "Inténtalo de nuevo.");
+    }
+  };
+
   return (
     <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}>
       <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
@@ -55,6 +66,14 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
         <Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text>
       </View>
       <PrimaryButton label={processing ? "Verificando…" : `Publicar ${COACH_PRODUCTS[ad.plan].days} días`} disabled={processing} onPress={() => void buy()} />
+      {Platform.OS === "ios" ? (
+        <PrimaryButton
+          variant="glass"
+          label="Canjear código promocional"
+          disabled={processing}
+          onPress={() => void redeem()}
+        />
+      ) : null}
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>
         Compra procesada por {storeName}. El anuncio se activa tras validar el pago.
       </Text>
