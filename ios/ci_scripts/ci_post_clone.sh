@@ -45,6 +45,14 @@ contents = re.sub(
 )
 project.write_text(contents)
 
+info = Path("ios/MatchPointTennis/Info.plist")
+if info.exists():
+    import plistlib
+    data = plistlib.loads(info.read_bytes())
+    data["CFBundleShortVersionString"] = marketing
+    data["CFBundleVersion"] = str(build_number)
+    info.write_bytes(plistlib.dumps(data))
+
 print(f"Xcode Cloud build number: {build_number}; marketing: {marketing}")
 PY
 
