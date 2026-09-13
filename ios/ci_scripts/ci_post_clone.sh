@@ -50,7 +50,12 @@ echo "Node: $(node --version)"
 echo "npm: $(npm --version)"
 
 npm ci --include=dev
-npx expo install --check
+# Expo's compatibility catalog changes independently of this locked build.
+# Keep the check visible in Cloud logs, but do not fail the clone on newly
+# published patch recommendations (same approach as Arena).
+if ! npx expo install --check; then
+  echo "warning: Expo recommends dependency updates; continuing with package-lock.json"
+fi
 npm run typecheck
 npm run i18n:validate
 npm test
