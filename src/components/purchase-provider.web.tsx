@@ -11,6 +11,8 @@ type PurchaseContextValue = {
   outcome: PurchaseOutcome | null;
   startCoachPurchase: (ad: CoachAd) => Promise<number>;
   startLeaguePurchase: (input: PrivateLeagueInput) => Promise<number>;
+  redeemCoachOfferCode: (ad: CoachAd) => Promise<number>;
+  redeemLeagueOfferCode: (input: PrivateLeagueInput) => Promise<number>;
 };
 
 const unavailable = async (): Promise<number> => { throw new Error("Las compras están disponibles en la app móvil de MatchPoint."); };
@@ -19,11 +21,13 @@ const PurchaseContext = createContext<PurchaseContextValue>({
   products: [],
   outcome: null,
   startCoachPurchase: unavailable,
-  startLeaguePurchase: unavailable
+  startLeaguePurchase: unavailable,
+  redeemCoachOfferCode: unavailable,
+  redeemLeagueOfferCode: unavailable
 });
 
 export function PurchaseProvider({ children }: PropsWithChildren) {
-  return <PurchaseContext.Provider value={{ connected: false, products: [], outcome: null, startCoachPurchase: unavailable, startLeaguePurchase: unavailable }}>{children}</PurchaseContext.Provider>;
+  return <PurchaseContext.Provider value={{ connected: false, products: [], outcome: null, startCoachPurchase: unavailable, startLeaguePurchase: unavailable, redeemCoachOfferCode: unavailable, redeemLeagueOfferCode: unavailable }}>{children}</PurchaseContext.Provider>;
 }
 
 export function usePurchases() {
