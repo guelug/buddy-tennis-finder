@@ -29,8 +29,7 @@ config = json.loads(app_json.read_text())
 marketing = str(config.get("expo", {}).get("version") or "1.2.6")
 config.setdefault("expo", {}).setdefault("ios", {})["buildNumber"] = str(build_number)
 config.setdefault("expo", {}).setdefault("android", {})["versionCode"] = int(build_number)
-app_json.write_text(json.dumps(config, indent=2) + "
-")
+app_json.write_text(json.dumps(config, indent=2) + "\n")
 
 project = Path("ios/MatchPointTennis.xcodeproj/project.pbxproj")
 contents = project.read_text()
