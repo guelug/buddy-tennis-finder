@@ -11,6 +11,7 @@ sin seguimiento de `app-store-assets/iap-review/` no se incluyen ni modifican.
 
 - IA: respeta nuevamente el nombre/idioma elegidos en iOS y Android.
 - Las estadísticas incluyen todos los resultados validados del jugador, no solo cinco.
+- Ranking del asistente: mismas fuentes, puntos y ámbito regional que la pantalla de clasificación.
 - Las consultas simultáneas de disponibilidad se comparten, pero la siguiente se
   refresca (activar Apple Intelligence o completar una descarga no exige reiniciar).
 - Un error al cargar resultados muestra el reintento existente, no estadísticas falsas a cero.
@@ -19,7 +20,7 @@ sin seguimiento de `app-store-assets/iap-review/` no se incluyen ni modifican.
 - StoreKit solo presenta sobre una escena activa. La verificación sigue en el backend.
 - CI conserva los placeholders de versión del plist y valida dependencias con el mapa local del SDK.
 
-Verificación local: TypeScript correcto, 105 pruebas correctas, 1012 claves de
+Verificación local: TypeScript correcto, 106 pruebas correctas, 1012 claves de
 traducción consistentes, exportación iOS correcta, auditoría de dependencias de
 producción sin vulnerabilidades. Las seis advertencias moderadas de desarrollo
 no se incluyen en el binario.

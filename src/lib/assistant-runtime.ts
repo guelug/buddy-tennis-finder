@@ -1,4 +1,12 @@
-import type { MatchRoom } from "../types";
+import type { Club, MatchRoom, Player, ValidatedRankingResult } from "../types";
+import { buildProvisionalRankings, scopeRankingToArea } from "../data/rankings";
+
+export function assistantRanking(player: Player, players: Player[], clubs: Club[], results: ValidatedRankingResult[]) {
+  const division = buildProvisionalRankings(players, clubs, results)[player.level];
+  const regional = scopeRankingToArea(division, player.city, player.country);
+  const entry = regional.find((item) => item.playerId === player.id);
+  return entry ? { rank: entry.rank, total: regional.length, points: entry.points } : null;
+}
 
 /** Recheck on the next request: the user can enable AI or finish downloading it. */
 export function deduplicateInFlight<T>(read: () => Promise<T>): () => Promise<T> {

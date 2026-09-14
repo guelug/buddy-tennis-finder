@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { assistantMatchSummary, deduplicateInFlight } from "../src/lib/assistant-runtime";
-import type { MatchRoom } from "../src/types";
+import { assistantMatchSummary, assistantRanking, deduplicateInFlight } from "../src/lib/assistant-runtime";
+import type { MatchRoom, Player, ValidatedRankingResult } from "../src/types";
+
+test("el ranking del asistente usa puntos reales y el mismo ámbito regional", () => {
+  const me = { id: "me", name: "Zoe", city: "Madrid", country: "España", level: "c", clubIds: [], profileComplete: true } as unknown as Player;
+  const other = { ...me, id: "other", name: "Ana" };
+  const outsider = { ...me, id: "outside", city: "Barcelona", name: "Aaa" };
+  const result = { matchId: "match", city: "Madrid", division: "c", playerAId: "me", playerBId: "other", winnerId: "me", playedAt: "2026-09-15" } as ValidatedRankingResult;
+  assert.deepEqual(assistantRanking(me, [other, outsider, me], [], [result]), { rank: 1, total: 2, points: 100 });
+  assert.equal(assistantRanking(me, [other], [], [result]), null);
+});
 
 const room = (i: number, changes: Partial<MatchRoom> = {}): MatchRoom => ({
   id: String(i), playedAt: `2026-09-${String(i).padStart(2, "0")}`,

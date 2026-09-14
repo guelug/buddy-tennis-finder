@@ -3,7 +3,8 @@ import { tournaments, publicLeagueForDivision, publicLeagueIdsFor } from "@/data
 import { DIVISION_LABELS } from "@/data/rankings";
 import { getHomeData } from "@/lib/app-api";
 import { detectIdentityIntent, identityAnswerText } from "@/lib/assistant-identity";
-import { assistantMatchSummary, deduplicateInFlight } from "@/lib/assistant-runtime";
+import { assistantMatchSummary, assistantRanking, deduplicateInFlight } from "@/lib/assistant-runtime";
+import { getValidatedRankingResults } from "@/lib/firestore";
 import { getMatchRooms, scoreLine } from "@/lib/match-room";
 import type { Club, MatchProposal, MatchRoom, Player } from "@/types";
 
@@ -41,7 +42,7 @@ export type AssistantContext = {
   publicLeague: ReturnType<typeof publicLeagueForDivision>;
   leagueJoined: boolean;
   /** Posición dentro del ranking provisional de su división. */
-  ranking: { rank: number; total: number } | null;
+  ranking: { rank: number; total: number; points: number } | null;
   wins: number;
   losses: number;
 };
@@ -82,13 +83,9 @@ export async function getAssistantContext(uid?: string): Promise<AssistantContex
   const recentResults = recentRooms
     .map((room) => describeRoom(room, playerId, home.clubs));
 
-  // Ranking provisional: mismo criterio que la pestaña Ranking (perfiles
-  // reales y completos de la división, ordenados por nombre) para no dar
-  // al jugador una posición distinta de la que ve en pantalla.
-  const divisionPeers = home.players
-    .filter((item) => item.profileComplete && item.level === player.level && item.isDemo !== true)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const rankIndex = divisionPeers.findIndex((item) => item.id === playerId);
+  // Mismas fuentes, puntuación y ámbito regional que la pantalla Ranking.
+  const rankingResults = await getValidatedRankingResults(player.city);
+  const ranking = assistantRanking(player, home.players, home.clubs, rankingResults);
 
   return {
     player,
@@ -107,7 +104,7 @@ export async function getAssistantContext(uid?: string): Promise<AssistantContex
     openTournaments: tournaments.filter((item) => item.status === "registration" && item.division === player.level),
     publicLeague: publicLeagueForDivision(player.level, player.city),
     leagueJoined: Boolean(player.publicLeagues?.some((id) => publicLeagueIdsFor(player.level, player.city).includes(id))),
-    ranking: rankIndex >= 0 ? { rank: rankIndex + 1, total: divisionPeers.length } : null,
+    ranking,
     // Nunca inferimos victorias de perfiles o datos de demostración: solo
     // cuentan los resultados que el rival ha confirmado.
     wins,
@@ -143,7 +140,7 @@ function groundedPrompt(question: string, context: AssistantContext, languageNam
       autoevaluacion: context.player.skills ?? null
     },
     ranking: context.ranking
-      ? { posicion: context.ranking.rank, jugadoresEnDivision: context.ranking.total, puntos: 0, nota: "Ranking provisional: los puntos arrancan cuando se valide el primer resultado." }
+      ? { posicion: context.ranking.rank, jugadoresEnDivision: context.ranking.total, puntos: context.ranking.points, ambito: "Ranking individual regional" }
       : { nota: "El jugador todavía no aparece en el ranking de su división." },
     estadisticas_validadas: {
       partidosAceptados: context.acceptedMatches.length,
