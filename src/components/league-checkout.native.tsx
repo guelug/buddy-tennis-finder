@@ -5,6 +5,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { usePurchases } from "@/components/purchase-provider";
 import { PRIVATE_LEAGUE_PRODUCT } from "@/lib/community";
 import { useI18n } from "@/lib/i18n";
+import { canPresentOfferCode } from "@/lib/offer-code";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { PrivateLeagueInput } from "@/types";
 
@@ -56,5 +57,5 @@ export function LeagueCheckout({ input, onCreated }: { input: PrivateLeagueInput
       setProcessing(false);
     }
   };
-  return <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}><View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}><Icon name="trophy" size={24} color={colors.neon as string} /><View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("leagueCheckout.title")}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("leagueCheckout.subtitle")}</Text></View><Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text></View><PrimaryButton label={processing ? t("leagueCheckout.verifying") : t("leagueCheckout.buy")} disabled={processing} onPress={() => void buy()} />{Platform.OS === "ios" ? <PrimaryButton variant="glass" label={t("purchase.redeemCode")} disabled={processing} onPress={() => void redeem()} /> : null}</View>;
+  return <View style={{ backgroundColor: colors.courtLight, borderColor: `${colors.neon}55`, borderRadius: radii.lg, borderWidth: 1, gap: spacing.md, padding: spacing.lg }}><View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}><Icon name="trophy" size={24} color={colors.neon as string} /><View style={{ flex: 1 }}><Text style={{ ...typography.subheadline, color: colors.textPrimary }}>{t("leagueCheckout.title")}</Text><Text style={{ ...typography.footnote, color: colors.textSecondary }}>{t("leagueCheckout.subtitle")}</Text></View><Text style={{ ...typography.headline, color: colors.neon }}>{price}</Text></View><PrimaryButton label={processing ? t("leagueCheckout.verifying") : t("leagueCheckout.buy")} disabled={processing} onPress={() => void buy()} />{canPresentOfferCode() ? <PrimaryButton variant="glass" label={t("purchase.redeemCode")} disabled={processing} onPress={() => void redeem()} /> : null}</View>;
 }

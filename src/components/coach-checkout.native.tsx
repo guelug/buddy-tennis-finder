@@ -5,6 +5,7 @@ import { PrimaryButton } from "@/components/primary-button";
 import { usePurchases } from "@/components/purchase-provider";
 import { COACH_PRODUCTS } from "@/lib/community";
 import { useI18n } from "@/lib/i18n";
+import { canPresentOfferCode } from "@/lib/offer-code";
 import { colors, radii, spacing, typography } from "@/theme";
 import type { CoachAd } from "@/types";
 
@@ -82,7 +83,7 @@ export function CoachCheckout({ ad, onActivated }: { ad: CoachAd; onActivated: (
         disabled={processing}
         onPress={() => void buy()}
       />
-      {Platform.OS === "ios" ? (
+      {canPresentOfferCode() ? (
         <PrimaryButton variant="glass" label={t("purchase.redeemCode")} disabled={processing} onPress={() => void redeem()} />
       ) : null}
       <Text style={{ ...typography.footnote, color: colors.textTertiary, textAlign: "center" }}>

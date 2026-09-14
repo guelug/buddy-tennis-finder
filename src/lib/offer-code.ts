@@ -15,12 +15,15 @@ type MatchPointOfferCodeNative = {
 const native = requireOptionalNativeModule<MatchPointOfferCodeNative>("MatchPointLocalAI");
 
 export function canPresentOfferCode(): boolean {
-  return Platform.OS === "ios" && native != null;
+  // The current sheet cannot bind appAccountToken to a new redemption.
+  // The backend correctly rejects unbound transactions. Do not offer a flow
+  // that can consume a code without delivering the product; keep normal IAP.
+  return false;
 }
 
 /** Presents StoreKit's sheet; purchases are verified separately by the backend. */
 export async function presentOfferCodeRedeemSheet(): Promise<OfferCodeRedemption> {
-  if (!native?.presentOfferCodeRedeemSheet) {
+  if (!canPresentOfferCode() || Platform.OS !== "ios" || !native?.presentOfferCodeRedeemSheet) {
     throw new Error("Los códigos promocionales de App Store solo están disponibles en iOS.");
   }
   return native.presentOfferCodeRedeemSheet();

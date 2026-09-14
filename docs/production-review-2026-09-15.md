@@ -16,11 +16,15 @@ sin seguimiento de `app-store-assets/iap-review/` no se incluyen ni modifican.
   refresca (activar Apple Intelligence o completar una descarga no exige reiniciar).
 - Un error al cargar resultados muestra el reintento existente, no estadísticas falsas a cero.
 - El prompt limita los próximos partidos a cinco y conserva el total por separado.
-- Cupones traducidos en los 12 idiomas; cerrar la hoja no deja el botón bloqueado.
+- Cupones traducidos y cierre de hoja corregido, pero **no habilitados en esta
+  publicación**: la hoja actual no vincula `appAccountToken`; el servidor rechaza
+  correctamente compras sin vinculación. Mostrar el canje podría consumir un
+  código sin entregar el producto. Se conserva la compra normal y la validación
+  estricta; no se relaja la seguridad para hacer funcionar el cupón.
 - StoreKit solo presenta sobre una escena activa. La verificación sigue en el backend.
 - CI conserva los placeholders de versión del plist y valida dependencias con el mapa local del SDK.
 
-Verificación local: TypeScript correcto, 106 pruebas correctas, 1012 claves de
+Verificación local: TypeScript correcto, 107 pruebas correctas, 1012 claves de
 traducción consistentes, exportación iOS correcta, auditoría de dependencias de
 producción sin vulnerabilidades. Las seis advertencias moderadas de desarrollo
 no se incluyen en el binario.
