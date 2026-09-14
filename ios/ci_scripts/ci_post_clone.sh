@@ -13,7 +13,7 @@ cd "$CI_PRIMARY_REPOSITORY_PATH"
 if [ -n "${CI_BUILD_NUMBER:-}" ]; then
   CLOUD_BUILD_NUMBER="$CI_BUILD_NUMBER"
 else
-  CLOUD_BUILD_NUMBER=29
+  CLOUD_BUILD_NUMBER=31
 fi
 
 python3 - "$CLOUD_BUILD_NUMBER" <<'PY'
@@ -49,8 +49,8 @@ info = Path("ios/MatchPointTennis/Info.plist")
 if info.exists():
     import plistlib
     data = plistlib.loads(info.read_bytes())
-    data["CFBundleShortVersionString"] = marketing
-    data["CFBundleVersion"] = str(build_number)
+    data["CFBundleShortVersionString"] = "$(MARKETING_VERSION)"
+    data["CFBundleVersion"] = "$(CURRENT_PROJECT_VERSION)"
     info.write_bytes(plistlib.dumps(data))
 
 print(f"Xcode Cloud build number: {build_number}; marketing: {marketing}")
@@ -65,12 +65,10 @@ echo "Node: $(node --version)"
 echo "npm: $(npm --version)"
 
 npm ci --include=dev
-# Expo's compatibility catalog changes independently of this locked build.
-# Keep the check visible in Cloud logs, but do not fail the clone on newly
-# published patch recommendations (same approach as Arena).
-if ! npx expo install --check; then
-  echo "warning: Expo recommends dependency updates; continuing with package-lock.json"
-fi
+# Validate against this installed SDK's bundled compatibility map. Fetching
+# today's recommendation would reject an unchanged, locked release whenever
+# Expo publishes another patch between local validation and cloud execution.
+EXPO_OFFLINE=1 npx expo install --check
 npm run typecheck
 npm run i18n:validate
 npm test

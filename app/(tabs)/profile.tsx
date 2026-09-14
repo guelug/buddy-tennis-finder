@@ -10,6 +10,9 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { GroupedList, GroupedRow } from "@/components/grouped-list";
 import { GeneralSettings, NotificationSettings } from "@/components/notification-settings";
 import { BroadcastHeader, GlassPanel, LiveBackground } from "@/components/live-visuals";
+import { LevelProgress, StreakPill } from "@/components/level-progress";
+import { MedalSummary } from "@/components/medal-grid";
+import { ProgressRings, RingLegend } from "@/components/progress-rings";
 import { PrimaryButton } from "@/components/primary-button";
 import { Avatar } from "@/components/avatar";
 import { AdPrivacyRow } from "@/components/ad-privacy-row";
@@ -24,6 +27,8 @@ import { levelLabel } from "@/lib/matching";
 import { resendVerificationEmail, signOut, useAuth } from "@/lib/firebase-auth";
 import { SUPPORTED_LANGUAGES, useI18n } from "@/lib/i18n";
 import { PURCHASES_ENABLED } from "@/lib/features";
+import { summarizeProgress, type GamificationSummary } from "@/lib/gamification";
+import { useWeeklyGoals } from "@/lib/weekly-goals";
 import { subscribeToPlayer, getClubs, requestAndroidBetaAccess } from "@/lib/firestore";
 import { averageStars, getMatchRooms, getReviewsForPlayer } from "@/lib/match-room";
 import { getPlayerRanking } from "@/lib/competition";
@@ -91,7 +96,7 @@ function ProfileWeb() {
   const data = useProfileData();
   if (data.loading || !data.player) return <ProfileLoading />;
 
-  const { player, clubs, ranking } = data;
+  const { player, clubs } = data;
 
   return (
     <LiveBackground overlay={0.5}>
@@ -102,8 +107,17 @@ function ProfileWeb() {
           subtitle={`${data.t("profile.yearsOld").replace("{age}", String(player.age))} · ${levelLabel(player.level)}${player.clubIds.length > 0 ? ` · ${player.clubIds.map((id) => clubs.find((c) => c.id === id)?.name ?? id).join(", ")}` : ""}`}
           trailing={
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
-              <HeaderStat label={data.t("tabs.ranking")} value={ranking ? `#${ranking.rank}` : "—"} detail={ranking ? data.t("profile.stats.streakDetail").replace("{streak}", String(ranking.streak)) : ""} />
-              <HeaderStat label={data.t("ranking.table.points")} value={ranking?.points ?? 0} detail={ranking ? data.t("ranking.metric.provisional") : data.t("profile.stats.noRanking")} countUp />
+              <HeaderStat
+                label={data.t("progress.level.short")}
+                value={data.progress.level.level}
+                detail={data.t(`progress.tier.${data.progress.level.tier}`)}
+              />
+              <HeaderStat
+                label={data.t("progress.level.points")}
+                value={data.progress.level.xp}
+                detail={data.t("profile.stats.streakDetail").replace("{streak}", String(data.progress.stats.currentWinStreak))}
+                countUp
+              />
               <HeaderStat label={data.t("profile.stats.wins")} value={data.winRate !== null ? `${data.winRate}%` : "—"} detail={data.t("profile.stats.played").replace("{count}", String(data.playedCount))} />
             </View>
           }
@@ -184,10 +198,7 @@ function ProfileWeb() {
 
         <View style={{ alignItems: "flex-start", flexDirection: "row", flexWrap: "wrap", gap: spacing.lg }}>
           <View style={{ flex: 1, gap: spacing.lg, minWidth: 300 }}>
-            <GlassPanel>
-              <PanelTitle icon="trophy" title={data.t("profile.achievements.title")} hint={data.t("profile.achievements.hint")} />
-              <AchievementsRow playedCount={data.playedCount} streak={ranking?.streak ?? 0} reviews={data.reviews} />
-            </GlassPanel>
+            <ProgressPanel progress={data.progress} t={data.t} />
 
             <GlassPanel>
               <PanelTitle icon="calendar" title={data.t("profile.availability.title")} hint={data.t("profile.availability.hint")} />
@@ -295,7 +306,7 @@ function ProfileNative() {
   const data = useProfileData();
   if (data.loading || !data.player) return <ProfileLoading />;
 
-  const { player, clubs, ranking } = data;
+  const { player, clubs } = data;
 
   return (
     <LiveBackground overlay={0.52}>
@@ -340,12 +351,13 @@ function ProfileNative() {
               />
             </View>
 
-            {/* Stats broadcast */}
+            {/* Stats broadcast — salen de partidos validados, no del ranking
+                de muestra: para una cuenta real ese ranking no tiene fila. */}
             <View style={{ flexDirection: "row", gap: spacing.sm }}>
-              <StatCell label={data.t("tabs.ranking")} value={ranking ? `#${ranking.rank}` : "—"} />
-              <StatCell label={data.t("ranking.table.points")} value={ranking?.points ?? 0} />
+              <StatCell label={data.t("progress.level.short")} value={data.progress.level.level} />
+              <StatCell label={data.t("progress.level.points")} value={data.progress.level.xp} />
               <StatCell label={data.t("profile.stats.wins")} value={data.winRate !== null ? `${data.winRate}%` : "—"} />
-              <StatCell label={data.t("ranking.table.streak")} value={`${ranking?.streak ?? 0} 🔥`} />
+              <StatCell label={data.t("ranking.table.streak")} value={`${data.progress.stats.currentWinStreak} 🔥`} />
             </View>
 
             <FormStreakStrip form={data.form} />
@@ -374,12 +386,9 @@ function ProfileNative() {
           </GlassPanel>
         </Animated.View>
 
-        {/* Logros */}
+        {/* Progreso: anillos de la semana, nivel y medallas */}
         <Animated.View entering={FadeIn.delay(180).springify()}>
-          <GlassPanel>
-            <PanelTitle icon="trophy" title={data.t("profile.achievements.title")} hint={data.t("profile.achievements.hint")} />
-            <AchievementsRow playedCount={data.playedCount} streak={ranking?.streak ?? 0} reviews={data.reviews} />
-          </GlassPanel>
+          <ProgressPanel progress={data.progress} t={data.t} />
         </Animated.View>
 
         <GroupedList title={data.t("profile.availability.title")}>
@@ -855,65 +864,50 @@ function MatchStarsRow({ rivals }: { rivals: Array<{ player: Player; stars: numb
   );
 }
 
-/** Logros — se desbloquean con datos reales del jugador. */
-function AchievementsRow({
-  playedCount,
-  streak,
-  reviews
+/**
+ * Progreso del jugador en el perfil: anillos de la semana, nivel y un resumen
+ * de la vitrina. El detalle completo vive en `/progress`.
+ */
+function ProgressPanel({
+  progress,
+  t
 }: {
-  playedCount: number;
-  streak: number;
-  reviews: MatchReview[];
+  progress: GamificationSummary;
+  t: (key: string) => string;
 }) {
-  const avg = averageStars(reviews) ?? 0;
-  const { t } = useI18n();
-  const achievements: Array<{ icon: IconName; label: string; unlocked: boolean }> = [
-    { icon: "check-badge", label: t("profile.achievements.first"), unlocked: playedCount >= 1 },
-    { icon: "trophy", label: t("profile.achievements.five"), unlocked: playedCount >= 5 },
-    { icon: "zap", label: t("profile.achievements.streak"), unlocked: streak >= 3 },
-    { icon: "star", label: t("profile.achievements.reputation"), unlocked: avg >= 4.5 },
-    { icon: "users", label: t("profile.achievements.captain"), unlocked: true }
-  ];
-
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.md }}>
-      {achievements.map((achievement, index) => (
-        <BallDrop key={achievement.label} delay={220 + index * 70}>
-          <View style={{ alignItems: "center", gap: 4, width: 74 }}>
-            <View
-              style={{
-                alignItems: "center",
-                backgroundColor: achievement.unlocked ? colors.courtLight : colors.surfaceCourt,
-                borderColor: achievement.unlocked ? `${colors.neon}55` : colors.border,
-                borderRadius: radii.pill,
-                borderWidth: 1.5,
-                boxShadow: achievement.unlocked ? shadows.courtGlow : undefined,
-                height: 52,
-                justifyContent: "center",
-                width: 52
-              }}
-            >
-              <Icon
-                name={achievement.icon}
-                size={22}
-                color={(achievement.unlocked ? colors.neon : colors.textTertiary) as string}
-              />
-            </View>
-            <Text
-              style={{
-                ...typography.footnote,
-                color: achievement.unlocked ? colors.textSecondary : colors.textTertiary,
-                fontSize: 10,
-                textAlign: "center"
-              }}
-              numberOfLines={2}
-            >
-              {achievement.label}
+    <GlassPanel>
+      <PanelTitle icon="trophy" title={t("progress.title")} hint={t("progress.week.kicker")} />
+
+      <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.lg }}>
+        <ProgressRings
+          rings={progress.week.rings}
+          size={128}
+          center={
+            <Text style={{ ...broadcast.stat, color: colors.textPrimary, fontSize: 22 }}>
+              {`${progress.week.rings.filter((ring) => ring.closed).length}/3`}
             </Text>
-          </View>
-        </BallDrop>
-      ))}
-    </View>
+          }
+        />
+        <View style={{ flex: 1 }}>
+          <RingLegend rings={progress.week.rings} compact />
+        </View>
+      </View>
+
+      <LevelProgress level={progress.level} compact />
+      <StreakPill weeks={progress.stats.weekStreak} />
+
+      <View style={{ alignItems: "center", flexDirection: "row", justifyContent: "space-between" }}>
+        <MedalSummary medals={progress.medals} />
+      </View>
+
+      <PrimaryButton
+        label={t("progress.seeAll")}
+        variant="outline"
+        icon={<Icon name="chevron-right" size={16} color={colors.court as string} />}
+        onPress={() => router.push("/progress" as never)}
+      />
+    </GlassPanel>
   );
 }
 
@@ -924,6 +918,7 @@ function AchievementsRow({
 function useProfileData() {
   const { user, isConfigured } = useAuth();
   const { t } = useI18n();
+  const { goals } = useWeeklyGoals();
   const [player, setPlayer] = useState<Player | null>(null);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [reviews, setReviews] = useState<MatchReview[]>([]);
@@ -960,7 +955,8 @@ function useProfileData() {
   const refresh = async () => {
     await Promise.all([
       getReviewsForPlayer(playerId).then(setReviews),
-      getMatchRooms(playerId).then(setRooms),
+      // Tirar hacia abajo pide datos nuevos de verdad: se salta la caché.
+      getMatchRooms(playerId, { fresh: true }).then(setRooms),
       getClubs().then(setClubs)
     ]).catch(() => {});
   };
@@ -979,30 +975,15 @@ function useProfileData() {
     [player, playerId]
   );
 
-  const validatedRooms = useMemo(
-    () => rooms.filter((room) => room.status === "validated" && room.result),
-    [rooms]
+  // Progreso, forma y estadísticas salen todos del mismo resumen para que el
+  // perfil y la pantalla de progreso no puedan contradecirse.
+  const progress = useMemo(
+    () => summarizeProgress(rooms, playerId, new Date(), goals),
+    [rooms, playerId, goals]
   );
-
-  // Forma reciente: W/L de los últimos validados (izq = más antiguo).
-  const form = useMemo<Array<"W" | "L">>(
-    () =>
-      validatedRooms
-        .slice(0, 6)
-        .map((room) => {
-          const side = room.teamA.playerIds.includes(playerId) ? "A" : "B";
-          return room.result!.winner === side ? ("W" as const) : ("L" as const);
-        })
-        .reverse(),
-    [validatedRooms, playerId]
-  );
-
-  const winRate = useMemo(() => {
-    if (form.length === 0) return null;
-    return Math.round((form.filter((r) => r === "W").length / form.length) * 100);
-  }, [form]);
-
-  const playedCount = validatedRooms.length;
+  const form = progress.form;
+  const winRate = progress.stats.winRate;
+  const playedCount = progress.stats.matches;
   const skillSummary = useMemo(
     () => averageReviewSkills(reviews.map((review) => review.skillRatings), player?.skills ?? skillsFromRating(player?.rating ?? 3)),
     [reviews, player]
@@ -1049,6 +1030,7 @@ function useProfileData() {
     reviews,
     rooms,
     ranking,
+    progress,
     form,
     winRate,
     playedCount,

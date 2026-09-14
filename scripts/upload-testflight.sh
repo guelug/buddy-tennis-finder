@@ -24,7 +24,7 @@
 #   ASC_ISSUER_ID=1d27a2f2-265a-4650-a4a7-84929712d622
 #
 # Uso:
-#   ./scripts/upload-testflight.sh              # usa archive ya existente más reciente 1.2.3-N
+#   ./scripts/upload-testflight.sh              # usa archive ya existente más reciente 1.2.4-N
 #   ./scripts/upload-testflight.sh --archive    # archiva + exporta + sube
 #   BUILD=24 ./scripts/upload-testflight.sh --archive
 set -euo pipefail

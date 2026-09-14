@@ -7,23 +7,20 @@ import {
   type JWTPayload
 } from "jose";
 
-type Env = {
-  FIREBASE_PROJECT_ID: string;
-  FIREBASE_PROJECT_NUMBER: string;
-  FIREBASE_IOS_APP_ID: string;
-  FIREBASE_ANDROID_APP_ID: string;
-  APPLE_BUNDLE_ID: string;
+type Env = WorkerBindings & {
+  // Los nombres de Secret bindings no aparecen en wrangler.jsonc por diseño;
+  // el resto de bindings se genera mediante `wrangler types`.
   APPLE_IAP_ISSUER_ID: string;
   APPLE_IAP_KEY_ID: string;
   APPLE_IAP_PRIVATE_KEY: string;
   GOOGLE_CLIENT_EMAIL: string;
   GOOGLE_PRIVATE_KEY: string;
-  ANDROID_PACKAGE_NAME: string;
 };
 
 type AuthContext = {
   uid: string;
   appId: string;
+  authTime: number;
 };
 
 type FirestoreDocument = {
@@ -103,6 +100,8 @@ const COACH_PRODUCTS = {
 } as const;
 const LEAGUE_PRODUCT = "private_league_create";
 const MAX_BODY_BYTES = 16_384;
+const QUERY_PAGE_SIZE = 250;
+const MAX_QUERY_DOCUMENTS = 20_000;
 const FIREBASE_AUTH_KEYS = createRemoteJWKSet(
   new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com")
 );
@@ -128,6 +127,10 @@ function json(data: unknown, status = 200): Response {
       "X-Content-Type-Options": "nosniff"
     }
   });
+}
+
+function logError(message: string, details: Record<string, unknown>): void {
+  console.error(JSON.stringify({ message, ...details }));
 }
 
 function bearerToken(header: string | null): string {
@@ -164,10 +167,15 @@ async function authenticate(request: Request, env: Env): Promise<AuthContext> {
 
   const uid = assertSubject(authPayload);
   const appId = assertSubject(appPayload);
-  if (![env.FIREBASE_IOS_APP_ID, env.FIREBASE_ANDROID_APP_ID].includes(appId)) {
+  const allowedAppIds: readonly string[] = [env.FIREBASE_IOS_APP_ID, env.FIREBASE_ANDROID_APP_ID];
+  if (!allowedAppIds.includes(appId)) {
     throw new HttpError(403, "La app no está autorizada.");
   }
-  return { uid, appId };
+  return {
+    uid,
+    appId,
+    authTime: typeof authPayload.auth_time === "number" ? authPayload.auth_time : 0
+  };
 }
 
 async function readJson(request: Request): Promise<unknown> {
@@ -220,6 +228,18 @@ function validateLeague(value: unknown): LeagueInput {
     format: format as LeagueInput["format"],
     maxMembers: Number(maxMembers)
   };
+}
+
+export function validateAccountDeletionBody(value: unknown): void {
+  if (!isRecord(value) || value.confirmation !== "DELETE_ACCOUNT") {
+    throw new HttpError(400, "Confirmación de eliminación no válida.");
+  }
+}
+
+export function hasRecentAuthentication(authTime: number, nowMs = Date.now()): boolean {
+  if (!Number.isFinite(authTime) || authTime <= 0) return false;
+  const ageSeconds = nowMs / 1000 - authTime;
+  return ageSeconds >= -300 && ageSeconds <= 10 * 60;
 }
 
 export function validatePurchaseBody(value: unknown): PurchaseBody {
@@ -324,7 +344,7 @@ async function fetchAppleTransaction(transactionId: string, env: Env): Promise<A
     });
     if (response.status === 404 && index === 0) continue;
     if (!response.ok) {
-      console.error("Apple transaction lookup failed", { status: response.status, environmentIndex: index });
+      logError("Apple transaction lookup failed", { status: response.status, environmentIndex: index });
       throw new HttpError(response.status >= 500 ? 503 : 400, "App Store no pudo validar la compra.");
     }
     const result = await response.json() as { signedTransactionInfo?: unknown };
@@ -376,6 +396,10 @@ async function googlePlayAccessToken(env: Env): Promise<string> {
   return googleScopedAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
 }
 
+async function googleIdentityAccessToken(env: Env): Promise<string> {
+  return googleScopedAccessToken(env, "https://www.googleapis.com/auth/identitytoolkit");
+}
+
 async function googleScopedAccessToken(env: Env, scope: string): Promise<string> {
   const key = await importPKCS8(normalizePrivateKey(env.GOOGLE_PRIVATE_KEY), "RS256");
   const now = Math.floor(Date.now() / 1000);
@@ -396,7 +420,7 @@ async function googleScopedAccessToken(env: Env, scope: string): Promise<string>
     })
   });
   if (!response.ok) {
-    console.error("Google OAuth failed", { status: response.status, scope });
+    logError("Google OAuth failed", { status: response.status, scope });
     throw new HttpError(503, "No se pudo completar la entrega.");
   }
   const result = await response.json() as { access_token?: unknown };
@@ -435,7 +459,7 @@ async function fetchGooglePlayPurchase(
     }
   });
   if (!response.ok) {
-    console.error("Google Play purchase lookup failed", { status: response.status });
+    logError("Google Play purchase lookup failed", { status: response.status });
     throw new HttpError(response.status >= 500 ? 503 : 400, "Google Play no pudo validar la compra.");
   }
   const result = await response.json() as Partial<GooglePlayPurchase>;
@@ -482,7 +506,7 @@ async function getDocument(env: Env, token: string, path: string): Promise<Fires
   });
   if (response.status === 404) return null;
   if (!response.ok) {
-    console.error("Firestore read failed", { status: response.status, path });
+    logError("Firestore read failed", { status: response.status, path });
     throw new HttpError(503, "No se pudo completar la entrega.");
   }
   return response.json() as Promise<FirestoreDocument>;
@@ -526,13 +550,19 @@ function docName(env: Env, path: string): string {
   return `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${path}`;
 }
 
-type FirestoreWrite = {
-  update: { name: string; fields: Record<string, FirestoreValue> };
-  updateMask?: { fieldPaths: string[] };
-  currentDocument?: { exists?: boolean; updateTime?: string };
-};
+type FirestoreWrite =
+  | {
+      update: { name: string; fields: Record<string, FirestoreValue> };
+      updateMask?: { fieldPaths: string[] };
+      currentDocument?: { exists?: boolean; updateTime?: string };
+    }
+  | {
+      delete: string;
+      currentDocument?: { exists?: boolean; updateTime?: string };
+    };
 
 async function commit(env: Env, token: string, writes: FirestoreWrite[]): Promise<void> {
+  if (writes.length === 0) return;
   const response = await fetch(
     `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:commit`,
     {
@@ -545,8 +575,16 @@ async function commit(env: Env, token: string, writes: FirestoreWrite[]): Promis
     }
   );
   if (!response.ok) {
-    console.error("Firestore commit failed", { status: response.status });
+    logError("Firestore commit failed", { status: response.status });
     throw new HttpError(response.status === 409 ? 409 : 503, "No se pudo completar la entrega.");
+  }
+}
+
+async function commitAll(env: Env, token: string, writes: FirestoreWrite[]): Promise<void> {
+  // Firestore admite 500 escrituras por commit. Dejamos margen para que este
+  // flujo siga siendo seguro si se añaden transforms o verificaciones.
+  for (let index = 0; index < writes.length; index += 400) {
+    await commit(env, token, writes.slice(index, index + 400));
   }
 }
 
@@ -568,6 +606,81 @@ function updateWrite(
     updateMask: { fieldPaths: Object.keys(fields) },
     currentDocument: { updateTime }
   };
+}
+
+function deleteWrite(env: Env, path: string, updateTime?: string): FirestoreWrite {
+  return {
+    delete: docName(env, path),
+    ...(updateTime ? { currentDocument: { updateTime } } : {})
+  };
+}
+
+type FirestoreQueryOperator = "EQUAL" | "ARRAY_CONTAINS";
+
+async function queryDocuments(
+  env: Env,
+  token: string,
+  collectionId: string,
+  fieldPath: string,
+  op: FirestoreQueryOperator,
+  value: unknown
+): Promise<FirestoreDocument[]> {
+  const documents: FirestoreDocument[] = [];
+  let cursor: string | undefined;
+  do {
+    const response = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath },
+                op,
+                value: toFirestore(value)
+              }
+            },
+            orderBy: [{ field: { fieldPath: "__name__" }, direction: "ASCENDING" }],
+            ...(cursor ? {
+              startAt: {
+                values: [{ referenceValue: cursor }],
+                // En un cursor de inicio, false equivale a startAfter.
+                before: false
+              }
+            } : {}),
+            limit: QUERY_PAGE_SIZE
+          }
+        })
+      }
+    );
+    if (!response.ok) {
+      logError("Firestore query failed", { status: response.status, collectionId, fieldPath, op });
+      throw new HttpError(503, "No se pudo completar la eliminación.");
+    }
+    const results = await response.json() as Array<{ document?: FirestoreDocument }>;
+    const page = results.flatMap((item) => item.document ? [item.document] : []);
+    documents.push(...page);
+    if (documents.length > MAX_QUERY_DOCUMENTS) {
+      throw new HttpError(409, "La cuenta contiene demasiados registros para el borrado automático. Contacta con soporte.");
+    }
+    cursor = page.at(-1)?.name;
+    if (page.length < QUERY_PAGE_SIZE) break;
+  } while (cursor);
+  return documents;
+}
+
+function pathFromDocument(env: Env, document: FirestoreDocument): string {
+  const prefix = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/`;
+  if (!document.name.startsWith(prefix)) {
+    throw new HttpError(503, "No se pudo completar la eliminación.");
+  }
+  return document.name.slice(prefix.length);
 }
 
 function inviteCode(): string {
@@ -767,6 +880,253 @@ async function verifyAndroidPurchase(request: Request, auth: AuthContext, env: E
   return json(await deliverAndroidPurchase(body, purchase, auth.uid, env));
 }
 
+function uniqueDocuments(env: Env, groups: FirestoreDocument[][]): FirestoreDocument[] {
+  const documents = new Map<string, FirestoreDocument>();
+  for (const document of groups.flat()) documents.set(pathFromDocument(env, document), document);
+  return [...documents.values()];
+}
+
+function replaceUid(items: unknown, uid: string, replacement: string): unknown[] | null {
+  if (!Array.isArray(items)) return null;
+  return items.map((item) => item === uid ? replacement : item);
+}
+
+function redactIdentityMap(
+  value: unknown,
+  uid: string,
+  replacement: string,
+  idField: string,
+  nameField: string
+): Record<string, unknown> | null {
+  if (!isRecord(value) || value[idField] !== uid) return null;
+  return { ...value, [idField]: replacement, [nameField]: "Usuario eliminado" };
+}
+
+async function deleteFirebaseAuthUser(uid: string, env: Env): Promise<void> {
+  const token = await googleIdentityAccessToken(env);
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${encodeURIComponent(env.FIREBASE_PROJECT_ID)}/accounts:delete`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ localId: uid })
+    }
+  );
+  if (!response.ok) {
+    logError("Firebase Auth deletion failed", { status: response.status });
+    throw new HttpError(503, "Los datos se limpiaron, pero no se pudo cerrar la cuenta. Vuelve a intentarlo.");
+  }
+}
+
+async function deleteAccount(request: Request, auth: AuthContext, env: Env): Promise<Response> {
+  validateAccountDeletionBody(await readJson(request));
+  if (!hasRecentAuthentication(auth.authTime)) {
+    throw new HttpError(403, "Por seguridad, cierra sesión, vuelve a entrar y repite la eliminación.");
+  }
+
+  const token = await googleAccessToken(env);
+  const uid = auth.uid;
+  const now = new Date();
+  const tombstone = `deleted-${crypto.randomUUID()}`;
+  const equal = (collectionId: string, fieldPath: string) =>
+    queryDocuments(env, token, collectionId, fieldPath, "EQUAL", uid);
+  const contains = (collectionId: string, fieldPath: string) =>
+    queryDocuments(env, token, collectionId, fieldPath, "ARRAY_CONTAINS", uid);
+
+  const [
+    ownedMatches,
+    acceptedMatches,
+    doublesMatches,
+    reviewsAuthored,
+    reviewsReceived,
+    requestsOwned,
+    requestsMade,
+    notificationsReceived,
+    notificationsSent,
+    coachAds,
+    coachInterestsOwned,
+    coachInterestsMade,
+    leaguesOwned,
+    leaguesJoined,
+    purchases,
+    singlesPlayerA,
+    singlesPlayerB,
+    singlesWinner,
+    singlesValidator,
+    doublesTeamA,
+    doublesTeamB,
+    doublesValidator
+  ] = await Promise.all([
+    equal("matches", "fromPlayerId"),
+    equal("matches", "acceptedByPlayerId"),
+    contains("matches", "participantIds"),
+    equal("matchReviews", "authorId"),
+    equal("matchReviews", "targetId"),
+    equal("matchJoinRequests", "ownerId"),
+    equal("matchJoinRequests", "requesterId"),
+    equal("notifications", "recipientId"),
+    equal("notifications", "actorId"),
+    equal("coachAds", "ownerId"),
+    equal("coachInterests", "coachOwnerId"),
+    equal("coachInterests", "interestedUserId"),
+    equal("privateLeagues", "ownerId"),
+    contains("privateLeagues", "memberIds"),
+    equal("iapPurchases", "ownerId"),
+    equal("rankingResults", "playerAId"),
+    equal("rankingResults", "playerBId"),
+    equal("rankingResults", "winnerId"),
+    equal("rankingResults", "validatedById"),
+    contains("doublesRankingResults", "teamAIds"),
+    contains("doublesRankingResults", "teamBIds"),
+    equal("doublesRankingResults", "validatedById")
+  ]);
+
+  const planned = new Map<string, FirestoreWrite>();
+  const planDelete = (path: string, updateTime?: string) => {
+    planned.set(path, deleteWrite(env, path, updateTime));
+  };
+  const planUpdate = (document: FirestoreDocument, fields: Record<string, unknown>) => {
+    if (!document.updateTime) throw new HttpError(503, "No se pudo completar la eliminación.");
+    const path = pathFromDocument(env, document);
+    const previous = planned.get(path);
+    if (previous && "delete" in previous) return;
+    planned.set(path, updateWrite(env, path, fields, document.updateTime));
+  };
+
+  // Contenido efímero o directamente personal: se elimina por completo.
+  for (const document of uniqueDocuments(env, [
+    reviewsAuthored,
+    reviewsReceived,
+    requestsOwned,
+    requestsMade,
+    notificationsReceived,
+    notificationsSent,
+    coachInterestsOwned,
+    coachInterestsMade
+  ])) {
+    planDelete(pathFromDocument(env, document), document.updateTime);
+  }
+
+  for (const document of coachAds) {
+    const path = pathFromDocument(env, document);
+    planDelete(`${path}/private/contact`);
+    planDelete(path, document.updateTime);
+  }
+
+  const ownedLeaguePaths = new Set(leaguesOwned.map((document) => pathFromDocument(env, document)));
+  for (const document of leaguesOwned) {
+    const path = pathFromDocument(env, document);
+    planDelete(`${path}/private/invite`);
+    planDelete(path, document.updateTime);
+  }
+  for (const document of leaguesJoined) {
+    const path = pathFromDocument(env, document);
+    if (ownedLeaguePaths.has(path)) continue;
+    const league = decodeFields(document.fields ?? {});
+    const memberIds = Array.isArray(league.memberIds)
+      ? league.memberIds.filter((item) => item !== uid)
+      : [];
+    planUpdate(document, { memberIds, updatedAt: now });
+  }
+
+  // Las referencias de tienda pueden ser necesarias para reembolsos y fraude,
+  // pero ya no conservan el UID ni el token secreto de Google Play.
+  for (const document of purchases) {
+    planUpdate(document, {
+      ownerId: tombstone,
+      purchaseToken: null,
+      anonymizedAt: now
+    });
+  }
+
+  const matches = uniqueDocuments(env, [ownedMatches, acceptedMatches, doublesMatches]);
+  for (const document of matches) {
+    const path = pathFromDocument(env, document);
+    const match = decodeFields(document.fields ?? {});
+    const startsAt = Date.parse(String(match.startsAt ?? ""));
+    const future = Number.isFinite(startsAt) && startsAt > now.getTime();
+    const owned = match.fromPlayerId === uid;
+    const participants = Array.isArray(match.participantIds) ? match.participantIds : [];
+    const doubles = participants.includes(uid);
+    const acceptedHistorical = match.status === "accepted" && !future;
+
+    if ((owned && !acceptedHistorical) || (doubles && future)) {
+      planDelete(path, document.updateTime);
+      const matchId = path.split("/").at(-1)!;
+      planDelete(`rankingResults/${matchId}`);
+      planDelete(`doublesRankingResults/${matchId}`);
+      continue;
+    }
+
+    if (!acceptedHistorical) {
+      if (match.acceptedByPlayerId === uid) {
+        planUpdate(document, {
+          acceptedByPlayerId: null,
+          status: future ? "proposed" : "declined",
+          updatedAt: now
+        });
+      }
+      continue;
+    }
+
+    const fields: Record<string, unknown> = { anonymizedAt: now, updatedAt: now };
+    if (match.fromPlayerId === uid) fields.fromPlayerId = tombstone;
+    if (match.acceptedByPlayerId === uid) fields.acceptedByPlayerId = tombstone;
+    for (const field of ["teamAIds", "teamBIds", "participantIds"] as const) {
+      const replaced = replaceUid(match[field], uid, tombstone);
+      if (replaced) fields[field] = replaced;
+    }
+    const result = redactIdentityMap(match.result, uid, tombstone, "reportedById", "reportedByName");
+    const validation = redactIdentityMap(match.validation, uid, tombstone, "playerId", "playerName");
+    if (result) fields.result = result;
+    if (validation) fields.validation = validation;
+    planUpdate(document, fields);
+  }
+
+  for (const document of uniqueDocuments(env, [
+    singlesPlayerA,
+    singlesPlayerB,
+    singlesWinner,
+    singlesValidator
+  ])) {
+    const result = decodeFields(document.fields ?? {});
+    const fields: Record<string, unknown> = { anonymizedAt: now };
+    for (const field of ["playerAId", "playerBId", "winnerId", "validatedById"] as const) {
+      if (result[field] === uid) fields[field] = tombstone;
+    }
+    planUpdate(document, fields);
+  }
+
+  for (const document of uniqueDocuments(env, [doublesTeamA, doublesTeamB, doublesValidator])) {
+    const result = decodeFields(document.fields ?? {});
+    const fields: Record<string, unknown> = { anonymizedAt: now };
+    for (const field of ["teamAIds", "teamBIds"] as const) {
+      const replaced = replaceUid(result[field], uid, tombstone);
+      if (replaced) fields[field] = replaced;
+    }
+    if (result.validatedById === uid) fields.validatedById = tombstone;
+    planUpdate(document, fields);
+  }
+
+  for (const path of [
+    `teamSeekers/${uid}`,
+    `androidBetaRequests/${uid}`,
+    `players/${uid}`,
+    `users/${uid}`
+  ]) {
+    planDelete(path);
+  }
+
+  await commitAll(env, token, [...planned.values()]);
+  // Auth se elimina al final: si una escritura falla, la persona conserva la
+  // sesión y puede repetir sin quedar atrapada en un estado parcial.
+  await deleteFirebaseAuthUser(uid, env);
+  return json({ deleted: true });
+}
+
 async function joinLeague(request: Request, auth: AuthContext, env: Env): Promise<Response> {
   const body = await readJson(request);
   if (!isRecord(body)) throw new HttpError(400, "Invitación no válida.");
@@ -807,13 +1167,16 @@ export default {
       if (url.pathname === "/v1/apple/verify") return verifyApplePurchase(request, auth, env);
       if (url.pathname === "/v1/android/verify") return verifyAndroidPurchase(request, auth, env);
       if (url.pathname === "/v1/leagues/join") return joinLeague(request, auth, env);
+      if (url.pathname === "/v1/account/delete") return deleteAccount(request, auth, env);
       throw new HttpError(404, "Ruta no encontrada.");
     } catch (error) {
       if (error instanceof HttpError) return json({ error: error.message }, error.status);
       if (error instanceof Error && ["JWTExpired", "JWSSignatureVerificationFailed", "JWTClaimValidationFailed"].includes(error.name)) {
         return json({ error: "Sesión o validación de app no válida." }, 401);
       }
-      console.error("Unhandled request error", error instanceof Error ? { name: error.name, message: error.message } : "unknown");
+      logError("Unhandled request error", error instanceof Error
+        ? { name: error.name, detail: error.message }
+        : { detail: "unknown" });
       return json({ error: "Error temporal del servicio." }, 503);
     }
   }

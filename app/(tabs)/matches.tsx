@@ -868,7 +868,7 @@ function useMatchesState() {
   /** Recarga completa (pull-to-refresh) sin tocar el estado de `loading`. */
   const refresh = async () => {
     try {
-      const [home, matchRooms] = await Promise.all([getHomeData(), getMatchRooms(playerId)]);
+      const [home, matchRooms] = await Promise.all([getHomeData(), getMatchRooms(playerId, { fresh: true })]);
       setProposals(home.proposals);
       setClubs(home.clubs);
       setCurrentPlayer(home.currentPlayer);

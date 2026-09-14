@@ -43,6 +43,8 @@ export default function AssistantScreen() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const requestGeneration = useRef(0);
+  const inFlight = useRef(false);
 
   // El modelo local debe responder en el idioma de la app; `Intl.DisplayNames`
   // no está garantizado en Hermes, así que usamos el propio catálogo.
@@ -52,11 +54,17 @@ export default function AssistantScreen() {
   );
 
   useEffect(() => {
-    setMessages((current) => (current.length ? current : [{ id: "welcome", role: "assistant", text: t("assistant.welcome", { name: buddy.name }) }]));
-  }, [t, buddy.name]);
+    requestGeneration.current += 1;
+    inFlight.current = false;
+    setSending(false);
+    setInput("");
+    setMessages([{ id: "welcome", role: "assistant", text: t("assistant.welcome", { name: buddy.name }) }]);
+    return () => { requestGeneration.current += 1; };
+  }, [t, buddy.name, user?.uid]);
 
   useEffect(() => {
     let active = true;
+    setContext(null);
     setLoadError(null);
     void Promise.all([getAssistantContext(user?.uid), getLocalAIAvailability()])
       .then(([value, availability]) => {
@@ -76,19 +84,26 @@ export default function AssistantScreen() {
 
   const send = async (preset?: string) => {
     const question = (preset ?? input).trim();
-    if (!question || !context || sending) return;
+    if (!question || !context || inFlight.current) return;
+    inFlight.current = true;
+    const generation = requestGeneration.current;
     setInput("");
     setMessages((current) => [...current, { id: `u-${Date.now()}`, role: "user", text: question }]);
     setSending(true);
     try {
       const answer = await askMatchPointAssistant(question, context, t, languageName, buddy.name);
+      if (generation !== requestGeneration.current) return;
       setProvider(describeProvider(answer.provider, t));
       setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: answer.text, actions: answer.actions }]);
     } catch {
+      if (generation !== requestGeneration.current) return;
       setMessages((current) => [...current, { id: `a-${Date.now()}`, role: "assistant", text: t("assistant.error") }]);
     } finally {
-      setSending(false);
-      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+      if (generation === requestGeneration.current) {
+        inFlight.current = false;
+        setSending(false);
+        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+      }
     }
   };
 
@@ -148,6 +163,8 @@ export default function AssistantScreen() {
               <Pressable
                 key={key}
                 accessibilityRole="button"
+                disabled={sending}
+                accessibilityState={{ disabled: sending }}
                 onPress={() => void send(t(key))}
                 style={{ backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.pill, borderWidth: 1, minHeight: 44, justifyContent: "center", paddingHorizontal: spacing.md }}
               >
@@ -205,6 +222,7 @@ export default function AssistantScreen() {
             placeholder={t("assistant.placeholder")}
             placeholderTextColor={colors.textTertiary}
             returnKeyType="send"
+            maxLength={2000}
             style={{ ...typography.body, backgroundColor: colors.background, borderColor: colors.border, borderRadius: radii.pill, borderWidth: 1, color: colors.textPrimary, flex: 1, minHeight: 48, paddingHorizontal: spacing.md }}
           />
           <Pressable

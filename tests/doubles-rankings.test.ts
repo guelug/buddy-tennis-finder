@@ -90,6 +90,14 @@ test("una pareja incompleta no entra en la clasificación", () => {
   assert.equal(table.c.length, 1);
 });
 
+test("una pareja con una cuenta eliminada no reaparece como jugador anónimo", () => {
+  const table = buildDoublesRankings([
+    match("m1", ["deleted-user", "luis"], ["marta", "diego"], "B")
+  ], names);
+  assert.equal(table.c.some((entry) => entry.playerIds.includes("deleted-user")), false);
+  assert.equal(table.c.some((entry) => entry.pairId === pairKey(["marta", "diego"])), true);
+});
+
 test("el compañero sugerido es con quien más ha jugado", () => {
   const results = [
     match("m1", ["ana", "luis"], ["x1", "x2"], "A"),

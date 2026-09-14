@@ -100,6 +100,7 @@ function RootLayoutContent() {
               <Stack.Screen name="private-leagues" options={{ title: t("profile.privateLeagues") }} />
               <Stack.Screen name="private-league" options={{ title: t("nav.privateLeague") }} />
               <Stack.Screen name="invite" options={{ title: t("nav.inviteFriends") }} />
+              <Stack.Screen name="progress" options={{ title: t("progress.title") }} />
               <Stack.Screen
                 name="assistant"
                 options={{

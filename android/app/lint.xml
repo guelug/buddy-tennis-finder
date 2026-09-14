@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+  <!-- React Native reads these resources dynamically in AndroidInfoHelpers. -->
+  <issue id="UnusedResources">
+    <ignore regexp="react_native_dev_server_(ip|port)" />
+  </issue>
+  <!-- Expo keeps the v26 qualifier for the adaptive icon source set. -->
+  <issue id="ObsoleteSdkInt">
+    <ignore path="src/main/res/mipmap-anydpi-v26" />
+  </issue>
+</lint>

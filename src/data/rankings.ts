@@ -191,6 +191,10 @@ export function buildDoublesRankings(
     }
 
     const entries = Array.from(records.entries())
+      // Un resultado histórico puede conservar un identificador anónimo tras
+      // borrar una cuenta. Esa pareja no debe reaparecer como "Jugador" en la
+      // tabla pública, aunque el rival sí conserve su resultado agregado.
+      .filter(([, record]) => record.playerIds.every((id) => playerNames.has(id)))
       .map(([key, record]) => {
         const played = record.wins + record.losses;
         return {

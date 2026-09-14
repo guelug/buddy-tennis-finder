@@ -278,6 +278,8 @@
 			<string>3qcr597p9d.skadnetwork</string>
 		</dict>
 	</array>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Tu permiso permite mostrar anuncios más relevantes y medir su rendimiento. Puedes rechazarlo y seguir usando la app.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>SplashScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

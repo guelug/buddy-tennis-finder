@@ -3,6 +3,7 @@ import { tournaments, publicLeagueForDivision, publicLeagueIdsFor } from "@/data
 import { DIVISION_LABELS } from "@/data/rankings";
 import { getHomeData } from "@/lib/app-api";
 import { detectIdentityIntent, identityAnswerText } from "@/lib/assistant-identity";
+import { assistantMatchSummary, deduplicateInFlight } from "@/lib/assistant-runtime";
 import { getMatchRooms, scoreLine } from "@/lib/match-room";
 import type { Club, MatchProposal, MatchRoom, Player } from "@/types";
 
@@ -66,24 +67,20 @@ export async function getAssistantContext(uid?: string): Promise<AssistantContex
   // tarde la más lenta en vez de la suma de ambas.
   const [home, roomsIfKnown] = await Promise.all([
     getHomeData(undefined, uid),
-    uid ? getMatchRooms(uid).catch(() => [] as MatchRoom[]) : Promise.resolve(null)
+    uid ? getMatchRooms(uid) : Promise.resolve(null)
   ]);
   const player = home.currentPlayer;
   const playerId = uid ?? player.id;
-  const rooms = roomsIfKnown ?? await getMatchRooms(playerId).catch(() => [] as MatchRoom[]);
+  const rooms = roomsIfKnown ?? await getMatchRooms(playerId);
 
   const acceptedMatches = home.proposals.filter((match) => match.status === "accepted");
   const upcomingMatches = acceptedMatches
     .filter((match) => new Date(match.startsAt).getTime() > Date.now())
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
 
-  const recentResults = rooms
-    .filter((room) => Boolean(room.result))
-    .slice(0, 5)
+  const { wins, losses, recentRooms } = assistantMatchSummary(rooms, playerId);
+  const recentResults = recentRooms
     .map((room) => describeRoom(room, playerId, home.clubs));
-
-  // Solo los partidos validados por el rival cuentan como victoria o derrota.
-  const validated = recentResults.filter((line) => line.validated);
 
   // Ranking provisional: mismo criterio que la pestaña Ranking (perfiles
   // reales y completos de la división, ordenados por nombre) para no dar
@@ -113,32 +110,19 @@ export async function getAssistantContext(uid?: string): Promise<AssistantContex
     ranking: rankIndex >= 0 ? { rank: rankIndex + 1, total: divisionPeers.length } : null,
     // Nunca inferimos victorias de perfiles o datos de demostración: solo
     // cuentan los resultados que el rival ha confirmado.
-    wins: validated.filter((line) => line.won === true).length,
-    losses: validated.filter((line) => line.won === false).length
+    wins,
+    losses
   };
 }
 
-/**
- * La disponibilidad del modelo no cambia mientras la app está abierta, pero
- * consultarla cruza el puente nativo y en iOS despierta la sesión de Apple
- * Intelligence, que es lenta la primera vez. Se pedía en cada apertura del
- * asistente y además en cada pregunta; ahora se resuelve una sola vez y se
- * reutiliza la misma promesa.
- */
-let availabilityCache: Promise<LocalAIAvailability> | null = null;
-
-export function getLocalAIAvailability(): Promise<LocalAIAvailability> {
-  if (availabilityCache) return availabilityCache;
-  availabilityCache = (async () => {
+export const getLocalAIAvailability = deduplicateInFlight(async (): Promise<LocalAIAvailability> => {
     if (!LocalAI) return { available: false, provider: "fallback", reason: "Modelo local no incluido en esta plataforma" } as LocalAIAvailability;
     try {
       return await LocalAI.getAvailability();
     } catch {
       return { available: false, provider: "fallback", reason: "Modelo local no disponible" } as LocalAIAvailability;
     }
-  })();
-  return availabilityCache;
-}
+});
 
 /**
  * Contexto que se envía al modelo local. Va como JSON explícito y etiquetado
@@ -174,7 +158,8 @@ function groundedPrompt(question: string, context: AssistantContext, languageNam
       club: line.clubName ?? null,
       validadoPorElRival: line.validated
     })),
-    proximos_partidos: context.upcomingMatches.map((match) => ({
+    total_proximos_partidos: context.upcomingMatches.length,
+    proximos_partidos: context.upcomingMatches.slice(0, 5).map((match) => ({
       fecha: match.startsAt,
       club: context.clubs.find((club) => club.id === match.clubId)?.name ?? match.clubId,
       pista: match.court,

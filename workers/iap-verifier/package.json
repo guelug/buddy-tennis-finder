@@ -6,15 +6,15 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "types:check": "wrangler types worker-configuration.d.ts --env-interface WorkerBindings --check",
+    "typecheck": "npm run types:check && tsc --noEmit"
   },
   "dependencies": {
-    "jose": "6.2.4"
+    "jose": "^6.2.8"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260728.1",
     "typescript": "7.0.2",
     "vitest": "4.1.10",
-    "wrangler": "4.115.0"
+    "wrangler": "^4.121.0"
   }
 }

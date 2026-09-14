@@ -14,6 +14,7 @@ import {
   type Unsubscribe
 } from "@react-native-firebase/firestore";
 import { joinPrivateLeagueSecure } from "@/lib/secure-backend";
+import { coachAdLifecycle, effectiveCoachAd } from "@/lib/coach-ad-lifecycle";
 import type {
   CoachAd,
   CoachAdPlan,
@@ -86,10 +87,10 @@ export function subscribeToActiveCoachAds(
   return onSnapshot(
     query(collection(db, "coachAds"), where("status", "==", "active")),
     (snapshot) => {
-      const now = Date.now();
+      const now = new Date();
       const ads = snapshot.docs
         .map((item) => normalizeCoachAd(item.id, item.data()))
-        .filter((item) => !item.expiresAt || new Date(item.expiresAt).getTime() > now)
+        .filter((item) => coachAdLifecycle(item, now) !== "expired")
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
       onNext(ads);
     },
@@ -97,16 +98,16 @@ export function subscribeToActiveCoachAds(
   );
 }
 
-export function subscribeToMyCoachAds(uid: string, onNext: (ads: CoachAd[]) => void): Unsubscribe {
+export function subscribeToMyCoachAds(uid: string, onNext: (ads: CoachAd[]) => void, onError?: (error: Error) => void): Unsubscribe {
   if (!isFirebaseConfigured) {
     onNext([]);
     return () => {};
   }
   return onSnapshot(query(collection(db, "coachAds"), where("ownerId", "==", uid)), (snapshot) => {
     onNext(snapshot.docs
-      .map((item) => normalizeCoachAd(item.id, item.data()))
+      .map((item) => effectiveCoachAd(normalizeCoachAd(item.id, item.data())))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
-  });
+  }, (error) => onError?.(error));
 }
 
 export async function getCoachAd(adId: string): Promise<CoachAd | null> {
@@ -124,7 +125,7 @@ export async function createCoachAdDraft(
   if (!isFirebaseConfigured || !uid) throw new Error("Inicia sesión para publicar tu anuncio.");
   if (owner.id !== uid) throw new Error("El perfil no coincide con la sesión activa.");
   if (!input.headline.trim() || !input.bio.trim()) throw new Error("Añade un titular y una presentación.");
-  if (!contact.phone && !contact.whatsapp && !contact.email && !contact.website) {
+  if (![contact.phone, contact.whatsapp, contact.email, contact.website].some((value) => value?.trim())) {
     throw new Error("Añade al menos una forma de contacto.");
   }
 
@@ -172,7 +173,7 @@ export async function expressCoachInterest(adId: string, interested: Player): Pr
     ]);
     if (!adSnapshot.exists()) throw new Error("Este anuncio ya no está disponible.");
     const ad = normalizeCoachAd(adSnapshot.id, adSnapshot.data());
-    if (ad.status !== "active" || (ad.expiresAt && new Date(ad.expiresAt).getTime() <= Date.now())) {
+    if (ad.status !== "active" || coachAdLifecycle(ad) === "expired") {
       throw new Error("Este anuncio ha caducado.");
     }
     if (ad.ownerId === uid) throw new Error("Este es tu propio anuncio.");
